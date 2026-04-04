@@ -1,4 +1,4 @@
-const bars = Array.from({ length: 240 }, (_, i) => {
+const bars = Array.from({ length: 300 }, (_, i) => {
   const baseH = 12;
   const wave1 = Math.abs(Math.sin(i * 0.13)) * 90;
   const wave2 = Math.abs(Math.sin(i * 0.07 + 1.2)) * 40;
@@ -38,9 +38,6 @@ const WaveformBand = () => (
       height: 220,
       overflow: "hidden",
       pointerEvents: "none",
-      display: "flex",
-      alignItems: "flex-end",
-      gap: 4,
       zIndex: 1,
       maskImage: `
         linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 30%, transparent 100%),
@@ -54,23 +51,33 @@ const WaveformBand = () => (
       WebkitMaskComposite: "source-in" as any,
     }}
   >
-    {bars.map((b) => (
-      <div
-        key={b.i}
-        style={{
-          flex: 1,
-          maxWidth: 3,
-          borderRadius: 9999,
-          transformOrigin: "bottom center",
-          height: b.height,
-          backgroundColor: b.color,
-          opacity: b.opacity,
-          ["--wh" as any]: b.wh,
-          animation: `waveBar ${b.dur}s ease-in-out infinite`,
-          animationDelay: `${-(b.i * 0.022)}s`,
-        }}
-      />
-    ))}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      {bars.map((b) => (
+        <div
+          key={b.i}
+          style={{
+            flex: "0 1 3px",
+            maxWidth: 3,
+            borderRadius: 9999,
+            transformOrigin: "bottom center",
+            height: b.height,
+            backgroundColor: b.color,
+            opacity: b.opacity,
+            ["--wh" as any]: b.wh,
+            animation: `waveBar ${b.dur}s ease-in-out infinite`,
+            animationDelay: `${-(b.i * 0.022)}s`,
+          }}
+        />
+      ))}
+    </div>
   </div>
 );
 
