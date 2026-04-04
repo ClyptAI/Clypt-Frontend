@@ -105,7 +105,7 @@ const AnimatedCounter = ({
     return () => obs.disconnect();
   }, [target]);
 
-  const display = target >= 1000 ? `${(value / 1000).toFixed(1)}K+` : `${value}${suffix}`;
+  const display = target >= 1000 ? `${(value / 1000).toFixed(target >= 10000 ? 0 : 1)}K+` : `${value}${suffix}`;
 
   return (
     <div ref={ref} className="flex flex-col items-center">
