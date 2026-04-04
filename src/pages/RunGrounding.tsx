@@ -694,8 +694,7 @@ function isShotIntentComplete(si: ShotIntent, speakers: number[]): boolean {
 
 const SPEAKER_NAMES: Record<number, string> = { 0: "Rithvik — Host", 1: "Speaker_01", 2: "Speaker_02" };
 
-/* ── Camera Intent Panel ── */
-function CameraIntentPanel() {
+const CameraIntentPanel = () => {
   const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -708,71 +707,115 @@ function CameraIntentPanel() {
     setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
   };
 
-  const scrollToCard = (idx: number) => {
-    cardRefs.current[idx]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  };
-
   return (
-    <div style={{ height: 200, flexShrink: 0, background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {/* Panel header */}
-      <div style={{ height: 40, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 16px", justifyContent: "space-between", borderBottom: "1px solid var(--color-border-subtle)" }}>
+    <div
+      style={{
+        height: 200,
+        flexShrink: 0,
+        background: "var(--color-surface-1)",
+        borderTop: "1px solid var(--color-border)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: 40,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 16px",
+          justifyContent: "space-between",
+          borderBottom: "1px solid var(--color-border-subtle)",
+        }}
+      >
         <span className="label-caps">Camera intent</span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: completedCount === SHOTS.length ? "var(--color-green)" : "var(--color-amber)" }}>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 12,
+            color: completedCount === SHOTS.length ? "var(--color-green)" : "var(--color-amber)",
+          }}
+        >
           {completedCount}/{SHOTS.length} shots
         </span>
       </div>
 
-      {/* Panel body — horizontal scroll */}
       <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", display: "flex", gap: 0, alignItems: "stretch" }}>
         {SHOTS.map((shot, i) => {
           const si = intents[i] ?? { intent: "Follow" as IntentType };
           const complete = isShotIntentComplete(si, shot.speakers);
           const hasIntent = !!si.intent;
+
           return (
             <div
               key={shot.idx}
-              ref={(el) => { cardRefs.current[i] = el; }}
-              style={{ minWidth: 240, maxWidth: 280, flexShrink: 0, display: "flex", flexDirection: "column", padding: "10px 14px", borderRight: "1px solid var(--color-border-subtle)", gap: 8 }}
+              ref={(el) => {
+                cardRefs.current[i] = el;
+              }}
+              style={{
+                minWidth: 240,
+                maxWidth: 280,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                padding: "10px 14px",
+                borderRight: "1px solid var(--color-border-subtle)",
+                gap: 8,
+              }}
             >
-              {/* Shot label row */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                 <div style={{ width: 32, height: 18, borderRadius: 2, background: "var(--color-surface-3)", flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)" }}>Shot {shot.idx}</span>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)" }}>{shot.timeStart.split('.')[0]} – {shot.timeEnd.split('.')[0]}</span>
+                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)" }}>
+                  Shot {shot.idx}
+                </span>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+                  {shot.timeStart.split(".")[0]} – {shot.timeEnd.split(".")[0]}
+                </span>
               </div>
 
-              {/* Intent selector pills */}
               <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
                 {INTENT_OPTIONS.map((opt) => {
                   const active = si.intent === opt;
+
                   return (
                     <button
                       key={opt}
                       onClick={() => updateIntent(i, { intent: opt })}
                       style={{
-                        height: 26, padding: "0 8px", borderRadius: 4,
-                        fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
+                        height: 26,
+                        padding: "0 8px",
+                        borderRadius: 4,
+                        fontFamily: "'Bricolage Grotesque', sans-serif",
+                        fontWeight: 500,
+                        fontSize: 11,
                         background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
                         color: active ? "var(--color-violet)" : "var(--color-text-muted)",
                         border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
-                        cursor: "pointer", transition: "all 100ms",
+                        cursor: "pointer",
+                        transition: "all 100ms",
                       }}
-                    >{opt}</button>
+                    >
+                      {opt}
+                    </button>
                   );
                 })}
               </div>
 
-              {/* Intent configuration */}
               <div style={{ flex: 1, overflow: "hidden" }}>
                 <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} />
               </div>
 
-              {/* Completeness dot */}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: complete ? "var(--color-green)" : hasIntent ? "var(--color-amber)" : "var(--color-surface-3)",
-                }} />
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: complete ? "var(--color-green)" : hasIntent ? "var(--color-amber)" : "var(--color-surface-3)",
+                  }}
+                />
               </div>
             </div>
           );
@@ -780,7 +823,7 @@ function CameraIntentPanel() {
       </div>
     </div>
   );
-}
+};
 
 /* ── Intent Config sub-component ── */
 function IntentConfig({ intent, shot, onChange }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void }) {
