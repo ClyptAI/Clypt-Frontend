@@ -1046,6 +1046,14 @@ const CameraIntentPanel = () => {
           );
         })}
       </div>
+      {cropModal !== null && (
+        <ManualCropModal
+          shotIdx={cropModal}
+          initial={manualCrops[cropModal]}
+          onSave={handleSaveCrop}
+          onClose={() => setCropModal(null)}
+        />
+      )}
     </div>
   );
 };
