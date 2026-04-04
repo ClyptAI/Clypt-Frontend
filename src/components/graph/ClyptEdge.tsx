@@ -37,29 +37,43 @@ function ClyptEdgeComponent({
   const edgeLabel = (data?.label as string) ?? (label as string) ?? "";
   const color = edgeColorMap[edgeLabel] ?? "rgba(167,139,250,0.7)";
   const isDashed =
-    data?.animated === true ||
     data?.dashed === true ||
     edgeLabel === "callback_to" ||
     edgeLabel === "topic_recurrence";
-  const shouldStream = data?.animated === true || edgeLabel === "callback_to";
+
+  // Hover flags from parent graph component
+  const isHoverHighlighted = !!(data as any)?._isHoverHighlighted;
+  const isEdgeHovered = !!(data as any)?._isEdgeHovered;
+  const hasHover = !!(data as any)?._hasHover;
+
+  const showGlow = isHoverHighlighted || isEdgeHovered;
+  const isDimmed = hasHover && !isHoverHighlighted && !isEdgeHovered;
+
+  // Ambient streaming for animated edges (callback_to etc) — subtle always-on
+  const isAmbientAnimated = data?.animated === true && !showGlow;
+
+  const edgeOpacity = showGlow ? 1.0 : isDimmed ? 0.1 : 0.55;
 
   return (
-    <g>
-      {/* Glow halo */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke={color}
-        strokeWidth={6}
-        strokeOpacity={0.15}
-        strokeLinecap="round"
-      />
+    <g style={{ transition: "opacity 150ms ease" }} opacity={edgeOpacity}>
+      {/* Glow halo — only on hover */}
+      {showGlow && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke={color}
+          strokeWidth={6}
+          strokeOpacity={0.3}
+          strokeLinecap="round"
+          style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+        />
+      )}
       {/* Main edge line */}
       <BaseEdge
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: isDashed ? 1 : 1.5,
+          strokeWidth: showGlow ? 2.5 : isDashed ? 1 : 1.5,
           strokeDasharray: isDashed ? "6 4" : undefined,
         }}
       />
@@ -90,10 +104,16 @@ function ClyptEdgeComponent({
           </div>
         </foreignObject>
       )}
-      {/* Streaming dot */}
-      {shouldStream && (
+      {/* Streaming dot — on hover */}
+      {showGlow && (
         <circle r={3} fill={color} style={{ filter: `drop-shadow(0 0 4px ${color})` }}>
-          <animateMotion dur="2.5s" repeatCount="indefinite" path={edgePath} />
+          <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+        </circle>
+      )}
+      {/* Ambient streaming dot for animated edges (callback_to etc) */}
+      {isAmbientAnimated && (
+        <circle r={2.5} fill={color} opacity={0.4} style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
+          <animateMotion dur="3s" repeatCount="indefinite" path={edgePath} />
         </circle>
       )}
     </g>
