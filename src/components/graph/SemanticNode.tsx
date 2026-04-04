@@ -38,6 +38,7 @@ function SemanticNode({ data, selected }: NodeProps) {
         minWidth: 180,
         maxWidth: 220,
         borderRadius: 8,
+        opacity: d.dimmed ? 0.2 : 1,
         background: selected || hovered ? "var(--color-surface-2)" : "var(--color-surface-1)",
         border: selected ? `1px solid ${color}b3` : "1px solid var(--color-border)",
         borderLeft: `3px solid ${color}`,
