@@ -10,6 +10,7 @@ export default function LandingClipDemo() {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [scanDone, setScanDone] = useState(false);
+  const [entranceDone, setEntranceDone] = useState(false);
 
   return (
     <div ref={ref}>
@@ -83,6 +84,9 @@ export default function LandingClipDemo() {
             initial={{ opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0, ease }}
+            onAnimationComplete={() => {
+              if (isInView && !entranceDone) setEntranceDone(true);
+            }}
             style={{
               width: 180,
               aspectRatio: "9/16",
@@ -90,11 +94,33 @@ export default function LandingClipDemo() {
               overflow: "hidden",
               border: "1.5px solid rgba(167,139,250,0.5)",
               background: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
-              boxShadow: "0 0 40px rgba(167,139,250,0.12), 0 24px 48px rgba(0,0,0,0.6)",
               position: "relative",
               flexShrink: 0,
             }}
           >
+            {/* Animated box-shadow glow wrapper */}
+            <motion.div
+              style={{
+                position: "absolute",
+                inset: -2,
+                borderRadius: 14,
+                pointerEvents: "none",
+                zIndex: -1,
+              }}
+              animate={
+                entranceDone
+                  ? {
+                      boxShadow: [
+                        "0 0 40px rgba(167,139,250,0.12), 0 24px 48px rgba(0,0,0,0.6)",
+                        "0 0 64px rgba(167,139,250,0.28), 0 24px 48px rgba(0,0,0,0.6)",
+                        "0 0 40px rgba(167,139,250,0.12), 0 24px 48px rgba(0,0,0,0.6)",
+                      ],
+                    }
+                  : {}
+              }
+              transition={{ duration: 3, ease: "easeInOut", repeat: Infinity, delay: 1.5 }}
+            />
+
             {/* Accent strip */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#A78BFA" }} />
 
@@ -118,8 +144,30 @@ export default function LandingClipDemo() {
             {/* RENDER READY badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={isInView && scanDone ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.3, delay: 0, ease }}
+              animate={
+                isInView && scanDone
+                  ? {
+                      opacity: 1,
+                      scale: 1,
+                      background: [
+                        "rgba(74,222,128,0.10)",
+                        "rgba(74,222,128,0.20)",
+                        "rgba(74,222,128,0.10)",
+                      ],
+                      boxShadow: [
+                        "0 0 0px rgba(74,222,128,0)",
+                        "0 0 8px rgba(74,222,128,0.3)",
+                        "0 0 0px rgba(74,222,128,0)",
+                      ],
+                    }
+                  : {}
+              }
+              transition={{
+                opacity: { duration: 0.3, delay: 0 },
+                scale: { duration: 0.3, delay: 0 },
+                background: { duration: 2.5, ease: "easeInOut", repeat: Infinity, delay: 1.3 },
+                boxShadow: { duration: 2.5, ease: "easeInOut", repeat: Infinity, delay: 1.3 },
+              }}
               style={{
                 position: "absolute",
                 top: 12,
@@ -136,7 +184,7 @@ export default function LandingClipDemo() {
               ✓ RENDER READY
             </motion.div>
 
-            {/* Waveform hint */}
+            {/* Waveform hint — breathing bars */}
             <div
               style={{
                 position: "absolute",
@@ -149,15 +197,30 @@ export default function LandingClipDemo() {
                 gap: 3,
               }}
             >
-              {[60, 80, 50].map((w, i) => (
-                <div
+              {[
+                { w: 60, h: 2, opRange: [0.10, 0.25], dur: 2.2, delay: 0 },
+                { w: 80, h: 4, opRange: [0.08, 0.20], dur: 3.0, delay: 0.7 },
+                { w: 50, h: 2, opRange: [0.10, 0.22], dur: 2.6, delay: 1.4 },
+              ].map((bar, i) => (
+                <motion.div
                   key={i}
+                  animate={
+                    entranceDone
+                      ? { opacity: [bar.opRange[0], bar.opRange[1], bar.opRange[0]] }
+                      : { opacity: 0.1 }
+                  }
+                  transition={
+                    entranceDone
+                      ? { duration: bar.dur, ease: "easeInOut", repeat: Infinity, delay: bar.delay }
+                      : {}
+                  }
                   style={{
-                    width: `${w}%`,
-                    height: i === 1 ? 4 : 2,
-                    background: "rgba(255,255,255,0.1)",
+                    width: `${bar.w}%`,
+                    height: bar.h,
+                    background: "rgba(255,255,255,1)",
                     borderRadius: 2,
                     maxWidth: 100,
+                    opacity: 0.1,
                   }}
                 />
               ))}
@@ -181,7 +244,7 @@ export default function LandingClipDemo() {
               style={{
                 position: "absolute",
                 left: 10,
-                bottom: 68,
+                bottom: 92,
                 display: "flex",
                 alignItems: "center",
                 gap: 5,
@@ -214,7 +277,7 @@ export default function LandingClipDemo() {
               style={{
                 position: "absolute",
                 left: 10,
-                bottom: 50,
+                bottom: 68,
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: 9,
                 background: "rgba(167,139,250,0.2)",
@@ -233,7 +296,7 @@ export default function LandingClipDemo() {
                 position: "absolute",
                 left: 10,
                 right: 10,
-                bottom: 24,
+                bottom: 34,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontWeight: 700,
                 fontSize: 11,
@@ -253,7 +316,7 @@ export default function LandingClipDemo() {
               style={{
                 position: "absolute",
                 right: 10,
-                bottom: 8,
+                bottom: 12,
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: 9,
                 color: "rgba(255,255,255,0.35)",
