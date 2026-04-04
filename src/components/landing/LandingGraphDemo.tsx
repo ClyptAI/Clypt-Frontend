@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
 import {
   ReactFlow,
   type Node,
@@ -11,8 +10,6 @@ import {
 import "@xyflow/react/dist/style.css";
 import DemoCardShell from "./DemoCardShell";
 import { ClyptEdge } from "@/components/graph/ClyptEdge";
-
-const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const TYPE_STYLES: Record<string, { border: string; pillBg: string; pillText: string }> = {
   claim: { border: "#A78BFA", pillBg: "rgba(167,139,250,0.15)", pillText: "#C4B5FD" },
@@ -29,17 +26,38 @@ const SIGNAL_COLORS: Record<string, string> = {
   retention: "#4ADE80",
 };
 
+const NODE_GLOW_BASE: Record<string, string> = {
+  claim: "rgba(167,139,250,",
+  explanation: "rgba(96,165,250,",
+  anecdote: "rgba(251,178,73,",
+  setup_payoff: "rgba(251,146,60,",
+  reaction_beat: "rgba(74,222,128,",
+  qa_exchange: "rgba(56,189,248,",
+};
+
 function ClyptNode({ data }: NodeProps) {
-  const d = data as { label: string; type: string; signals: string[] };
-  const s = TYPE_STYLES[d.type] || TYPE_STYLES.claim;
-  const nodeGlowMap: Record<string, string> = {
-    claim: "0 0 18px rgba(167,139,250,0.35)",
-    explanation: "0 0 18px rgba(96,165,250,0.30)",
-    anecdote: "0 0 18px rgba(251,178,73,0.30)",
-    setup_payoff: "0 0 18px rgba(251,146,60,0.30)",
-    reaction_beat: "0 0 18px rgba(74,222,128,0.30)",
-    qa_exchange: "0 0 18px rgba(56,189,248,0.30)",
+  const d = data as {
+    label: string;
+    type: string;
+    signals: string[];
+    _isHoverTarget?: boolean;
+    _isHoverConnected?: boolean;
+    _hasHover?: boolean;
   };
+  const s = TYPE_STYLES[d.type] || TYPE_STYLES.claim;
+  const base = NODE_GLOW_BASE[d.type] ?? "rgba(167,139,250,";
+
+  const isTarget = !!d._isHoverTarget;
+  const isConnected = !!d._isHoverConnected;
+  const hasHover = !!d._hasHover;
+  const isDimmed = hasHover && !isTarget && !isConnected;
+
+  const boxShadow = isTarget
+    ? `0 0 22px ${base}0.55), 0 0 8px ${base}0.4)`
+    : isConnected
+    ? `0 0 16px ${base}0.30)`
+    : "none";
+
   return (
     <div
       style={{
@@ -48,8 +66,9 @@ function ClyptNode({ data }: NodeProps) {
         borderRadius: 10,
         padding: "10px 12px",
         border: `1.5px solid ${s.border}`,
-        boxShadow: nodeGlowMap[d.type] ?? "0 0 14px rgba(255,255,255,0.12)",
-        transition: "box-shadow 200ms ease",
+        boxShadow,
+        opacity: isDimmed ? 0.2 : 1,
+        transition: "box-shadow 150ms ease, opacity 150ms ease",
       }}
     >
       <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
@@ -69,8 +88,8 @@ function ClyptNode({ data }: NodeProps) {
           {d.type}
         </span>
         {d.signals.length > 0 && (
-          <div style={{ display: "flex", gap: -4 }}>
-            {d.signals.map((sig) => (
+          <div style={{ display: "flex" }}>
+            {d.signals.map((sig, i) => (
               <div
                 key={sig}
                 style={{
@@ -78,7 +97,7 @@ function ClyptNode({ data }: NodeProps) {
                   height: 14,
                   borderRadius: "50%",
                   background: SIGNAL_COLORS[sig] ?? "#A78BFA",
-                  marginLeft: -4,
+                  marginLeft: i > 0 ? -4 : 0,
                 }}
               />
             ))}
@@ -136,66 +155,118 @@ const demoEdges: Edge[] = [
 const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reaction_beat"];
 
 export default function LandingGraphDemo() {
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+
+  const connectedNodeIds = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>();
+    const ids = new Set<string>();
+    demoEdges.forEach((e) => {
+      if (e.source === hoveredNodeId || e.target === hoveredNodeId) {
+        ids.add(e.source);
+        ids.add(e.target);
+      }
+    });
+    return ids;
+  }, [hoveredNodeId]);
+
+  const connectedEdgeIds = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>();
+    const ids = new Set<string>();
+    demoEdges.forEach((e) => {
+      if (e.source === hoveredNodeId || e.target === hoveredNodeId) ids.add(e.id);
+    });
+    return ids;
+  }, [hoveredNodeId]);
+
+  const displayNodes = useMemo(() => {
+    return demoNodes.map((n) => ({
+      ...n,
+      data: {
+        ...n.data,
+        _isHoverTarget: hoveredNodeId === n.id,
+        _isHoverConnected: hoveredNodeId ? connectedNodeIds.has(n.id) && hoveredNodeId !== n.id : false,
+        _hasHover: !!hoveredNodeId,
+      },
+    }));
+  }, [hoveredNodeId, connectedNodeIds]);
+
+  const displayEdges = useMemo(() => {
+    return demoEdges.map((e) => ({
+      ...e,
+      data: {
+        ...e.data,
+        _isHoverHighlighted: hoveredNodeId ? connectedEdgeIds.has(e.id) : false,
+        _isEdgeHovered: hoveredEdgeId === e.id,
+        _hasHover: !!hoveredNodeId || !!hoveredEdgeId,
+      },
+    }));
+  }, [hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
+
   return (
     <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto">
       <div style={{ maxWidth: 1100 }}>
-      <div
-        style={{
-          height: 420,
-          position: "relative",
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      >
-        <ReactFlow
-          nodes={demoNodes}
-          edges={demoEdges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          zoomOnScroll={false}
-          panOnScroll={false}
-          preventScrolling={false}
-          proOptions={{ hideAttribution: true }}
-          fitView
-          style={{ background: "transparent" }}
-        />
-      </div>
-      {/* Legend */}
-      <div
-        style={{
-          height: 40,
-          background: "rgba(10,9,9,0.7)",
-          backdropFilter: "blur(8px)",
-          borderTop: "1px solid rgba(255,255,255,0.07)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        {legendTypes.map((t) => {
-          const s = TYPE_STYLES[t];
-          return (
-            <span
-              key={t}
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 9,
-                letterSpacing: "0.05em",
-                background: s.pillBg,
-                borderRadius: 4,
-                padding: "2px 6px",
-                color: s.pillText,
-              }}
-            >
-              {t}
-            </span>
-          );
-        })}
-      </div>
+        <div
+          style={{
+            height: 420,
+            position: "relative",
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        >
+          <ReactFlow
+            nodes={displayNodes}
+            edges={displayEdges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            zoomOnScroll={false}
+            panOnScroll={false}
+            preventScrolling={false}
+            proOptions={{ hideAttribution: true }}
+            onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
+            onNodeMouseLeave={() => setHoveredNodeId(null)}
+            onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
+            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
+            fitView
+            style={{ background: "transparent" }}
+          />
+        </div>
+        {/* Legend */}
+        <div
+          style={{
+            height: 40,
+            background: "rgba(10,9,9,0.7)",
+            backdropFilter: "blur(8px)",
+            borderTop: "1px solid rgba(255,255,255,0.07)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          {legendTypes.map((t) => {
+            const s = TYPE_STYLES[t];
+            return (
+              <span
+                key={t}
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: 9,
+                  letterSpacing: "0.05em",
+                  background: s.pillBg,
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  color: s.pillText,
+                }}
+              >
+                {t}
+              </span>
+            );
+          })}
+        </div>
       </div>
     </DemoCardShell>
   );

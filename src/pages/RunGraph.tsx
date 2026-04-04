@@ -111,6 +111,32 @@ function GraphInner() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
+  // Hover state
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+
+  // Connected node/edge IDs
+  const connectedNodeIds = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>();
+    const ids = new Set<string>();
+    edges.forEach((e) => {
+      if (e.source === hoveredNodeId || e.target === hoveredNodeId) {
+        ids.add(e.source);
+        ids.add(e.target);
+      }
+    });
+    return ids;
+  }, [hoveredNodeId, edges]);
+
+  const connectedEdgeIds = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>();
+    const ids = new Set<string>();
+    edges.forEach((e) => {
+      if (e.source === hoveredNodeId || e.target === hoveredNodeId) ids.add(e.id);
+    });
+    return ids;
+  }, [hoveredNodeId, edges]);
+
   // Compute type counts
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -121,17 +147,40 @@ function GraphInner() {
   // Any signal filter active?
   const anySignalActive = signalFilters.trend || signalFilters.comment || signalFilters.retention;
 
-  // Apply dimming based on signal filters
+  // Build display nodes with hover + signal flags
   const displayNodes = useMemo(() => {
-    if (!anySignalActive) return nodes.map((n) => ({ ...n, data: { ...n.data, dimmed: false } }));
     return nodes.map((n) => {
       const tags: string[] = (n.data as any).signalTags ?? [];
-      const match = (signalFilters.trend && tags.includes("trend")) ||
-                    (signalFilters.comment && tags.includes("comment")) ||
-                    (signalFilters.retention && tags.includes("retention"));
-      return { ...n, data: { ...n.data, dimmed: !match } };
+      const signalDimmed = anySignalActive && !(
+        (signalFilters.trend && tags.includes("trend")) ||
+        (signalFilters.comment && tags.includes("comment")) ||
+        (signalFilters.retention && tags.includes("retention"))
+      );
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          dimmed: signalDimmed,
+          _isHoverTarget: hoveredNodeId === n.id,
+          _isHoverConnected: hoveredNodeId ? connectedNodeIds.has(n.id) && hoveredNodeId !== n.id : false,
+          _hasHover: !!hoveredNodeId,
+        },
+      };
     });
-  }, [nodes, anySignalActive, signalFilters]);
+  }, [nodes, anySignalActive, signalFilters, hoveredNodeId, connectedNodeIds]);
+
+  // Build display edges with hover flags
+  const displayEdges = useMemo(() => {
+    return edges.map((e) => ({
+      ...e,
+      data: {
+        ...e.data,
+        _isHoverHighlighted: hoveredNodeId ? connectedEdgeIds.has(e.id) : false,
+        _isEdgeHovered: hoveredEdgeId === e.id,
+        _hasHover: !!hoveredNodeId || !!hoveredEdgeId,
+      },
+    }));
+  }, [edges, hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
 
   const handleNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNode(node);
@@ -162,7 +211,7 @@ function GraphInner() {
         <EdgeMarkers />
         <ReactFlow
           nodes={displayNodes}
-          edges={edges}
+          edges={displayEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
@@ -170,6 +219,10 @@ function GraphInner() {
           onNodeClick={handleNodeClick}
           onEdgeClick={handleEdgeClick}
           onPaneClick={handlePaneClick}
+          onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
+          onNodeMouseLeave={() => setHoveredNodeId(null)}
+          onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
+          onEdgeMouseLeave={() => setHoveredEdgeId(null)}
           fitView
           minZoom={0.3}
           maxZoom={2.0}
