@@ -41,6 +41,7 @@ const App = () => (
             <Route path="/library" element={<Library />} />
             <Route path="/library/clips" element={<Library />} />
             <Route path="/runs/new" element={<NewRun />} />
+            <Route path="/runs/:id" element={<RunOverview />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
