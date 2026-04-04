@@ -1,7 +1,7 @@
 import { LayoutGrid, Film, Plus, Settings, ChevronDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import ClyptIcon from "./ClyptIcon";
+import ClyptLogo from "./ClyptLogo";
 
 const navItems = [
   { title: "Library", icon: LayoutGrid, path: "/library" },
@@ -24,11 +24,8 @@ export default function AppSidebar() {
       style={{ padding: "20px 12px" }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-[10px] px-[8px] pb-[20px] border-b border-[var(--color-border-subtle)]">
-        <ClyptIcon />
-        <span className="font-heading font-bold text-[16px] tracking-[-0.02em] text-[var(--color-text-primary)]">
-          clypt
-        </span>
+      <div className="flex items-center px-[8px] pb-[20px] border-b border-[var(--color-border-subtle)]" style={{ padding: "16px 14px", paddingBottom: 20 }}>
+        <ClyptLogo size="sm" />
       </div>
 
       {/* Nav */}
