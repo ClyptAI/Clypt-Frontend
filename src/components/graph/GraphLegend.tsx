@@ -26,7 +26,7 @@ export default function GraphLegend({ typeCounts }: GraphLegendProps) {
     <div
       style={{
         position: "absolute",
-        bottom: 64,
+        bottom: 72,
         left: 16,
         zIndex: 20,
         background: "var(--color-surface-1)",

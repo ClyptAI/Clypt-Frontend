@@ -118,12 +118,6 @@ function RhetoricalEdge({
           <animateMotion dur="2s" repeatCount="indefinite" path={path} />
         </circle>
       )}
-      {/* Ambient streaming dot on strong arcs */}
-      {isStrongArc && !hovered && (
-        <circle r={2.5} fill={color} opacity={0.5} style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
-          <animateMotion dur="3.5s" repeatCount="indefinite" path={path} />
-        </circle>
-      )}
     </g>
   );
 }
