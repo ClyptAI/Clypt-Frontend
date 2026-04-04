@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
 import HowItWorks from "@/components/landing/HowItWorks";
+import PipelineDemos from "@/components/landing/PipelineDemos";
 import ClipShowcase from "@/components/landing/ClipShowcase";
 import TryItBar from "@/components/landing/TryItBar";
 import Footer from "@/components/landing/Footer";
@@ -41,6 +42,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <HowItWorks />
+      <PipelineDemos />
       <ClipShowcase />
       <TryItBar />
       <Footer />
