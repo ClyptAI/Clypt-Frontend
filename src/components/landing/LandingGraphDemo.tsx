@@ -104,11 +104,6 @@ function DemoEdge(props: EdgeProps) {
   return (
     <g>
       <BaseEdge
-        {...rest}
-        sourceX={sourceX}
-        sourceY={sourceY}
-        targetX={targetX}
-        targetY={targetY}
         path={path}
         style={{
           stroke: isDashed ? "rgba(167,139,250,0.25)" : "rgba(167,139,250,0.35)",
