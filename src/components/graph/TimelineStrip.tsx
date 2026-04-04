@@ -129,21 +129,6 @@ export default function TimelineStrip({ nodes }: TimelineStripProps) {
           })
         )}
 
-        {/* Viewport scrubber */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "20%",
-            width: "30%",
-            minWidth: 40,
-            height: "100%",
-            background: "rgba(167,139,250,0.15)",
-            border: "1px solid rgba(167,139,250,0.4)",
-            borderRadius: 4,
-            cursor: "grab",
-          }}
-        />
       </div>
     </div>
   );
