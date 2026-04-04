@@ -32,6 +32,14 @@ const SIGNAL_COLORS: Record<string, string> = {
 function ClyptNode({ data }: NodeProps) {
   const d = data as { label: string; type: string; signals: string[] };
   const s = TYPE_STYLES[d.type] || TYPE_STYLES.claim;
+  const nodeGlowMap: Record<string, string> = {
+    claim: "0 0 18px rgba(167,139,250,0.35)",
+    explanation: "0 0 18px rgba(96,165,250,0.30)",
+    anecdote: "0 0 18px rgba(251,178,73,0.30)",
+    setup_payoff: "0 0 18px rgba(251,146,60,0.30)",
+    reaction_beat: "0 0 18px rgba(74,222,128,0.30)",
+    qa_exchange: "0 0 18px rgba(56,189,248,0.30)",
+  };
   return (
     <div
       style={{
@@ -40,6 +48,8 @@ function ClyptNode({ data }: NodeProps) {
         borderRadius: 10,
         padding: "10px 12px",
         border: `1.5px solid ${s.border}`,
+        boxShadow: nodeGlowMap[d.type] ?? "0 0 14px rgba(255,255,255,0.12)",
+        transition: "box-shadow 200ms ease",
       }}
     >
       <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
