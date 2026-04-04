@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import ClyptLogo from "@/components/app/ClyptLogo";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const NodeGraph = () => (
   <svg width="280" height="220" viewBox="0 0 280 220" fill="none" className="opacity-85">

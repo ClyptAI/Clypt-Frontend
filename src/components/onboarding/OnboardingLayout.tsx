@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import ClyptLogo from "@/components/app/ClyptLogo";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const stepLabels = ["Channel", "Analyzing", "Brand Profile", "Preferences", "Voiceprints", "Ready"];
 

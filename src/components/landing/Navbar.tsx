@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import ClyptMark from "@/components/app/ClyptMark";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const Navbar = () => {
   const [hovered, setHovered] = useState(false);
