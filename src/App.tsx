@@ -20,6 +20,7 @@ import RunTimeline from "./pages/RunTimeline.tsx";
 import RunGraph from "./pages/RunGraph.tsx";
 import RunClips from "./pages/RunClips.tsx";
 import RunGrounding from "./pages/RunGrounding.tsx";
+import RunRender from "./pages/RunRender.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/runs/:id/clips" element={<RunClips />} />
             <Route path="/runs/:id/grounding/:clipId" element={<RunGrounding />} />
             <Route path="/runs/:id/grounding" element={<RunGrounding />} />
+            <Route path="/runs/:id/render" element={<RunRender />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
