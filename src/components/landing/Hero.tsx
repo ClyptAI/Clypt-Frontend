@@ -29,7 +29,7 @@ const clipCards = [
     label: "setup_payoff",
     title: "The moment before the pivot",
     time: "1:24",
-    position: { left: "15%", top: "5%" } as React.CSSProperties,
+    position: { left: "12%", top: "10%" } as React.CSSProperties,
     rotate: -9,
     width: 120,
     floatY: [0, -14, 0],
@@ -59,7 +59,7 @@ const clipCards = [
     label: "claim",
     title: "Why this always works",
     time: "8:42",
-    position: { right: "15%", top: "4%" } as React.CSSProperties,
+    position: { right: "12%", top: "9%" } as React.CSSProperties,
     rotate: 7,
     width: 120,
     floatY: [0, -16, 0],
@@ -280,7 +280,7 @@ const Hero = () => {
 
         {/* Line 1 */}
         <motion.div
-          className="flex gap-[0.3em] flex-wrap justify-center"
+          className="flex gap-[0.35em] flex-wrap justify-center"
           variants={lineContainer(0.2)}
           initial="hidden"
           animate="visible"
@@ -304,7 +304,7 @@ const Hero = () => {
 
         {/* Line 2 */}
         <motion.div
-          className="flex gap-[0.3em] flex-wrap justify-center mt-1"
+          className="flex gap-[0.35em] flex-wrap justify-center mt-1"
           variants={lineContainer(0.35)}
           initial="hidden"
           animate="visible"
