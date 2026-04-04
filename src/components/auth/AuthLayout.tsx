@@ -117,12 +117,12 @@ const authNodes: Node[] = [
 ];
 
 const authEdges: Edge[] = [
-  { id: "ae1-2", source: "1", target: "2", type: "authEdge", label: "supports" },
-  { id: "ae1-3", source: "1", target: "3", type: "authEdge", label: "setup_for" },
-  { id: "ae2-4", source: "2", target: "4", type: "authEdge", label: "elaborates" },
-  { id: "ae3-5", source: "3", target: "5", type: "authEdge", label: "payoff_of" },
-  { id: "ae4-6", source: "4", target: "6", type: "authEdge", label: "triggers" },
-  { id: "ae1-4", source: "1", target: "4", type: "authEdge", label: "callback_to", data: { dashed: true } },
+  { id: "ae1-2", source: "1", target: "2", type: "clyptEdge", data: { label: "supports" } },
+  { id: "ae1-3", source: "1", target: "3", type: "clyptEdge", data: { label: "setup_for" } },
+  { id: "ae2-4", source: "2", target: "4", type: "clyptEdge", data: { label: "elaborates" } },
+  { id: "ae3-5", source: "3", target: "5", type: "clyptEdge", data: { label: "payoff_of" } },
+  { id: "ae4-6", source: "4", target: "6", type: "clyptEdge", data: { label: "triggers" } },
+  { id: "ae1-4", source: "1", target: "4", type: "clyptEdge", data: { label: "callback_to", dashed: true, animated: true } },
 ];
 
 const AuthLayout = ({ children }: { children: ReactNode }) => {
