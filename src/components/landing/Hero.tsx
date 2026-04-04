@@ -29,7 +29,7 @@ const clipCards = [
     label: "setup_payoff",
     title: "The moment before the pivot",
     time: "1:24",
-    position: { left: "15%", top: "5%" } as React.CSSProperties,
+    position: { left: "12%", top: "10%" } as React.CSSProperties,
     rotate: -9,
     width: 120,
     floatY: [0, -14, 0],
