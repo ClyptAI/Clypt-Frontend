@@ -64,8 +64,18 @@ function SemanticNode({ data, selected }: NodeProps) {
         >
           {d.node_type}
         </span>
-        {/* Signal tag placeholder */}
-        <div style={{ display: "flex", gap: 4 }} />
+        {/* Signal tag badges */}
+        <div style={{ display: "flex", gap: 4 }}>
+          {d.signalTags?.includes("trend") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FB923C", flexShrink: 0 }} />
+          )}
+          {d.signalTags?.includes("comment") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#60A5FA", flexShrink: 0 }} />
+          )}
+          {d.signalTags?.includes("retention") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
+          )}
+        </div>
       </div>
 
       {/* Timestamp */}
