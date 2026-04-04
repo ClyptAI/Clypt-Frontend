@@ -17,6 +17,7 @@ import Library from "./pages/Library.tsx";
 import NewRun from "./pages/NewRun.tsx";
 import RunOverview from "./pages/RunOverview.tsx";
 import RunTimeline from "./pages/RunTimeline.tsx";
+import RunGraph from "./pages/RunGraph.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
