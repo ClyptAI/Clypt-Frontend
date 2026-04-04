@@ -21,6 +21,9 @@ import RunGraph from "./pages/RunGraph.tsx";
 import RunClips from "./pages/RunClips.tsx";
 import RunGrounding from "./pages/RunGrounding.tsx";
 import RunRender from "./pages/RunRender.tsx";
+import SettingsLayout from "./components/settings/SettingsLayout.tsx";
+import SettingsProfile from "./pages/SettingsProfile.tsx";
+import SettingsVoiceprints from "./pages/SettingsVoiceprints.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -53,6 +56,10 @@ const App = () => (
             <Route path="/runs/:id/grounding/:clipId" element={<RunGrounding />} />
             <Route path="/runs/:id/grounding" element={<RunGrounding />} />
             <Route path="/runs/:id/render" element={<RunRender />} />
+            <Route path="/settings" element={<SettingsLayout />}>
+              <Route index element={<SettingsProfile />} />
+              <Route path="voiceprints" element={<SettingsVoiceprints />} />
+            </Route>
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
