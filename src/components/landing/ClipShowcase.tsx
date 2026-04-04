@@ -2,12 +2,21 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
-const wordEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
+
+const signalColors: Record<string, string> = {
+  claim: "#A78BFA",
+  "q&a": "#60A5FA",
+  qa_exchange: "#60A5FA",
+  setup: "#FBB249",
+  setup_payoff: "#FBB249",
+  anecdote: "#FBB249",
+  challenge: "#F87171",
+  challenge_exchange: "#F87171",
+};
 
 const cards = [
   {
     gradient: "linear-gradient(170deg, #12091f 0%, #0a0a14 50%, #14090c 100%)",
-    accent: "#A78BFA",
     nodeLabel: "claim",
     time: "0:18",
     title: "Why most editing tools get this wrong",
@@ -15,7 +24,6 @@ const cards = [
   },
   {
     gradient: "linear-gradient(170deg, #0f1a10 0%, #090f0a 50%, #0c0c0a 100%)",
-    accent: "#4ADE80",
     nodeLabel: "q&a",
     time: "1:42",
     title: "The audience question that changed everything",
@@ -23,7 +31,6 @@ const cards = [
   },
   {
     gradient: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
-    accent: "#E879F9",
     nodeLabel: "setup",
     time: "3:05",
     title: "Building tension before the reveal moment",
@@ -32,7 +39,6 @@ const cards = [
   },
   {
     gradient: "linear-gradient(170deg, #1a1000 0%, #0f0c00 50%, #0a0908 100%)",
-    accent: "#FBB249",
     nodeLabel: "anecdote",
     time: "4:28",
     title: "The story behind the original concept",
@@ -40,7 +46,6 @@ const cards = [
   },
   {
     gradient: "linear-gradient(170deg, #1a0a00 0%, #100800 50%, #0c0806 100%)",
-    accent: "#FB923C",
     nodeLabel: "challenge",
     time: "5:51",
     title: "Pushing back on conventional wisdom",
@@ -56,13 +61,22 @@ const cardTransforms = [
   { tx: 40, ry: -18, rz: 3, s: 0.88 },
 ];
 
-// Stagger order: center first, then outward
 const staggerOrder = [2, 1, 3, 0, 4];
 
-const headingWords = ["Clips", "that", "stand", "alone."];
-
-/* ── Animated counter ── */
-const AnimatedCounter = ({ target, suffix, label }: { target: number; suffix: string; label: string }) => {
+/* ── Count-up hook ── */
+const AnimatedCounter = ({
+  target,
+  suffix,
+  label,
+  color,
+  shadow,
+}: {
+  target: number;
+  suffix: string;
+  label: string;
+  color: string;
+  shadow: string;
+}) => {
   const [value, setValue] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const started = useRef(false);
@@ -78,7 +92,7 @@ const AnimatedCounter = ({ target, suffix, label }: { target: number; suffix: st
           const dur = 1500;
           const tick = (now: number) => {
             const t = Math.min((now - start) / dur, 1);
-            const eased = 1 - Math.pow(1 - t, 3); // easeOut
+            const eased = 1 - Math.pow(1 - t, 3);
             setValue(Math.round(eased * target));
             if (t < 1) requestAnimationFrame(tick);
           };
@@ -91,52 +105,53 @@ const AnimatedCounter = ({ target, suffix, label }: { target: number; suffix: st
     return () => obs.disconnect();
   }, [target]);
 
-  const display = target >= 1000 ? `${(value / 1000).toFixed(1)}${suffix}` : `${value}${suffix}`;
+  const display = target >= 1000 ? `${(value / 1000).toFixed(1)}K+` : `${value}${suffix}`;
 
   return (
     <div ref={ref} className="flex flex-col items-center">
-      <span className="font-heading font-extrabold" style={{ fontSize: 36, color: "var(--color-text-primary)" }}>
+      <span
+        className="font-heading font-bold"
+        style={{ fontSize: 52, color, filter: `drop-shadow(${shadow})` }}
+      >
         {display}
       </span>
-      <span className="font-sans font-normal mt-1" style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+      <span className="font-sans" style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
         {label}
       </span>
     </div>
   );
 };
 
-/* ── ClipShowcase ── */
 const ClipShowcase = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   return (
-    <section className="py-24 px-10" style={{ background: "var(--color-surface-1)" }}>
-      {/* Header */}
-      <div className="text-center mb-16">
-        <p className="label-caps mb-3">What Clypt makes</p>
+    <section id="features" style={{ padding: "100px 24px" }}>
+      <div className="text-center" style={{ marginBottom: 56 }}>
         <motion.h2
-          className="font-heading font-extrabold text-[var(--color-text-primary)] flex justify-center gap-[0.3em] flex-wrap"
-          style={{ fontSize: 42 }}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } } }}
+          className="font-heading font-bold"
+          style={{ fontSize: 42, color: "#fff" }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease }}
         >
-          {headingWords.map((w, i) => (
-            <motion.span
-              key={i}
-              variants={{
-                hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
-                visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: wordEase } },
-              }}
-            >
-              {w}
-            </motion.span>
-          ))}
+          Clips that{" "}
+          <span style={{ color: "#A78BFA", filter: "drop-shadow(0 0 20px rgba(167,139,250,0.5))" }}>
+            stand
+          </span>{" "}
+          alone.
         </motion.h2>
-        <p className="font-sans font-normal mx-auto mt-3" style={{ color: "var(--color-text-secondary)", fontSize: 16, maxWidth: 480 }}>
+        <motion.p
+          className="font-sans mx-auto"
+          style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", maxWidth: 480, marginTop: 12 }}
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease, delay: 0.1 }}
+        >
           Every output is fully grounded — speaker-assigned, framed, and render-planned.
-        </p>
+        </motion.p>
       </div>
 
       {/* Card fan */}
@@ -147,9 +162,11 @@ const ClipShowcase = () => {
       >
         {cards.map((card, i) => {
           const t = cardTransforms[i];
+          const isCenter = i === 2;
           const isHovered = hoveredCard === i;
           const someHovered = hoveredCard !== null;
           const orderIdx = staggerOrder.indexOf(i);
+          const dotColor = signalColors[card.nodeLabel] || "#A78BFA";
 
           return (
             <motion.div
@@ -159,9 +176,14 @@ const ClipShowcase = () => {
               style={{
                 width: 160,
                 aspectRatio: "9/16",
-                borderRadius: 12,
+                borderRadius: 14,
                 overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.07)",
+                border: isCenter
+                  ? "1px solid rgba(167,139,250,0.5)"
+                  : "1px solid rgba(255,255,255,0.12)",
+                boxShadow: isCenter
+                  ? "0 0 60px -8px rgba(167,139,250,0.35), 0 32px 64px rgba(0,0,0,0.6)"
+                  : "0 32px 64px rgba(0,0,0,0.6)",
                 transformStyle: "preserve-3d",
               }}
               initial={{
@@ -177,7 +199,9 @@ const ClipShowcase = () => {
                 y: 0,
                 rotateY: isHovered ? t.ry * 0.5 : t.ry,
                 rotateZ: t.rz,
-                scale: isHovered ? t.s * 1.04 : someHovered && !isHovered ? t.s * 0.97 : t.s,
+                scale: isCenter
+                  ? isHovered ? 1.08 : 1.05
+                  : isHovered ? t.s * 1.04 : someHovered && !isHovered ? t.s * 0.97 : t.s,
                 translateX: t.tx,
                 translateZ: isHovered ? 20 : 0,
               }}
@@ -185,18 +209,7 @@ const ClipShowcase = () => {
               transition={{ duration: 0.9, ease, delay: orderIdx * 0.07 }}
               onMouseEnter={() => setHoveredCard(i)}
             >
-              {/* Background */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: card.featured
-                    ? `${card.gradient}, repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 4px)`
-                    : card.gradient,
-                }}
-              />
-
-              {/* Top accent strip */}
-              <div className="absolute top-0 left-0 right-0" style={{ height: 3, background: card.accent }} />
+              <div className="absolute inset-0" style={{ background: card.gradient }} />
 
               {/* Timestamp */}
               <div
@@ -214,54 +227,61 @@ const ClipShowcase = () => {
                 {card.time}
               </div>
 
-              {/* Bottom gradient overlay */}
+              {/* Bottom gradient */}
               <div
                 className="absolute bottom-0 left-0 right-0"
                 style={{ height: "50%", background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)" }}
               />
 
-              {/* Bottom content */}
-              <div className="absolute bottom-0 left-0 right-0 p-2.5 flex flex-col gap-1.5">
-                {/* Node chip */}
-                <div className="flex items-center gap-1">
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: card.accent }} />
-                  <span className="font-mono" style={{ fontSize: 10, color: card.accent }}>{card.nodeLabel}</span>
+              {/* Signal tag */}
+              <div
+                className="absolute bottom-2 left-2 right-2 flex flex-col gap-1"
+                style={{
+                  background: "rgba(0,0,0,0.7)",
+                  backdropFilter: "blur(4px)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor }} />
+                  <span className="font-mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>
+                    {card.nodeLabel}
+                  </span>
                 </div>
-                {/* Title */}
-                <span
-                  className="font-heading font-medium leading-tight"
-                  style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                >
+                <span className="font-sans font-medium" style={{ fontSize: 12, color: "#fff" }}>
                   {card.title}
                 </span>
-                {/* Duration */}
-                <span className="font-mono" style={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>{card.duration}</span>
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Dots */}
-      <div className="flex justify-center gap-2 mt-6">
-        {cards.map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full"
-            style={{
-              width: i === 2 ? 8 : 6,
-              height: i === 2 ? 8 : 6,
-              background: i === 2 ? "var(--color-violet)" : "var(--color-surface-3)",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Stats */}
-      <div className="flex justify-center gap-12 mt-14 max-w-[600px] mx-auto">
-        <AnimatedCounter target={2400} suffix="K+" label="Nodes constructed" />
-        <AnimatedCounter target={180} suffix="K+" label="Clips grounded" />
-        <AnimatedCounter target={99} suffix="ms" label="Median Phase 4 latency" />
+      {/* Stats row */}
+      <div className="flex justify-center items-center mx-auto" style={{ gap: 80, marginTop: 80 }}>
+        <AnimatedCounter
+          target={2400}
+          suffix="K+"
+          label="Nodes constructed"
+          color="#A78BFA"
+          shadow="0 0 16px rgba(167,139,250,0.4)"
+        />
+        <AnimatedCounter
+          target={180000}
+          suffix="K+"
+          label="Clips grounded"
+          color="#FBB249"
+          shadow="0 0 16px rgba(251,178,73,0.4)"
+        />
+        <AnimatedCounter
+          target={99}
+          suffix="ms"
+          label="Median Phase 4 latency"
+          color="#4ADE80"
+          shadow="0 0 16px rgba(74,222,128,0.35)"
+        />
       </div>
     </section>
   );

@@ -2,14 +2,37 @@ import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const Footer = () => {
   return (
-    <footer className="border-t border-[var(--color-border-subtle)] py-8 px-10">
-      <div className="flex items-center justify-between max-w-[1400px] mx-auto">
+    <footer
+      style={{
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        padding: "32px 24px",
+      }}
+    >
+      <div className="flex items-center justify-between max-w-[1100px] mx-auto">
         <ClyptLogo size="sm" />
-        <div className="flex items-center gap-6 font-sans text-[13px] text-[var(--color-text-muted)]">
-          <a href="#" className="hover:text-[var(--color-text-secondary)] transition-colors">Privacy</a>
-          <a href="#" className="hover:text-[var(--color-text-secondary)] transition-colors">Terms</a>
-          <a href="#" className="hover:text-[var(--color-text-secondary)] transition-colors">Status</a>
-          <span>© 2026</span>
+        <div className="flex items-center gap-6 font-sans" style={{ fontSize: 13 }}>
+          <a
+            href="#"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+            className="transition-colors hover:!text-white/70"
+          >
+            Privacy
+          </a>
+          <a
+            href="#"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+            className="transition-colors hover:!text-white/70"
+          >
+            Terms
+          </a>
+          <a
+            href="#"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+            className="transition-colors hover:!text-white/70"
+          >
+            Contact
+          </a>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>© 2025 Clypt</span>
         </div>
       </div>
     </footer>

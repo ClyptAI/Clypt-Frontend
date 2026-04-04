@@ -1,108 +1,120 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
+import { Layers, GitFork, Network, Search, Users, Film } from "lucide-react";
+
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const phases = [
-  { num: "01", name: "Timeline Foundation", desc: "Transcription, diarization, shots, tracklets, emotion, and audio events." },
-  { num: "02", name: "Node Construction", desc: "Gemini merges speaker turns into semantic units and classifies each one." },
-  { num: "03", name: "Graph Construction", desc: "Structural and rhetorical edges connect the semantic units into a navigable graph." },
-  { num: "04", name: "Candidate Retrieval", desc: "Embedding-based retrieval seeds subgraph expansion and Gemini ranking." },
-  { num: "05", name: "Participation Grounding", desc: "You assign speakers to tracklets and set camera intent per shot." },
-  { num: "06", name: "Render Planning", desc: "Shot-by-shot render instructions compile into 9:16 output clips." },
+  { num: "01", name: "Timeline Foundation", desc: "Transcription, diarization, shots, tracklets, emotion, and audio events.", icon: Layers },
+  { num: "02", name: "Node Construction", desc: "Gemini merges speaker turns into semantic units and classifies each one.", icon: GitFork },
+  { num: "03", name: "Graph Construction", desc: "Structural and rhetorical edges connect the semantic units into a navigable graph.", icon: Network },
+  { num: "04", name: "Candidate Retrieval", desc: "Embedding-based retrieval seeds subgraph expansion and Gemini ranking.", icon: Search },
+  { num: "05", name: "Participation Grounding", desc: "You assign speakers to tracklets and set camera intent per shot.", icon: Users },
+  { num: "06", name: "Render Planning", desc: "Shot-by-shot render instructions compile into 9:16 output clips.", icon: Film },
 ];
 
-const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const headingWords = ["Six", "phases.", "One", "clip."];
-
 const HowItWorks = () => {
-  const [hoveredIdx, setHoveredIdx] = useState(3);
+  const isAmber = (i: number) => i >= 3;
 
   return (
-    <motion.section
-      className="bg-[var(--color-surface-1)] py-20"
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.7, ease }}
-    >
-      <div className="max-w-[680px] mx-auto px-6">
-        <p className="label-caps text-center mb-4">How it works</p>
-
-        {/* Word-by-word heading */}
-        <motion.h2
-          className="font-heading font-bold text-[var(--color-text-primary)] text-center mb-16 flex justify-center gap-[0.3em] flex-wrap"
-          style={{ fontSize: 36 }}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } } }}
+    <section id="how-it-works" style={{ padding: "100px 24px" }}>
+      <div className="max-w-[1100px] mx-auto">
+        <p
+          className="font-sans text-center"
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.4)",
+            marginBottom: 16,
+          }}
         >
-          {headingWords.map((w, i) => (
-            <motion.span
-              key={i}
-              variants={{
-                hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
-                visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease } },
-              }}
-            >
-              {w}
-            </motion.span>
-          ))}
+          HOW IT WORKS
+        </p>
+        <motion.h2
+          className="font-heading font-bold text-center"
+          style={{ fontSize: 42, color: "#fff" }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease }}
+        >
+          Six phases. One clip.
         </motion.h2>
 
-        {/* Pipeline rows */}
         <motion.div
-          className="flex flex-col"
+          className="grid gap-4"
+          style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 56 }}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+          viewport={{ once: true, margin: "-80px" }}
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
         >
           {phases.map((phase, i) => {
-            const isActive = hoveredIdx === i;
+            const amber = isAmber(i);
+            const IconComp = phase.icon;
             return (
               <motion.div
                 key={phase.num}
-                variants={{
-                  hidden: { opacity: 0, x: -20 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" } },
-                }}
-                className="relative flex items-center py-5 px-6 border-b transition-colors cursor-default"
+                className="relative overflow-hidden transition-all"
                 style={{
-                  borderColor: "var(--color-border-subtle)",
-                  backgroundColor: isActive ? "var(--color-surface-2)" : "transparent",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 20,
+                  padding: 28,
+                  cursor: "default",
                 }}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(3)}
+                variants={{
+                  hidden: { opacity: 0, y: 24 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
+                }}
+                whileHover={{
+                  borderColor: "rgba(167,139,250,0.25)",
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  boxShadow: "0 0 40px -12px rgba(167,139,250,0.15)",
+                }}
               >
-                {/* Violet left border on hover */}
-                <motion.div
-                  className="absolute left-0 top-0 w-[3px]"
-                  style={{ background: "var(--color-violet)" }}
-                  initial={{ height: "0%" }}
-                  animate={{ height: isActive ? "100%" : "0%" }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                />
-                <motion.span
-                  className="font-mono text-xs flex-shrink-0"
-                  style={{ width: 32, fontSize: 12 }}
-                  animate={{ color: isActive ? "var(--color-violet)" : "var(--color-text-muted)" }}
-                  transition={{ duration: 0.4 }}
+                {/* Ghost number */}
+                <span
+                  className="absolute font-mono font-bold pointer-events-none"
+                  style={{ top: 16, right: 20, fontSize: 64, color: "rgba(255,255,255,0.04)" }}
                 >
                   {phase.num}
-                </motion.span>
-                <span className="font-heading font-semibold text-[var(--color-text-primary)]" style={{ width: 220, fontSize: 15 }}>
+                </span>
+
+                {/* Icon */}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: `1px solid ${amber ? "rgba(251,178,73,0.25)" : "rgba(167,139,250,0.25)"}`,
+                    background: amber ? "rgba(251,178,73,0.1)" : "rgba(167,139,250,0.1)",
+                  }}
+                >
+                  <IconComp size={18} color={amber ? "#FBB249" : "#A78BFA"} />
+                </div>
+
+                <h3
+                  className="font-heading font-semibold"
+                  style={{ fontSize: 16, color: "#fff", marginTop: 16 }}
+                >
                   {phase.name}
-                </span>
-                <span className="font-sans font-normal text-[var(--color-text-secondary)] flex-1" style={{ fontSize: 14 }}>
+                </h3>
+                <p
+                  className="font-sans"
+                  style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, marginTop: 8 }}
+                >
                   {phase.desc}
-                </span>
+                </p>
               </motion.div>
             );
           })}
         </motion.div>
       </div>
-    </motion.section>
+    </section>
   );
 };
 
