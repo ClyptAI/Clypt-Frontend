@@ -7,11 +7,9 @@ import {
   type NodeProps,
   Handle,
   Position,
-  BaseEdge,
-  getBezierPath,
-  type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { ClyptEdge } from "@/components/graph/ClyptEdge";
 
 /* ── Shared node/edge styles (same as LandingGraphDemo) ── */
 
