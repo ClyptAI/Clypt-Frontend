@@ -799,12 +799,7 @@ export default function RunGrounding() {
               onAddBinding={handleAddBinding}
               onRemoveBinding={handleRemoveBinding}
             />
-            {/* Bottom camera intent placeholder */}
-            <div style={{ height: 200, flexShrink: 0, background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 14, color: "var(--color-text-muted)" }}>
-                Camera intent panel loads here — coming in next prompt
-              </span>
-            </div>
+            <CameraIntentPanel />
           </div>
 
           {/* Right details placeholder */}
