@@ -231,7 +231,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
       {/* G3 — Clip-worthy */}
       <GhostBtn active={props.clipWorthy} onClick={props.onClipWorthyToggle}>
         <Bookmark size={14} />
-        Clip-worthy only
+        Clip-worthy
       </GhostBtn>
 
       <Divider />
