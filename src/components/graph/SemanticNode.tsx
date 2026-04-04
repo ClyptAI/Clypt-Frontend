@@ -20,6 +20,8 @@ export interface SemanticNodeData {
   timeEnd: string;
   summary: string;
   flags?: string[];
+  signalTags?: ("trend" | "comment" | "retention")[];
+  dimmed?: boolean;
   [key: string]: unknown;
 }
 
@@ -36,6 +38,7 @@ function SemanticNode({ data, selected }: NodeProps) {
         minWidth: 180,
         maxWidth: 220,
         borderRadius: 8,
+        opacity: d.dimmed ? 0.2 : 1,
         background: selected || hovered ? "var(--color-surface-2)" : "var(--color-surface-1)",
         border: selected ? `1px solid ${color}b3` : "1px solid var(--color-border)",
         borderLeft: `3px solid ${color}`,
@@ -62,8 +65,18 @@ function SemanticNode({ data, selected }: NodeProps) {
         >
           {d.node_type}
         </span>
-        {/* Signal tag placeholder */}
-        <div style={{ display: "flex", gap: 4 }} />
+        {/* Signal tag badges */}
+        <div style={{ display: "flex", gap: 4 }}>
+          {d.signalTags?.includes("trend") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FB923C", flexShrink: 0 }} />
+          )}
+          {d.signalTags?.includes("comment") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#60A5FA", flexShrink: 0 }} />
+          )}
+          {d.signalTags?.includes("retention") && (
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
+          )}
+        </div>
       </div>
 
       {/* Timestamp */}
