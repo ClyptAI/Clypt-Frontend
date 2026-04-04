@@ -79,7 +79,7 @@ function GhostBtn({
         fontFamily: "'Bricolage Grotesque', sans-serif",
         fontWeight: 500,
         fontSize: 13,
-        cursor: "pointer",
+        flexShrink: 0,
         border: active ? `1px solid ${activeBorder ?? "transparent"}` : "1px solid transparent",
         background: active ? (activeBg ?? "var(--color-violet-muted)") : "transparent",
         color: active ? (activeColor ?? "var(--color-violet)") : "var(--color-text-secondary)",
