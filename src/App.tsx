@@ -45,6 +45,7 @@ const App = () => (
             <Route path="/runs/new" element={<NewRun />} />
             <Route path="/runs/:id" element={<RunOverview />} />
             <Route path="/runs/:id/timeline" element={<RunTimeline />} />
+            <Route path="/runs/:id/graph" element={<RunGraph />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
