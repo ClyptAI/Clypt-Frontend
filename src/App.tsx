@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/runs/:id/clips" element={<RunClips />} />
             <Route path="/runs/:id/grounding/:clipId" element={<RunGrounding />} />
             <Route path="/runs/:id/grounding" element={<RunGrounding />} />
+            <Route path="/runs/:id/render" element={<RunRender />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
