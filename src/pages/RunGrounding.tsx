@@ -1,9 +1,9 @@
-import { useState } from "react";
-
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Check, Lock, Play, Pause, Zap, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 
-/* ── Mock clip queue ── */
+/* ── Types ── */
 interface QueueClip {
   id: string;
   label: string;
@@ -15,6 +15,32 @@ interface QueueClip {
   camera?: string;
 }
 
+interface Tracklet { id: string; letter: string; durationPct: number }
+interface Turn { speakerIdx: number; startPct: number; widthPct: number }
+interface ShotData {
+  idx: number;
+  timeStart: string;
+  timeEnd: string;
+  duration: string;
+  startMs: number;
+  endMs: number;
+  tracklets: Tracklet[];
+  turns: Turn[];
+  speakers: number[];
+  transcript: string[];
+  voiceprintSuggestion?: { speakerIdx: number; name: string; confidence: number };
+  conflict?: { speaker0: number; speaker1: number; tracklet: string; time: string };
+}
+
+interface Binding {
+  tracklet_id: string;
+  speaker_id: number;
+  start_ms: number;
+  end_ms: number;
+  method: "drag" | "word" | "range";
+}
+
+/* ── Mock data ── */
 const QUEUE: QueueClip[] = [
   { id: "001", label: "Clip 001", timeStart: "0:42", timeEnd: "1:18", duration: "35s", status: "partial", speakers: "3/4", camera: "4/4" },
   { id: "002", label: "Clip 002", timeStart: "3:22", timeEnd: "4:05", duration: "43s", status: "not_started" },
@@ -26,6 +52,70 @@ const QUEUE: QueueClip[] = [
   { id: "008", label: "Clip 008", timeStart: "17:02", timeEnd: "17:38", duration: "36s", status: "locked" },
 ];
 
+const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
+
+const SHOTS: ShotData[] = [
+  {
+    idx: 1, timeStart: "0:42.0", timeEnd: "0:51.3", duration: "9.3s", startMs: 42000, endMs: 51300,
+    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100 }, { id: "tracklet_002", letter: "B", durationPct: 100 }],
+    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 33, widthPct: 67 }],
+    speakers: [0, 1],
+    transcript: ["I", "think", "we're", "at", "an", "inflection", "point", "with", "AI", "that", "most", "people", "don't", "fully", "appreciate", "yet"],
+    voiceprintSuggestion: { speakerIdx: 0, name: "Rithvik — Host", confidence: 83 },
+  },
+  {
+    idx: 2, timeStart: "0:51.3", timeEnd: "1:04.1", duration: "12.8s", startMs: 51300, endMs: 64100,
+    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100 }],
+    turns: [{ speakerIdx: 1, startPct: 0, widthPct: 100 }],
+    speakers: [1],
+    transcript: ["The", "capabilities", "are", "advancing", "faster", "than", "our", "institutions", "can", "adapt", "to", "them"],
+  },
+  {
+    idx: 3, timeStart: "1:04.1", timeEnd: "1:11.8", duration: "7.7s", startMs: 64100, endMs: 71800,
+    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
+    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 65 }, { speakerIdx: 1, startPct: 39, widthPct: 61 }],
+    speakers: [0, 1],
+    transcript: ["Let", "me", "show", "you", "what", "happens", "when", "you", "ask", "the", "model"],
+  },
+  {
+    idx: 4, timeStart: "1:11.8", timeEnd: "1:18.1", duration: "6.3s", startMs: 71800, endMs: 78100,
+    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
+    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 19, widthPct: 81 }],
+    speakers: [0, 1],
+    transcript: ["It", "fails", "consistently", "and", "not", "in", "a", "random", "way"],
+  },
+];
+
+/* Initial bindings matching original mock */
+function getInitialBindings(): Record<number, Binding[]> {
+  return {
+    1: [{ tracklet_id: "tracklet_001", speaker_id: 0, start_ms: 42000, end_ms: 51300, method: "drag" }],
+    2: [],
+    3: [],
+    4: [{ tracklet_id: "tracklet_001", speaker_id: 0, start_ms: 71800, end_ms: 78100, method: "drag" }],
+  };
+}
+
+/* ── Helpers ── */
+function msToTimestamp(ms: number): string {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = (totalSeconds % 60).toFixed(1);
+  return `${minutes}:${seconds.padStart(4, "0")}`;
+}
+
+function computeGroundingProgress(bindings: Record<number, Binding[]>): { grounded: number; total: number } {
+  let grounded = 0;
+  const total = SHOTS.length;
+  for (const shot of SHOTS) {
+    const shotBindings = bindings[shot.idx] || [];
+    const allTrackletsBound = shot.tracklets.every((t) => shotBindings.some((b) => b.tracklet_id === t.id));
+    if (allTrackletsBound) grounded++;
+  }
+  return { grounded, total };
+}
+
+/* ── StatusIcon ── */
 function StatusIcon({ status }: { status: QueueClip["status"] }) {
   const base: React.CSSProperties = { width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 };
   switch (status) {
@@ -44,63 +134,7 @@ function StatusIcon({ status }: { status: QueueClip["status"] }) {
   }
 }
 
-/* ── Speaker colors ── */
-const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
-
-/* ── Mock shot data ── */
-interface Tracklet { id: string; letter: string; durationPct: number; boundSpeaker?: number }
-interface Turn { speakerIdx: number; startPct: number; widthPct: number }
-interface ShotData {
-  idx: number;
-  timeStart: string;
-  timeEnd: string;
-  duration: string;
-  tracklets: Tracklet[];
-  turns: Turn[];
-  speakers: number[];
-  transcript: string[];
-  voiceprintSuggestion?: { speakerIdx: number; name: string; confidence: number };
-  conflict?: { speaker0: number; speaker1: number; tracklet: string; time: string };
-  bindings: { speakerIdx: number; trackletId: string }[];
-}
-
-const SHOTS: ShotData[] = [
-  {
-    idx: 1, timeStart: "0:42.0", timeEnd: "0:51.3", duration: "9.3s",
-    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100, boundSpeaker: 0 }, { id: "tracklet_002", letter: "B", durationPct: 100 }],
-    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 33, widthPct: 67 }],
-    speakers: [0, 1],
-    transcript: ["I", "think", "we're", "at", "an", "inflection", "point", "with", "AI", "that", "most", "people", "don't", "fully", "appreciate", "yet"],
-    voiceprintSuggestion: { speakerIdx: 0, name: "Rithvik — Host", confidence: 83 },
-    bindings: [{ speakerIdx: 0, trackletId: "tracklet_001" }],
-  },
-  {
-    idx: 2, timeStart: "0:51.3", timeEnd: "1:04.1", duration: "12.8s",
-    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100 }],
-    turns: [{ speakerIdx: 1, startPct: 0, widthPct: 100 }],
-    speakers: [1],
-    transcript: ["The", "capabilities", "are", "advancing", "faster", "than", "our", "institutions", "can", "adapt", "to", "them"],
-    bindings: [],
-  },
-  {
-    idx: 3, timeStart: "1:04.1", timeEnd: "1:11.8", duration: "7.7s",
-    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
-    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 65 }, { speakerIdx: 1, startPct: 39, widthPct: 61 }],
-    speakers: [0, 1],
-    transcript: ["Let", "me", "show", "you", "what", "happens", "when", "you", "ask", "the", "model"],
-    bindings: [],
-  },
-  {
-    idx: 4, timeStart: "1:11.8", timeEnd: "1:18.1", duration: "6.3s",
-    tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50, boundSpeaker: 0 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
-    turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 19, widthPct: 81 }],
-    speakers: [0, 1],
-    transcript: ["It", "fails", "consistently", "and", "not", "in", "a", "random", "way"],
-    bindings: [{ speakerIdx: 0, trackletId: "tracklet_001" }],
-  },
-];
-
-/* ── Video Player ── */
+/* ── Video Player (unchanged) ── */
 function InlineVideoPlayer() {
   const [playing, setPlaying] = useState(false);
   const [progress] = useState(25);
@@ -138,14 +172,179 @@ function InlineVideoPlayer() {
   );
 }
 
-/* ── Shot Lane Section ── */
-function ShotSection({ shot }: { shot: ShotData }) {
+/* ── Shot Lane Section (with interactions) ── */
+function ShotSection({
+  shot,
+  shotBindings,
+  onAddBinding,
+  onRemoveBinding,
+}: {
+  shot: ShotData;
+  shotBindings: Binding[];
+  onAddBinding: (shotIdx: number, binding: Binding) => void;
+  onRemoveBinding: (shotIdx: number, trackletId: string, speakerId: number) => void;
+}) {
   const [vpAccepted, setVpAccepted] = useState(false);
   const [vpDismissed, setVpDismissed] = useState(false);
   const [showRegistry, setShowRegistry] = useState(false);
 
+  /* Drag state */
+  const [dragOverTracklet, setDragOverTracklet] = useState<string | null>(null);
+
+  /* Word popover */
+  const [wordPopover, setWordPopover] = useState<{ wordIdx: number; speakerIdx: number } | null>(null);
+
+  /* Time range selection */
+  const trackletLaneRef = useRef<HTMLDivElement>(null);
+  const [rangeSelect, setRangeSelect] = useState<{ startX: number; currentX: number } | null>(null);
+  const [rangePopover, setRangePopover] = useState<{ x: number; startPct: number; endPct: number } | null>(null);
+  const isDraggingRange = useRef(false);
+
+  /* Context menu for unbinding */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; trackletId: string; speakerId: number } | null>(null);
+
+  /* Close popovers on outside click */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-popover]")) {
+        setWordPopover(null);
+        setRangePopover(null);
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* ── Method 1: Drag speaker to tracklet ── */
+  const handleSpeakerDragStart = (e: React.DragEvent, speakerIdx: number) => {
+    e.dataTransfer.setData("speaker_idx", String(speakerIdx));
+    e.dataTransfer.effectAllowed = "link";
+    // Create drag ghost pill
+    const ghost = document.createElement("div");
+    ghost.textContent = `Speaker_0${speakerIdx}`;
+    ghost.style.cssText = `
+      padding: 4px 10px; border-radius: 12px; font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 12px; font-weight: 600; color: #0A0909;
+      background: ${SPEAKER_COLORS[speakerIdx]}; position: absolute; top: -1000px;
+    `;
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 40, 14);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+  };
+
+  const handleTrackletDragOver = (e: React.DragEvent, trackletId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "link";
+    setDragOverTracklet(trackletId);
+  };
+
+  const handleTrackletDrop = (e: React.DragEvent, trackletId: string) => {
+    e.preventDefault();
+    setDragOverTracklet(null);
+    const speakerIdx = parseInt(e.dataTransfer.getData("speaker_idx"), 10);
+    if (isNaN(speakerIdx)) return;
+    onAddBinding(shot.idx, {
+      tracklet_id: trackletId,
+      speaker_id: speakerIdx,
+      start_ms: shot.startMs,
+      end_ms: shot.endMs,
+      method: "drag",
+    });
+    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
+  };
+
+  /* ── Method 2: Click word token ── */
+  const handleWordClick = (wordIdx: number) => {
+    // Assign word to speaker 0 for first half of transcript, speaker 1 for second half (mock)
+    const speakerIdx = wordIdx < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
+    setWordPopover({ wordIdx, speakerIdx });
+    setRangePopover(null);
+    setContextMenu(null);
+  };
+
+  const handleWordAssign = (trackletId: string, speakerIdx: number) => {
+    const wordFraction = 1 / shot.transcript.length;
+    const shotDur = shot.endMs - shot.startMs;
+    const startMs = shot.startMs + Math.floor(wordFraction * (wordPopover?.wordIdx ?? 0) * shotDur);
+    const endMs = startMs + Math.floor(wordFraction * shotDur);
+    onAddBinding(shot.idx, {
+      tracklet_id: trackletId,
+      speaker_id: speakerIdx,
+      start_ms: startMs,
+      end_ms: endMs,
+      method: "word",
+    });
+    setWordPopover(null);
+    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
+  };
+
+  /* ── Method 3: Click-drag time range in tracklet lane ── */
+  const handleTrackletLaneMouseDown = (e: React.MouseEvent) => {
+    if (!trackletLaneRef.current) return;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    isDraggingRange.current = true;
+    setRangeSelect({ startX: x, currentX: x });
+    setRangePopover(null);
+    setWordPopover(null);
+    setContextMenu(null);
+  };
+
+  const handleTrackletLaneMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    setRangeSelect({ ...rangeSelect, currentX: x });
+  };
+
+  const handleTrackletLaneMouseUp = () => {
+    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
+    isDraggingRange.current = false;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
+    const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
+    if (maxX - minX < 10) {
+      setRangeSelect(null);
+      return;
+    }
+    const startPct = (minX / rect.width) * 100;
+    const endPct = (maxX / rect.width) * 100;
+    setRangePopover({ x: maxX, startPct, endPct });
+    setRangeSelect(null);
+  };
+
+  const handleRangeAssign = (speakerIdx: number) => {
+    if (!rangePopover) return;
+    const shotDur = shot.endMs - shot.startMs;
+    const startMs = shot.startMs + Math.floor((rangePopover.startPct / 100) * shotDur);
+    const endMs = shot.startMs + Math.floor((rangePopover.endPct / 100) * shotDur);
+    // Find the tracklet that overlaps this range most
+    const trackletId = shot.tracklets[0]?.id ?? "tracklet_001";
+    onAddBinding(shot.idx, {
+      tracklet_id: trackletId,
+      speaker_id: speakerIdx,
+      start_ms: startMs,
+      end_ms: endMs,
+      method: "range",
+    });
+    setRangePopover(null);
+    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
+  };
+
+  /* ── Unbind context menu ── */
+  const handleTrackletContextMenu = (e: React.MouseEvent, trackletId: string) => {
+    e.preventDefault();
+    const binding = shotBindings.find((b) => b.tracklet_id === trackletId);
+    if (!binding) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, trackletId, speakerId: binding.speaker_id });
+    setWordPopover(null);
+    setRangePopover(null);
+  };
+
   return (
-    <div style={{ borderBottom: "2px solid var(--color-border)", paddingBottom: 4 }}>
+    <div style={{ borderBottom: "2px solid var(--color-border)", paddingBottom: 4, position: "relative" }}>
       {/* Shot header */}
       <div style={{ height: 36, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", alignItems: "center", padding: "0 16px", gap: 12, position: "sticky", top: 0, zIndex: 5 }}>
         <div style={{ width: 48, height: 27, borderRadius: 3, background: "var(--color-surface-3)", flexShrink: 0 }} />
@@ -155,28 +354,43 @@ function ShotSection({ shot }: { shot: ShotData }) {
       </div>
 
       {/* Tracklet lane */}
-      <div style={{ height: 44, display: "flex", alignItems: "center", padding: "0 16px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
+      <div style={{ height: 44, display: "flex", alignItems: "center", padding: "0 16px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)", position: "relative" }}>
         <span className="label-caps" style={{ width: 80, flexShrink: 0, fontSize: 10 }}>TRACKLETS</span>
-        <div style={{ flex: 1, display: "flex", gap: 2, alignItems: "center", height: 32 }}>
+        <div
+          ref={trackletLaneRef}
+          style={{ flex: 1, display: "flex", gap: 2, alignItems: "center", height: 32, position: "relative", cursor: "crosshair" }}
+          onMouseDown={handleTrackletLaneMouseDown}
+          onMouseMove={handleTrackletLaneMouseMove}
+          onMouseUp={handleTrackletLaneMouseUp}
+          onMouseLeave={() => { if (isDraggingRange.current) { isDraggingRange.current = false; setRangeSelect(null); } }}
+        >
           {shot.tracklets.map((t) => {
-            const bound = shot.bindings.find((b) => b.trackletId === t.id);
-            const speakerColor = bound !== undefined ? SPEAKER_COLORS[bound.speakerIdx] : undefined;
+            const bound = shotBindings.find((b) => b.tracklet_id === t.id);
+            const speakerColor = bound ? SPEAKER_COLORS[bound.speaker_id] : undefined;
+            const isDragTarget = dragOverTracklet === t.id;
             return (
               <div
                 key={t.id}
+                onDragOver={(e) => handleTrackletDragOver(e, t.id)}
+                onDragLeave={() => setDragOverTracklet(null)}
+                onDrop={(e) => { e.stopPropagation(); handleTrackletDrop(e, t.id); }}
+                onContextMenu={(e) => handleTrackletContextMenu(e, t.id)}
                 style={{
                   flex: t.durationPct,
                   minWidth: 60,
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  background: "var(--color-surface-2)",
-                  border: "1px solid var(--color-border)",
-                  borderLeft: speakerColor ? `3px solid ${speakerColor}` : "1px solid var(--color-border)",
+                  background: isDragTarget ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                  border: isDragTarget ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
+                  borderLeft: speakerColor ? `3px solid ${speakerColor}` : isDragTarget ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
                   borderRadius: 4,
                   padding: "4px 8px",
                   cursor: "grab",
                   userSelect: "none",
+                  transition: "border 100ms, background 100ms",
+                  position: "relative",
+                  zIndex: 2,
                 }}
               >
                 <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--color-surface-3)", flexShrink: 0 }} />
@@ -184,16 +398,70 @@ function ShotSection({ shot }: { shot: ShotData }) {
               </div>
             );
           })}
+
+          {/* Range selection overlay */}
+          {rangeSelect && (() => {
+            const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
+            const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
+            return (
+              <div style={{
+                position: "absolute", left: minX, width: maxX - minX, top: 0, height: "100%",
+                background: "rgba(139, 92, 246, 0.15)", border: "1px solid var(--color-violet)",
+                borderRadius: 2, pointerEvents: "none", zIndex: 3,
+              }} />
+            );
+          })()}
         </div>
+
+        {/* Range popover */}
+        {rangePopover && (
+          <div
+            data-popover
+            style={{
+              position: "absolute", top: 44, left: 80 + rangePopover.x - 80, zIndex: 30,
+              background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
+              borderRadius: 8, padding: 12, minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", marginBottom: 4 }}>
+              Assign time range to speaker
+            </div>
+            <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
+              {msToTimestamp(shot.startMs + (rangePopover.startPct / 100) * (shot.endMs - shot.startMs))} → {msToTimestamp(shot.startMs + (rangePopover.endPct / 100) * (shot.endMs - shot.startMs))}
+            </div>
+            {shot.speakers.map((sIdx) => (
+              <button
+                key={sIdx}
+                onClick={() => handleRangeAssign(sIdx)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, width: "100%",
+                  padding: "6px 10px", border: "1px solid var(--color-border)", borderRadius: 6,
+                  background: "transparent", cursor: "pointer", marginBottom: 4,
+                  fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
+                  color: "var(--color-text-primary)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <span style={{ width: 12, height: 12, borderRadius: "50%", background: SPEAKER_COLORS[sIdx], flexShrink: 0 }} />
+                Speaker_0{sIdx}
+              </button>
+            ))}
+            <button
+              onClick={() => setRangePopover(null)}
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 4 }}
+            >Cancel</button>
+          </div>
+        )}
       </div>
 
       {/* Binding indicators */}
-      {shot.bindings.length > 0 && (
+      {shotBindings.length > 0 && (
         <svg style={{ width: "100%", height: 12, display: "block" }} preserveAspectRatio="none">
-          {shot.bindings.map((b, i) => {
-            const color = SPEAKER_COLORS[b.speakerIdx];
+          {shotBindings.map((b, i) => {
+            const color = SPEAKER_COLORS[b.speaker_id];
             const xStart = 126;
-            const tIdx = shot.tracklets.findIndex((t) => t.id === b.trackletId);
+            const tIdx = shot.tracklets.findIndex((t) => t.id === b.tracklet_id);
             const xEnd = 96 + 40 + tIdx * 80;
             return <line key={i} x1={xStart} y1={10} x2={xEnd} y2={2} stroke={color} strokeWidth={1} opacity={0.6} strokeDasharray="4 3" />;
           })}
@@ -208,7 +476,11 @@ function ShotSection({ shot }: { shot: ShotData }) {
         return (
           <div key={sIdx}>
             <div style={{ height: 32, display: "flex", alignItems: "center", padding: "0 16px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-              <div style={{ width: 80, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <div
+                draggable
+                onDragStart={(e) => handleSpeakerDragStart(e, sIdx)}
+                style={{ width: 80, flexShrink: 0, display: "flex", alignItems: "center", gap: 6, cursor: "grab" }}
+              >
                 <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)" }}>
                   {vpAccepted && sIdx === shot.voiceprintSuggestion?.speakerIdx ? shot.voiceprintSuggestion.name.split(" — ")[0] : `Speaker_0${sIdx}`}
                 </span>
@@ -236,7 +508,7 @@ function ShotSection({ shot }: { shot: ShotData }) {
             {showRegistry && sIdx === shot.voiceprintSuggestion?.speakerIdx && (
               <div style={{ padding: "6px 8px 6px 96px", display: "flex", alignItems: "center", gap: 8, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)" }}>
                 <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)" }}>
-                  Save '{shot.voiceprintSuggestion!.name}' to your voiceprint registry?
+                  Save &apos;{shot.voiceprintSuggestion!.name}&apos; to your voiceprint registry?
                 </span>
                 <button onClick={() => setShowRegistry(false)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, padding: "3px 8px", borderRadius: 4, background: "var(--color-violet)", color: "#0A0909", border: "none", cursor: "pointer" }}>Save to registry</button>
                 <button onClick={() => setShowRegistry(false)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer" }}>This run only</button>
@@ -257,39 +529,168 @@ function ShotSection({ shot }: { shot: ShotData }) {
       )}
 
       {/* Transcript lane */}
-      <div style={{ minHeight: 36, padding: "8px 16px 8px 96px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", flexWrap: "wrap", gap: 2, alignContent: "flex-start" }}>
-        {shot.transcript.map((word, i) => (
-          <span
-            key={i}
-            style={{ padding: "1px 3px", borderRadius: 2, fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-secondary)", cursor: "pointer" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-surface-3)"; e.currentTarget.style.color = "var(--color-text-primary)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--color-text-secondary)"; }}
-          >
-            {word}
-          </span>
-        ))}
+      <div style={{ minHeight: 36, padding: "8px 16px 8px 96px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", flexWrap: "wrap", gap: 2, alignContent: "flex-start", position: "relative" }}>
+        {shot.transcript.map((word, i) => {
+          const isSelected = wordPopover?.wordIdx === i;
+          const speakerIdx = i < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
+          const hasBoundWord = shotBindings.some((b) => b.method === "word" && b.speaker_id === speakerIdx);
+          return (
+            <span
+              key={i}
+              style={{
+                padding: "1px 3px", borderRadius: 2,
+                fontFamily: "'Geist Mono', monospace", fontSize: 11,
+                color: isSelected ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                cursor: "pointer", position: "relative",
+                background: isSelected ? "var(--color-violet-muted)" : hasBoundWord ? `${SPEAKER_COLORS[speakerIdx]}22` : "transparent",
+                border: isSelected ? "1px solid var(--color-violet)" : "1px solid transparent",
+              }}
+              onClick={(e) => { e.stopPropagation(); handleWordClick(i); }}
+              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = "var(--color-surface-3)"; e.currentTarget.style.color = "var(--color-text-primary)"; } }}
+              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = hasBoundWord ? `${SPEAKER_COLORS[speakerIdx]}22` : "transparent"; e.currentTarget.style.color = "var(--color-text-secondary)"; } }}
+            >
+              {word}
+              {/* Word popover */}
+              {isSelected && wordPopover && (
+                <div
+                  data-popover
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    position: "absolute", bottom: "100%", left: 0, marginBottom: 6, zIndex: 30,
+                    background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
+                    borderRadius: 8, padding: 12, minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", marginBottom: 8 }}>
+                    Assign word span to tracklet
+                  </div>
+                  {shot.tracklets.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleWordAssign(t.id, speakerIdx)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8, width: "100%",
+                        padding: "6px 10px", border: "1px solid var(--color-border)", borderRadius: 6,
+                        background: "transparent", cursor: "pointer", marginBottom: 4,
+                        fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
+                        color: "var(--color-text-primary)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--color-surface-3)", flexShrink: 0 }} />
+                      <span>{t.letter}</span>
+                      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)", marginLeft: "auto" }}>{shot.duration}</span>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setWordPopover(null)}
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 4 }}
+                  >Cancel</button>
+                </div>
+              )}
+            </span>
+          );
+        })}
       </div>
+
+      {/* Context menu for unbinding */}
+      {contextMenu && (
+        <div
+          data-popover
+          style={{
+            position: "fixed", left: contextMenu.x, top: contextMenu.y, zIndex: 50,
+            background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
+            borderRadius: 6, padding: 4, minWidth: 240, boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          }}
+        >
+          <button
+            onClick={() => {
+              onRemoveBinding(shot.idx, contextMenu.trackletId, contextMenu.speakerId);
+              setContextMenu(null);
+              toast("Assignment removed");
+            }}
+            style={{
+              display: "block", width: "100%", textAlign: "left", padding: "8px 12px",
+              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 13,
+              color: "var(--color-text-primary)", background: "none", border: "none",
+              cursor: "pointer", borderRadius: 4,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            Remove assignment: Speaker_0{contextMenu.speakerId} → {contextMenu.trackletId}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── Shot Lane Editor ── */
-function ShotLaneEditor() {
+function ShotLaneEditor({
+  bindings,
+  onAddBinding,
+  onRemoveBinding,
+}: {
+  bindings: Record<number, Binding[]>;
+  onAddBinding: (shotIdx: number, binding: Binding) => void;
+  onRemoveBinding: (shotIdx: number, trackletId: string, speakerId: number) => void;
+}) {
   return (
     <>
       <InlineVideoPlayer />
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", background: "var(--color-bg)" }}>
-        {SHOTS.map((s) => <ShotSection key={s.idx} shot={s} />)}
+        {SHOTS.map((s) => (
+          <ShotSection
+            key={s.idx}
+            shot={s}
+            shotBindings={bindings[s.idx] || []}
+            onAddBinding={onAddBinding}
+            onRemoveBinding={onRemoveBinding}
+          />
+        ))}
       </div>
     </>
   );
 }
 
+/* ── Main page ── */
 export default function RunGrounding() {
   const { id, clipId } = useParams();
   const [activeClip, setActiveClip] = useState(clipId ?? "001");
+
+  /* ── Binding state ── */
+  const [bindings, setBindings] = useState<Record<number, Binding[]>>(getInitialBindings);
+
+  const handleAddBinding = useCallback((shotIdx: number, binding: Binding) => {
+    setBindings((prev) => {
+      const existing = prev[shotIdx] || [];
+      // Replace if same tracklet+speaker already exists
+      const filtered = existing.filter((b) => !(b.tracklet_id === binding.tracklet_id && b.speaker_id === binding.speaker_id));
+      return { ...prev, [shotIdx]: [...filtered, binding] };
+    });
+  }, []);
+
+  const handleRemoveBinding = useCallback((shotIdx: number, trackletId: string, speakerId: number) => {
+    setBindings((prev) => {
+      const existing = prev[shotIdx] || [];
+      return { ...prev, [shotIdx]: existing.filter((b) => !(b.tracklet_id === trackletId && b.speaker_id === speakerId)) };
+    });
+  }, []);
+
+  /* ── Derived grounding progress ── */
+  const progress = computeGroundingProgress(bindings);
+  const speakerLabel = `${progress.grounded}/${progress.total}`;
+  const cameraLabel = "4/4"; // camera is static for now
+
+  const clipStatus: QueueClip["status"] =
+    progress.grounded === progress.total ? "complete" :
+    progress.grounded > 0 ? "partial" : "not_started";
+
+  const isComplete = clipStatus === "complete";
+
   const current = QUEUE.find((c) => c.id === activeClip) ?? QUEUE[0];
-  const isComplete = current.status === "complete";
 
   return (
     <div className="flex flex-col" style={{ height: "100vh" }}>
@@ -319,9 +720,11 @@ export default function RunGrounding() {
 
         {/* Right */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Progress */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {[{ label: `Speakers ${current.speakers ?? "0/0"}`, done: current.speakers?.startsWith(current.speakers?.split("/")[1] ?? "") }, { label: `Camera ${current.camera ?? "0/0"}`, done: current.camera?.startsWith(current.camera?.split("/")[1] ?? "") }].map((p) => (
+            {[
+              { label: `Speakers ${speakerLabel}`, done: progress.grounded === progress.total },
+              { label: `Camera ${cameraLabel}`, done: true },
+            ].map((p) => (
               <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.done ? "var(--color-green)" : "var(--color-amber)" }} />
                 <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)" }}>{p.label}</span>
@@ -353,6 +756,7 @@ export default function RunGrounding() {
           {QUEUE.map((clip) => {
             const isActive = clip.id === activeClip;
             const isLocked = clip.status === "locked";
+            const displayStatus: QueueClip["status"] = isActive ? clipStatus : clip.status;
             return (
               <div
                 key={clip.id}
@@ -371,13 +775,13 @@ export default function RunGrounding() {
                 onMouseEnter={(e) => { if (!isActive && !isLocked) e.currentTarget.style.background = "var(--color-surface-2)"; }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
               >
-                <StatusIcon status={clip.status} />
+                <StatusIcon status={displayStatus} />
                 <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", gap: 3 }}>
                   <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)" }}>{clip.label}</span>
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>{clip.timeStart} → {clip.timeEnd}  ·  {clip.duration}</span>
-                  {isActive && clip.speakers && (
+                  {isActive && (
                     <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 11, color: "var(--color-text-muted)" }}>
-                      Speakers: {clip.speakers}  ·  Camera: {clip.camera}
+                      Speakers: {speakerLabel}  ·  Camera: {cameraLabel}
                     </span>
                   )}
                 </div>
@@ -390,7 +794,11 @@ export default function RunGrounding() {
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           {/* Center column */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <ShotLaneEditor />
+            <ShotLaneEditor
+              bindings={bindings}
+              onAddBinding={handleAddBinding}
+              onRemoveBinding={handleRemoveBinding}
+            />
             {/* Bottom camera intent placeholder */}
             <div style={{ height: 200, flexShrink: 0, background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 14, color: "var(--color-text-muted)" }}>
