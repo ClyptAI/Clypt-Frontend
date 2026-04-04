@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
 
-const ease = [0.16, 1, 0.3, 1];
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 interface DemoSectionLayoutProps {
   layout: "odd" | "even" | "full";
