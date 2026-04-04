@@ -39,6 +39,7 @@ const App = () => (
           <Route element={<AppShell />}>
             <Route path="/library" element={<Library />} />
             <Route path="/library/clips" element={<Library />} />
+            <Route path="/runs/new" element={<NewRun />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
