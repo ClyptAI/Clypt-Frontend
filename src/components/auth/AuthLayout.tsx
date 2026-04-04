@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import ClyptLogo from "@/components/app/ClyptLogo";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const NodeGraph = () => (
   <svg width="280" height="220" viewBox="0 0 280 220" fill="none" className="opacity-85">
@@ -30,7 +30,7 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="w-[40%] bg-[var(--color-surface-1)] border-r border-[var(--color-border)] flex flex-col p-10">
-        <ClyptLogo size="md" />
+        <ClyptLogo size="lg" defaultExpanded={true} />
 
         <div className="flex-1 flex flex-col justify-center gap-12">
           <NodeGraph />

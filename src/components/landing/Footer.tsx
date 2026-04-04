@@ -1,4 +1,4 @@
-import ClyptLogo from "@/components/app/ClyptLogo";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const Footer = () => {
   return (

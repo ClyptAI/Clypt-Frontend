@@ -1,7 +1,7 @@
 import { LayoutGrid, Film, Plus, Settings, ChevronDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import ClyptLogo from "./ClyptLogo";
+import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const navItems = [
   { title: "Library", icon: LayoutGrid, path: "/library" },
