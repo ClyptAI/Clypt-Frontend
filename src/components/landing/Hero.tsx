@@ -59,7 +59,7 @@ const clipCards = [
     label: "claim",
     title: "Why this always works",
     time: "8:42",
-    position: { right: "7%", top: "3%" } as React.CSSProperties,
+    position: { right: "15%", top: "4%" } as React.CSSProperties,
     rotate: 7,
     width: 120,
     floatY: [0, -16, 0],
