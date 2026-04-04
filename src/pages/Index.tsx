@@ -3,7 +3,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
 import HowItWorks from "@/components/landing/HowItWorks";
-import Features from "@/components/landing/Features";
 import ClipShowcase from "@/components/landing/ClipShowcase";
 import TryItBar from "@/components/landing/TryItBar";
 import Footer from "@/components/landing/Footer";
@@ -31,7 +30,7 @@ const Index = () => {
           left: 0,
           right: 0,
           height: 2,
-          background: "var(--color-violet)",
+          background: "#A78BFA",
           scaleX,
           transformOrigin: "left",
           opacity,
@@ -42,21 +41,6 @@ const Index = () => {
       <Navbar />
       <Hero />
       <HowItWorks />
-      {/* Ambient accent between pipeline and features */}
-      <div className="relative w-full" style={{ height: 1, overflow: "visible" }}>
-        <div
-          className="absolute left-1/2"
-          style={{
-            width: 600,
-            height: 120,
-            marginLeft: -300,
-            top: -60,
-            background: "radial-gradient(ellipse at center, rgba(167,139,250,0.06) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-      </div>
-      <Features />
       <ClipShowcase />
       <TryItBar />
       <Footer />
