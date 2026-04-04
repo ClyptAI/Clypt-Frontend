@@ -226,6 +226,7 @@ export default function LandingGraphDemo() {
           );
         })}
       </div>
+      </div>
     </DemoCardShell>
   );
 }
