@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Check, Lock, Play, Pause, Zap, TriangleAlert } from "lucide-react";
+import { Check, Lock, Play, Pause, Zap, TriangleAlert, Crop } from "lucide-react";
 import { toast } from "sonner";
 
 /* ── Types ── */
@@ -655,7 +655,230 @@ function ShotLaneEditor({
   );
 }
 
-/* ── Main page ── */
+/* ── Camera Intent Types ── */
+type IntentType = "Follow" | "Reaction" | "Split" | "Wide" | "Manual";
+
+interface ShotIntent {
+  intent: IntentType;
+  follow?: number;
+  reactOn?: number;
+  reactFollow?: number;
+  splitLeft?: number;
+  splitRight?: number;
+  wideIncludes?: number[];
+  cropSet?: boolean;
+}
+
+const INTENT_OPTIONS: IntentType[] = ["Follow", "Reaction", "Split", "Wide", "Manual"];
+
+function getInitialIntents(): ShotIntent[] {
+  return [
+    { intent: "Follow", follow: 0 },
+    { intent: "Reaction", reactOn: 1, reactFollow: 0 },
+    { intent: "Split", splitLeft: 0, splitRight: 1 },
+    { intent: "Wide", wideIncludes: [0, 1] },
+  ];
+}
+
+function isShotIntentComplete(si: ShotIntent, speakers: number[]): boolean {
+  if (!si.intent) return false;
+  switch (si.intent) {
+    case "Follow": return si.follow != null;
+    case "Reaction": return si.reactOn != null && si.reactFollow != null;
+    case "Split": return si.splitLeft != null && si.splitRight != null;
+    case "Wide": return (si.wideIncludes ?? []).length > 0;
+    case "Manual": return true;
+    default: return false;
+  }
+}
+
+const SPEAKER_NAMES: Record<number, string> = { 0: "Rithvik — Host", 1: "Speaker_01", 2: "Speaker_02" };
+
+/* ── Camera Intent Panel ── */
+function CameraIntentPanel() {
+  const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const completedCount = SHOTS.reduce((acc, shot, i) => {
+    const si = intents[i];
+    return acc + (si && isShotIntentComplete(si, shot.speakers) ? 1 : 0);
+  }, 0);
+
+  const updateIntent = (idx: number, patch: Partial<ShotIntent>) => {
+    setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  };
+
+  const scrollToCard = (idx: number) => {
+    cardRefs.current[idx]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  };
+
+  return (
+    <div style={{ height: 200, flexShrink: 0, background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Panel header */}
+      <div style={{ height: 40, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 16px", justifyContent: "space-between", borderBottom: "1px solid var(--color-border-subtle)" }}>
+        <span className="label-caps">Camera intent</span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: completedCount === SHOTS.length ? "var(--color-green)" : "var(--color-amber)" }}>
+          {completedCount}/{SHOTS.length} shots
+        </span>
+      </div>
+
+      {/* Panel body — horizontal scroll */}
+      <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", display: "flex", gap: 0, alignItems: "stretch" }}>
+        {SHOTS.map((shot, i) => {
+          const si = intents[i] ?? { intent: "Follow" as IntentType };
+          const complete = isShotIntentComplete(si, shot.speakers);
+          const hasIntent = !!si.intent;
+          return (
+            <div
+              key={shot.idx}
+              ref={(el) => { cardRefs.current[i] = el; }}
+              style={{ minWidth: 240, maxWidth: 280, flexShrink: 0, display: "flex", flexDirection: "column", padding: "10px 14px", borderRight: "1px solid var(--color-border-subtle)", gap: 8 }}
+            >
+              {/* Shot label row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 18, borderRadius: 2, background: "var(--color-surface-3)", flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)" }}>Shot {shot.idx}</span>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)" }}>{shot.timeStart.split('.')[0]} – {shot.timeEnd.split('.')[0]}</span>
+              </div>
+
+              {/* Intent selector pills */}
+              <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+                {INTENT_OPTIONS.map((opt) => {
+                  const active = si.intent === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => updateIntent(i, { intent: opt })}
+                      style={{
+                        height: 26, padding: "0 8px", borderRadius: 4,
+                        fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
+                        background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                        color: active ? "var(--color-violet)" : "var(--color-text-muted)",
+                        border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
+                        cursor: "pointer", transition: "all 100ms",
+                      }}
+                    >{opt}</button>
+                  );
+                })}
+              </div>
+
+              {/* Intent configuration */}
+              <div style={{ flex: 1, overflow: "hidden" }}>
+                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} />
+              </div>
+
+              {/* Completeness dot */}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: complete ? "var(--color-green)" : hasIntent ? "var(--color-amber)" : "var(--color-surface-3)",
+                }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Intent Config sub-component ── */
+function IntentConfig({ intent, shot, onChange }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void }) {
+  const speakers = shot.speakers;
+
+  const SpeakerSelect = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>{label}</span>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onSelect(Number(e.target.value))}
+        style={{
+          flex: 1, height: 28, background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
+          borderRadius: 4, fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
+          color: "var(--color-text-primary)", padding: "0 8px", cursor: "pointer", outline: "none",
+        }}
+      >
+        <option value="" disabled>Select…</option>
+        {speakers.map((s) => (
+          <option key={s} value={s}>{SPEAKER_NAMES[s] ?? `Speaker_0${s}`}</option>
+        ))}
+      </select>
+    </div>
+  );
+
+  switch (intent.intent) {
+    case "Follow":
+      return <SpeakerSelect label="Follow speaker" value={intent.follow} onSelect={(v) => onChange({ follow: v })} />;
+
+    case "Reaction":
+      return (
+        <>
+          <SpeakerSelect label="React on" value={intent.reactOn} onSelect={(v) => onChange({ reactOn: v })} />
+          <SpeakerSelect label="Speaker talking" value={intent.reactFollow} onSelect={(v) => onChange({ reactFollow: v })} />
+        </>
+      );
+
+    case "Split":
+      return (
+        <>
+          <SpeakerSelect label="Left" value={intent.splitLeft} onSelect={(v) => onChange({ splitLeft: v })} />
+          <SpeakerSelect label="Right" value={intent.splitRight} onSelect={(v) => onChange({ splitRight: v })} />
+        </>
+      );
+
+    case "Wide":
+      return (
+        <div>
+          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)" }}>Includes</span>
+          {speakers.map((s) => {
+            const checked = (intent.wideIncludes ?? []).includes(s);
+            return (
+              <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    const current = intent.wideIncludes ?? [];
+                    onChange({ wideIncludes: checked ? current.filter((x) => x !== s) : [...current, s] });
+                  }}
+                  style={{ accentColor: "var(--color-violet)", width: 14, height: 14 }}
+                />
+                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-primary)" }}>
+                  {SPEAKER_NAMES[s] ?? `Speaker_0${s}`}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      );
+
+    case "Manual":
+      return (
+        <div>
+          <button
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: 4,
+              background: "transparent", border: "none", cursor: "pointer",
+              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-violet)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <Crop size={12} />
+            Edit crop position →
+          </button>
+          {intent.cropSet && (
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-green)", marginTop: 4, display: "block" }}>Crop set ✓</span>
+          )}
+        </div>
+      );
+
+    default:
+      return null;
+  }
+}
+
+
 export default function RunGrounding() {
   const { id, clipId } = useParams();
   const [activeClip, setActiveClip] = useState(clipId ?? "001");
@@ -799,12 +1022,7 @@ export default function RunGrounding() {
               onAddBinding={handleAddBinding}
               onRemoveBinding={handleRemoveBinding}
             />
-            {/* Bottom camera intent placeholder */}
-            <div style={{ height: 200, flexShrink: 0, background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 14, color: "var(--color-text-muted)" }}>
-                Camera intent panel loads here — coming in next prompt
-              </span>
-            </div>
+            <CameraIntentPanel />
           </div>
 
           {/* Right details placeholder */}
