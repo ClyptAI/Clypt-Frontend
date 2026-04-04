@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import { TrendingUp } from "lucide-react";
 import DemoCardShell from "./DemoCardShell";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -15,115 +16,69 @@ export default function LandingClipDemo() {
       <DemoCardShell label="clip_renderer · render complete">
         <div
           style={{
-            position: "relative",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 32,
-            minHeight: 400,
+            gap: 28,
+            padding: "40px 32px",
+            minHeight: 420,
           }}
         >
-          {/* Floating metadata chips */}
-          {/* Chip A — above */}
+          {/* Left metadata column */}
           <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            initial={{ opacity: 0, x: -16 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.4, delay: 1.1, ease }}
             style={{
-              position: "absolute",
-              top: 16,
-              left: "50%",
-              transform: "translateX(-50%)",
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: 10,
-              color: "#C4B5FD",
-              background: "rgba(167,139,250,0.1)",
-              border: "1px solid rgba(167,139,250,0.3)",
-              borderRadius: 6,
-              padding: "5px 10px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            CLAIM · node_042
-          </motion.div>
-
-          {/* Chip B — left */}
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.4, delay: 1.18, ease }}
-            style={{
-              position: "absolute",
-              left: 16,
-              top: "50%",
-              transform: "translateY(-50%)",
+              width: 140,
               display: "flex",
-              alignItems: "center",
-              gap: 6,
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 14,
             }}
           >
+            {/* Chip 1 — type label */}
             <div
               style={{
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                background: "rgba(167,139,250,0.25)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "'Bricolage Grotesque', sans-serif",
-                fontWeight: 700,
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 10,
-                color: "#A78BFA",
+                color: "#C4B5FD",
+                background: "rgba(167,139,250,0.1)",
+                border: "1px solid rgba(167,139,250,0.3)",
+                borderRadius: 6,
+                padding: "5px 10px",
+                whiteSpace: "nowrap",
               }}
             >
-              A
+              CLAIM · node_042
             </div>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>Alex</span>
+
+            {/* Chip 2 — speaker */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  background: "rgba(167,139,250,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "'Bricolage Grotesque', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 10,
+                  color: "#A78BFA",
+                }}
+              >
+                A
+              </div>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>
+                Alex
+              </span>
+            </div>
           </motion.div>
 
-          {/* Chip C — right */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.4, delay: 1.26, ease }}
-            style={{
-              position: "absolute",
-              right: 16,
-              top: "30%",
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: 10,
-              color: "rgba(255,255,255,0.4)",
-            }}
-          >
-            14s · 1080p
-          </motion.div>
-
-          {/* Chip D — below-right */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, delay: 1.34, ease }}
-            style={{
-              position: "absolute",
-              bottom: 16,
-              right: 24,
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: 10,
-              color: "#FDBA74",
-              background: "rgba(251,146,60,0.1)",
-              border: "1px solid rgba(251,146,60,0.3)",
-              borderRadius: 4,
-              padding: "4px 10px",
-            }}
-          >
-            ↗ trend signal
-          </motion.div>
-
-          {/* 9:16 clip card */}
+          {/* Center — 9:16 clip card */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -137,6 +92,7 @@ export default function LandingClipDemo() {
               background: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
               boxShadow: "0 0 40px rgba(167,139,250,0.12), 0 24px 48px rgba(0,0,0,0.6)",
               position: "relative",
+              flexShrink: 0,
             }}
           >
             {/* Accent strip */}
@@ -248,7 +204,9 @@ export default function LandingClipDemo() {
               >
                 A
               </div>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, color: "rgba(255,255,255,0.6)" }}>Alex</span>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, color: "rgba(255,255,255,0.6)" }}>
+                Alex
+              </span>
             </div>
 
             {/* Type chip */}
@@ -320,6 +278,50 @@ export default function LandingClipDemo() {
                 onAnimationComplete={() => setScanDone(true)}
               />
             )}
+          </motion.div>
+
+          {/* Right metadata column */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.4, delay: 1.15, ease }}
+            style={{
+              width: 140,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 14,
+            }}
+          >
+            {/* Chip 3 — duration */}
+            <div
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 10,
+                color: "rgba(255,255,255,0.4)",
+              }}
+            >
+              14s · 1080p
+            </div>
+
+            {/* Chip 4 — trend badge */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 10,
+                color: "#FDBA74",
+                background: "rgba(251,146,60,0.08)",
+                border: "1px solid rgba(251,146,60,0.25)",
+                borderRadius: 4,
+                padding: "4px 10px",
+              }}
+            >
+              <TrendingUp size={12} color="#FB923C" />
+              trend signal
+            </div>
           </motion.div>
         </div>
       </DemoCardShell>

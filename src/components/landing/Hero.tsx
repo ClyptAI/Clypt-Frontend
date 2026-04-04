@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import WaveformBand from "./WaveformBand";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
+const entryEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const wordVariants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
@@ -23,76 +24,84 @@ const lineContainer = (delay: number) => ({
 /* ── Floating clip cards data ── */
 const clipCards = [
   {
-    gradient: "linear-gradient(160deg, rgba(88,28,135,0.6) 0%, rgba(30,27,75,0.8) 100%)",
-    dotColor: "#A78BFA",
+    gradient: "linear-gradient(160deg, #1a1035 0%, #0d0d14 40%, #1a1520 100%)",
+    dotColor: "#E879F9",
     label: "setup_payoff",
     title: "The moment before the pivot",
     time: "1:24",
-    position: { left: "8%", top: "15%" } as const,
-    rotate: -6,
-    width: 140,
-    floatY: [-12, 0, -12],
-    floatDur: 5,
+    position: { left: "2%", top: "8%" },
+    rotate: -9,
+    width: 120,
+    floatY: [0, -14, 0],
+    floatDur: 6.5,
     floatDelay: 0,
-    entranceDelay: 0.2,
-    pxFactor: -0.015,
-    pyFactor: -0.015,
+    entranceDelay: 0.8,
+    pxFactor: 0.03,
   },
   {
-    gradient: "linear-gradient(160deg, rgba(6,78,59,0.6) 0%, rgba(5,46,22,0.85) 100%)",
+    gradient: "linear-gradient(160deg, #0a1a1a 0%, #0d1410 40%, #0a0909 100%)",
     dotColor: "#4ADE80",
-    label: "claim",
-    title: "Why this always works",
-    time: "0:42",
-    position: { right: "5%", top: "8%" } as const,
-    rotate: 5,
-    width: 155,
-    floatY: [-10, 0, -10],
-    floatDur: 4.3,
-    floatDelay: 0.8,
-    entranceDelay: 0.4,
-    pxFactor: 0.02,
-    pyFactor: -0.012,
-  },
-  {
-    gradient: "linear-gradient(160deg, rgba(120,53,15,0.6) 0%, rgba(69,26,3,0.85) 100%)",
-    dotColor: "#FBB249",
     label: "reaction_beat",
     title: "The audience didn't see it coming",
+    time: "0:38",
+    position: { left: "9%", bottom: "10%" },
+    rotate: -3,
+    width: 120,
+    floatY: [0, -10, 0],
+    floatDur: 5.5,
+    floatDelay: 1.5,
+    entranceDelay: 1.1,
+    pxFactor: 0.015,
+  },
+  {
+    gradient: "linear-gradient(160deg, #1a1008 0%, #1a0d0d 40%, #100a14 100%)",
+    dotColor: "#A78BFA",
+    label: "claim",
+    title: "Why this always works",
+    time: "8:42",
+    position: { right: "9%", top: "6%" },
+    rotate: 7,
+    width: 120,
+    floatY: [0, -16, 0],
+    floatDur: 7,
+    floatDelay: 0.5,
+    entranceDelay: 1.0,
+    pxFactor: -0.02,
+  },
+  {
+    gradient: "linear-gradient(160deg, #0a1a1a 0%, #091018 40%, #080c12 100%)",
+    dotColor: "#38BDF8",
+    label: "qa_exchange",
+    title: "The follow-up no one asked",
     time: "2:05",
-    position: { right: "10%", top: "55%" } as const,
-    rotate: 3,
-    width: 140,
-    floatY: [-8, 0, -8],
-    floatDur: 5.8,
-    floatDelay: 1.6,
-    entranceDelay: 0.6,
-    pxFactor: 0.025,
-    pyFactor: -0.018,
+    position: { right: "2%", bottom: "12%" },
+    rotate: 5,
+    width: 120,
+    floatY: [0, -12, 0],
+    floatDur: 6,
+    floatDelay: 2,
+    entranceDelay: 1.3,
+    pxFactor: -0.025,
   },
 ];
 
 const Hero = () => {
   const heroRef = useRef<HTMLElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const springX = useSpring(0, { stiffness: 60, damping: 20 });
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
       if (!heroRef.current) return;
       const rect = heroRef.current.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
       const mx = (e.clientX - cx) / rect.width;
-      const my = (e.clientY - cy) / rect.height;
-      mouseX.set(mx);
-      mouseY.set(my);
-      setMouse({ x: mx, y: my });
+      springX.set(mx);
+      setMouse({ x: mx, y: 0 });
     };
     window.addEventListener("mousemove", handle);
     return () => window.removeEventListener("mousemove", handle);
-  }, [mouseX, mouseY]);
+  }, [springX]);
 
   const line1Words = ["Break", "the", "video."];
   const line2Words = ["Keep", "the", "moment."];
@@ -138,6 +147,7 @@ const Hero = () => {
       {clipCards.map((card, i) => (
         <motion.div
           key={i}
+          data-cursor="play"
           className="absolute"
           style={{
             ...card.position,
@@ -148,28 +158,29 @@ const Hero = () => {
             overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.12)",
             boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-            transform: `rotate(${card.rotate}deg) translateX(${mouse.x * card.pxFactor * 100}px) translateY(${mouse.y * card.pyFactor * 100}px)`,
+            background: card.gradient,
+            transform: `rotate(${card.rotate}deg) translateX(${mouse.x * card.pxFactor * 100}px)`,
           }}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease, delay: card.entranceDelay }}
+          initial={{ opacity: 0, y: 40, rotate: card.rotate }}
+          animate={{ opacity: 1, y: 0, rotate: card.rotate }}
+          whileHover={{ scale: 1.04, borderColor: `${card.dotColor}80` }}
+          transition={{ duration: 0.9, ease: entryEase, delay: card.entranceDelay }}
         >
+          {/* Float wrapper — this is what oscillates */}
           <motion.div
             animate={{ y: card.floatY }}
             transition={{ duration: card.floatDur, ease: "easeInOut", repeat: Infinity, delay: card.floatDelay }}
             style={{ width: "100%", height: "100%", position: "relative" }}
           >
-            {/* Background */}
-            <div className="absolute inset-0" style={{ background: card.gradient }} />
-
             {/* Timestamp */}
             <div
-              className="absolute font-mono"
               style={{
+                position: "absolute",
                 top: 8,
                 right: 8,
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 9,
-                color: "rgba(255,255,255,0.4)",
+                color: "rgba(255,255,255,0.5)",
                 background: "rgba(0,0,0,0.5)",
                 padding: "2px 5px",
                 borderRadius: 3,
@@ -178,28 +189,55 @@ const Hero = () => {
               {card.time}
             </div>
 
-            {/* Bottom overlay */}
+            {/* Bottom gradient overlay */}
             <div
-              className="absolute bottom-0 left-0 right-0"
               style={{
-                height: 72,
-                background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)",
-                padding: "0 8px 8px",
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: "55%",
+                background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%)",
+                pointerEvents: "none",
+              }}
+            />
+
+            {/* Node chip */}
+            <div
+              style={{
+                position: "absolute",
+                left: 8,
+                bottom: 36,
                 display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end",
+                alignItems: "center",
                 gap: 4,
               }}
             >
-              <div className="flex items-center gap-1">
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: card.dotColor }} />
-                <span className="font-mono" style={{ fontSize: 9, color: "rgba(255,255,255,0.7)" }}>
-                  {card.label}
-                </span>
-              </div>
-              <span className="font-sans font-medium" style={{ fontSize: 11, color: "#fff" }}>
-                {card.title}
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: card.dotColor }} />
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.6)" }}>
+                {card.label}
               </span>
+            </div>
+
+            {/* Caption */}
+            <div
+              style={{
+                position: "absolute",
+                left: 8,
+                right: 8,
+                bottom: 10,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 500,
+                fontSize: 10,
+                color: "rgba(255,255,255,0.8)",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                lineHeight: 1.3,
+              }}
+            >
+              {card.title}
             </div>
           </motion.div>
         </motion.div>

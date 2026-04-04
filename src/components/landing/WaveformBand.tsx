@@ -1,4 +1,4 @@
-const bars = Array.from({ length: 180 }, (_, i) => {
+const bars = Array.from({ length: 240 }, (_, i) => {
   const baseH = 12;
   const wave1 = Math.abs(Math.sin(i * 0.13)) * 90;
   const wave2 = Math.abs(Math.sin(i * 0.07 + 1.2)) * 40;
@@ -33,7 +33,8 @@ const WaveformBand = () => (
       position: "absolute",
       bottom: 0,
       left: 0,
-      right: 0,
+      width: "100vw",
+      marginLeft: "calc(50% - 50vw)",
       height: 220,
       overflow: "hidden",
       pointerEvents: "none",
