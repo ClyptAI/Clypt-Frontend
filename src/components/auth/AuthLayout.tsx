@@ -187,7 +187,7 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
             preventScrolling={false}
             proOptions={{ hideAttribution: true }}
             fitView
-            fitViewOptions={{ padding: 0.35 }}
+            fitViewOptions={{ padding: 0.25 }}
             style={{ background: "transparent" }}
           />
         </div>
