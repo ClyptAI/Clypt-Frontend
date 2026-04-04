@@ -104,46 +104,8 @@ function ClyptNode({ data }: NodeProps) {
   );
 }
 
-function AuthEdge(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, data, style: _s, ...rest } = props;
-  const isDashed = (data as any)?.dashed;
-  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, curvature: 0.25 });
-  return (
-    <g>
-      <BaseEdge
-        path={path}
-        style={{
-          stroke: isDashed ? "rgba(167,139,250,0.25)" : "rgba(167,139,250,0.35)",
-          strokeWidth: isDashed ? 1 : 1.5,
-          strokeDasharray: isDashed ? "6 4" : undefined,
-        }}
-      />
-      {props.label && (
-        <foreignObject x={labelX - 40} y={labelY - 10} width={80} height={20} style={{ overflow: "visible", pointerEvents: "none" }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <span
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 9,
-                background: "rgba(10,9,9,0.9)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 4,
-                padding: "2px 5px",
-                color: "rgba(255,255,255,0.5)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {props.label}
-            </span>
-          </div>
-        </foreignObject>
-      )}
-    </g>
-  );
-}
-
 const nodeTypes = { clyptNode: ClyptNode };
-const edgeTypes = { authEdge: AuthEdge };
+const edgeTypes = { clyptEdge: ClyptEdge };
 
 const authNodes: Node[] = [
   { id: "1", type: "clyptNode", position: { x: 20, y: 100 }, data: { label: "The hook nobody expected", type: "claim", signals: ["trend"] } },
