@@ -280,7 +280,7 @@ const Hero = () => {
 
         {/* Line 1 */}
         <motion.div
-          className="flex gap-[0.3em] flex-wrap justify-center"
+          className="flex gap-[0.35em] flex-wrap justify-center"
           variants={lineContainer(0.2)}
           initial="hidden"
           animate="visible"
