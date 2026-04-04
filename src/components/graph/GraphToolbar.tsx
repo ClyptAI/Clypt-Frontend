@@ -123,8 +123,10 @@ export default function GraphToolbar(props: GraphToolbarProps) {
         borderRadius: 8,
         padding: "6px 10px",
         display: "flex",
+        flexWrap: "nowrap",
         alignItems: "center",
         gap: 6,
+        overflowX: "auto",
       }}
     >
       {/* G1 — Node type filter */}
