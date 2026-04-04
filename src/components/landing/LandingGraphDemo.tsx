@@ -7,12 +7,10 @@ import {
   type NodeProps,
   Handle,
   Position,
-  BaseEdge,
-  getBezierPath,
-  type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import DemoCardShell from "./DemoCardShell";
+import { ClyptEdge } from "@/components/graph/ClyptEdge";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
