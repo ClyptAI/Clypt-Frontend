@@ -12,6 +12,8 @@ import OnboardBrandProfile from "./pages/onboard/OnboardBrandProfile.tsx";
 import OnboardPreferences from "./pages/onboard/OnboardPreferences.tsx";
 import OnboardVoiceprints from "./pages/onboard/OnboardVoiceprints.tsx";
 import OnboardReady from "./pages/onboard/OnboardReady.tsx";
+import AppShell from "./components/app/AppShell.tsx";
+import Library from "./pages/Library.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,11 @@ const App = () => (
           <Route path="/onboard/preferences" element={<OnboardPreferences />} />
           <Route path="/onboard/voiceprints" element={<OnboardVoiceprints />} />
           <Route path="/onboard/ready" element={<OnboardReady />} />
+          {/* App shell routes */}
+          <Route element={<AppShell />}>
+            <Route path="/library" element={<Library />} />
+            <Route path="/library/clips" element={<Library />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
