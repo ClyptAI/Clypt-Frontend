@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Check, Lock, Play, Pause, Zap, TriangleAlert, Crop } from "lucide-react";
+import { Check, Lock, Play, Pause, Zap, TriangleAlert, Crop, X } from "lucide-react";
 import { toast } from "sonner";
 
 /* ── Types ── */
@@ -694,9 +694,226 @@ function isShotIntentComplete(si: ShotIntent, speakers: number[]): boolean {
 
 const SPEAKER_NAMES: Record<number, string> = { 0: "Rithvik — Host", 1: "Speaker_01", 2: "Speaker_02" };
 
+/* ── Manual Crop Modal ── */
+interface CropPosition { x_percent: number; y_percent: number; height_percent: number }
+
+function ManualCropModal({
+  shotIdx,
+  initial,
+  onSave,
+  onClose,
+}: {
+  shotIdx: number;
+  initial?: CropPosition;
+  onSave: (shotIdx: number, crop: CropPosition) => void;
+  onClose: () => void;
+}) {
+  const ASPECT = 9 / 16; // w/h
+  const FRAME_W = 520;
+  const FRAME_H = Math.round(FRAME_W / (16 / 9)); // ~293
+
+  const defaultH = FRAME_H * 0.8;
+  const defaultW = defaultH * ASPECT;
+  const defaultX = (FRAME_W - defaultW) / 2;
+  const defaultY = (FRAME_H - defaultH) / 2;
+
+  const initFromSaved = (saved?: CropPosition) => {
+    if (!saved) return { x: defaultX, y: defaultY, w: defaultW, h: defaultH };
+    const h = saved.height_percent / 100 * FRAME_H;
+    const w = h * ASPECT;
+    const x = saved.x_percent / 100 * FRAME_W;
+    const y = saved.y_percent / 100 * FRAME_H;
+    return { x, y, w, h };
+  };
+
+  const [box, setBox] = useState(initFromSaved(initial));
+  const [dragging, setDragging] = useState<null | "move" | "tl" | "tr" | "bl" | "br">(null);
+  const dragStart = useRef({ mx: 0, my: 0, bx: 0, by: 0, bw: 0, bh: 0 });
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  const clampBox = (b: { x: number; y: number; w: number; h: number }) => {
+    let { x, y, w, h } = b;
+    w = Math.max(36, Math.min(w, FRAME_W));
+    h = w / ASPECT;
+    if (h > FRAME_H) { h = FRAME_H; w = h * ASPECT; }
+    x = Math.max(0, Math.min(x, FRAME_W - w));
+    y = Math.max(0, Math.min(y, FRAME_H - h));
+    return { x, y, w, h };
+  };
+
+  const onMouseDown = (e: React.MouseEvent, mode: "move" | "tl" | "tr" | "bl" | "br") => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(mode);
+    dragStart.current = { mx: e.clientX, my: e.clientY, bx: box.x, by: box.y, bw: box.w, bh: box.h };
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStart.current.mx;
+      const dy = e.clientY - dragStart.current.my;
+      const { bx, by, bw, bh } = dragStart.current;
+
+      if (dragging === "move") {
+        setBox(clampBox({ x: bx + dx, y: by + dy, w: bw, h: bh }));
+      } else {
+        let newH = bh;
+        let newX = bx;
+        let newY = by;
+
+        if (dragging === "br") { newH = bh + dy; }
+        else if (dragging === "bl") { newH = bh + dy; newX = bx + dx; }
+        else if (dragging === "tr") { newH = bh - dy; newY = by + dy; }
+        else if (dragging === "tl") { newH = bh - dy; newX = bx + dx; newY = by + dy; }
+
+        const newW = Math.max(36, newH * ASPECT);
+        setBox(clampBox({ x: newX, y: newY, w: newW, h: newH }));
+      }
+    };
+    const onUp = () => setDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [dragging]);
+
+  const handleReset = () => {
+    setBox({ x: defaultX, y: defaultY, w: defaultW, h: defaultH });
+  };
+
+  const handleSave = () => {
+    const crop: CropPosition = {
+      x_percent: (box.x / FRAME_W) * 100,
+      y_percent: (box.y / FRAME_H) * 100,
+      height_percent: (box.h / FRAME_H) * 100,
+    };
+    onSave(shotIdx, crop);
+    toast.success(`Crop position saved for Shot ${shotIdx}.`);
+  };
+
+  // Preview transform
+  const previewW = 108;
+  const previewH = 192;
+  const scaleX = previewW / box.w;
+  const scaleY = previewH / box.h;
+
+  // Clip-path for dim overlay (polygon with hole)
+  const outerL = 0, outerT = 0, outerR = FRAME_W, outerB = FRAME_H;
+  const iL = box.x, iT = box.y, iR = box.x + box.w, iB = box.y + box.h;
+  const clipPath = `polygon(
+    ${outerL}px ${outerT}px, ${outerR}px ${outerT}px, ${outerR}px ${outerB}px, ${outerL}px ${outerB}px, ${outerL}px ${outerT}px,
+    ${iL}px ${iT}px, ${iL}px ${iB}px, ${iR}px ${iB}px, ${iR}px ${iT}px, ${iL}px ${iT}px
+  )`;
+
+  const cornerStyle = (cursor: string): React.CSSProperties => ({
+    position: "absolute", width: 10, height: 10, background: "var(--color-violet)", borderRadius: 1, cursor, zIndex: 3,
+  });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(10,9,9,0.80)" }}>
+      <div style={{ width: 720, maxHeight: "90vh", background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+
+        {/* Header */}
+        <div style={{ height: 52, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderBottom: "1px solid var(--color-border-subtle)" }}>
+          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, color: "var(--color-text-primary)" }}>
+            Manual crop — Shot {shotIdx}
+          </span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
+            <X size={18} style={{ color: "var(--color-text-muted)" }} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, display: "flex", gap: 0, overflow: "hidden" }}>
+
+          {/* Left — frame editor */}
+          <div ref={frameRef} style={{ flex: 1, position: "relative", background: "#000", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {/* Source frame placeholder */}
+            <div style={{ width: FRAME_W, height: FRAME_H, position: "relative", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)", flexShrink: 0 }}>
+              {/* Placeholder content */}
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Shot {shotIdx} frame</span>
+              </div>
+
+              {/* Dim overlay with clip-path hole */}
+              <div style={{ position: "absolute", inset: 0, background: "rgba(10,9,9,0.55)", pointerEvents: "none", clipPath, zIndex: 1 }} />
+
+              {/* Crop box */}
+              <div
+                onMouseDown={(e) => onMouseDown(e, "move")}
+                style={{
+                  position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h,
+                  border: "2px solid var(--color-violet)", borderRadius: 2, cursor: dragging === "move" ? "grabbing" : "grab",
+                  zIndex: 2, boxSizing: "border-box",
+                }}
+              >
+                {/* Rule of thirds — visible only while dragging */}
+                {dragging && (
+                  <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                    <line x1="33.33%" y1="0" x2="33.33%" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
+                    <line x1="66.66%" y1="0" x2="66.66%" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
+                    <line x1="0" y1="33.33%" x2="100%" y2="33.33%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
+                    <line x1="0" y1="66.66%" x2="100%" y2="66.66%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
+                  </svg>
+                )}
+
+                {/* Corner handles */}
+                <div onMouseDown={(e) => onMouseDown(e, "tl")} style={{ ...cornerStyle("nwse-resize"), top: -5, left: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "tr")} style={{ ...cornerStyle("nesw-resize"), top: -5, right: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "bl")} style={{ ...cornerStyle("nesw-resize"), bottom: -5, left: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "br")} style={{ ...cornerStyle("nwse-resize"), bottom: -5, right: -5 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right — live preview */}
+          <div style={{ width: 140, flexShrink: 0, background: "var(--color-surface-2)", borderLeft: "1px solid var(--color-border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 16 }}>
+            <span className="label-caps" style={{ textAlign: "center" }}>Preview</span>
+            <div style={{ width: previewW, height: previewH, borderRadius: 4, overflow: "hidden", background: "#000", border: "1px solid var(--color-border)", position: "relative" }}>
+              <div style={{
+                width: FRAME_W, height: FRAME_H, position: "absolute",
+                background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+                transformOrigin: "0 0",
+                transform: `scale(${scaleX}, ${scaleY}) translate(${-box.x}px, ${-box.y}px)`,
+              }}>
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Shot {shotIdx}</span>
+                </div>
+              </div>
+            </div>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)", textAlign: "center" }}>1080 × 1920</span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ height: 56, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderTop: "1px solid var(--color-border-subtle)" }}>
+          <button
+            onClick={handleReset}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-secondary)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
+          >Reset to center</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={onClose}
+              style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-surface-2)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", cursor: "pointer" }}
+            >Cancel</button>
+            <button
+              onClick={handleSave}
+              style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "var(--color-violet)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "#0A0909", cursor: "pointer" }}
+            >Save crop</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CameraIntentPanel = () => {
   const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [manualCrops, setManualCrops] = useState<Record<number, CropPosition>>({});
+  const [cropModal, setCropModal] = useState<number | null>(null);
 
   const completedCount = SHOTS.reduce((acc, shot, i) => {
     const si = intents[i];
@@ -705,6 +922,14 @@ const CameraIntentPanel = () => {
 
   const updateIntent = (idx: number, patch: Partial<ShotIntent>) => {
     setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  };
+
+  const handleSaveCrop = (shotIdx: number, crop: CropPosition) => {
+    setManualCrops((prev) => ({ ...prev, [shotIdx]: crop }));
+    // Also mark cropSet on the intent
+    const i = SHOTS.findIndex((s) => s.idx === shotIdx);
+    if (i >= 0) updateIntent(i, { cropSet: true });
+    setCropModal(null);
   };
 
   return (
@@ -804,7 +1029,7 @@ const CameraIntentPanel = () => {
               </div>
 
               <div style={{ flex: 1, overflow: "hidden" }}>
-                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} />
+                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} onOpenCrop={() => setCropModal(shot.idx)} />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -821,12 +1046,20 @@ const CameraIntentPanel = () => {
           );
         })}
       </div>
+      {cropModal !== null && (
+        <ManualCropModal
+          shotIdx={cropModal}
+          initial={manualCrops[cropModal]}
+          onSave={handleSaveCrop}
+          onClose={() => setCropModal(null)}
+        />
+      )}
     </div>
   );
 };
 
 /* ── Intent Config sub-component ── */
-function IntentConfig({ intent, shot, onChange }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void }) {
+function IntentConfig({ intent, shot, onChange, onOpenCrop }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void; onOpenCrop?: () => void }) {
   const speakers = shot.speakers;
 
   const SpeakerSelect = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
@@ -899,6 +1132,7 @@ function IntentConfig({ intent, shot, onChange }: { intent: ShotIntent; shot: Sh
       return (
         <div>
           <button
+            onClick={onOpenCrop}
             style={{
               display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: 4,
               background: "transparent", border: "none", cursor: "pointer",
