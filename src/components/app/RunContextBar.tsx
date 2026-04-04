@@ -5,7 +5,7 @@ const TABS = [
   { label: "Overview", path: "", phase: 0 },
   { label: "Timeline", path: "/timeline", phase: 1 },
   { label: "Cortex Graph", path: "/graph", phase: 2 },
-  { label: "Clip Candidates", path: "/candidates", phase: 4 },
+  { label: "Clip Candidates", path: "/clips", phase: 4 },
   { label: "Grounding", path: "/grounding", phase: 5 },
   { label: "Render", path: "/render", phase: 6 },
 ];
