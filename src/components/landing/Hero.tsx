@@ -44,7 +44,7 @@ const clipCards = [
     label: "reaction_beat",
     title: "The audience didn't see it coming",
     time: "0:38",
-    position: { left: "7%", top: "56%" } as React.CSSProperties,
+    position: { left: "11%", top: "57%" } as React.CSSProperties,
     rotate: -3,
     width: 120,
     floatY: [0, -10, 0],
