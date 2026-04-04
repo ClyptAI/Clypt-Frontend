@@ -1132,6 +1132,7 @@ function IntentConfig({ intent, shot, onChange, onOpenCrop }: { intent: ShotInte
       return (
         <div>
           <button
+            onClick={onOpenCrop}
             style={{
               display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: 4,
               background: "transparent", border: "none", cursor: "pointer",
