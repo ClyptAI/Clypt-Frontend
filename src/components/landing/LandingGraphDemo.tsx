@@ -167,7 +167,8 @@ const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reacti
 
 export default function LandingGraphDemo() {
   return (
-    <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto" style={{ maxWidth: 1100 }}>
+    <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto">
+      <div style={{ maxWidth: 1100 }}>
       <div
         style={{
           height: 420,
