@@ -18,10 +18,22 @@ const Navbar = () => {
         borderBottom: "1px solid rgba(255,255,255,0.07)",
       }}
     >
-      <div className="flex items-center justify-between w-full max-w-6xl px-6">
-        <ClyptLogo size="md" />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          width: "100%",
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: "0 32px",
+        }}
+      >
+        <div style={{ justifySelf: "start" }}>
+          <ClyptLogo size="md" />
+        </div>
 
-        <div className="flex items-center" style={{ gap: 32 }}>
+        <div className="flex items-center justify-center" style={{ gap: 32 }}>
           {navLinks.map((l) => (
             <a
               key={l.label}
@@ -36,7 +48,7 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" style={{ justifySelf: "end" }}>
           <a
             href="/login"
             className="font-sans transition-colors"
