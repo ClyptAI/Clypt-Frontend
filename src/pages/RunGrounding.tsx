@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Check, Lock, Play, Pause, Zap, TriangleAlert } from "lucide-react";
+import { Check, Lock, Play, Pause, Zap, TriangleAlert, Crop } from "lucide-react";
 import { toast } from "sonner";
 
 /* ── Types ── */
