@@ -74,7 +74,7 @@ const clipCards = [
     label: "qa_exchange",
     title: "The follow-up no one asked",
     time: "2:05",
-    position: { right: "1%", top: "53%" } as React.CSSProperties,
+    position: { right: "11%", top: "54%" } as React.CSSProperties,
     rotate: 5,
     width: 120,
     floatY: [0, -12, 0],
