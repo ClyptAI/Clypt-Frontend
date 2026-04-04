@@ -14,6 +14,7 @@ import OnboardVoiceprints from "./pages/onboard/OnboardVoiceprints.tsx";
 import OnboardReady from "./pages/onboard/OnboardReady.tsx";
 import AppShell from "./components/app/AppShell.tsx";
 import Library from "./pages/Library.tsx";
+import NewRun from "./pages/NewRun.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route element={<AppShell />}>
             <Route path="/library" element={<Library />} />
             <Route path="/library/clips" element={<Library />} />
+            <Route path="/runs/new" element={<NewRun />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
