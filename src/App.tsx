@@ -21,6 +21,9 @@ import RunGraph from "./pages/RunGraph.tsx";
 import RunClips from "./pages/RunClips.tsx";
 import RunGrounding from "./pages/RunGrounding.tsx";
 import RunRender from "./pages/RunRender.tsx";
+import SettingsLayout from "./components/settings/SettingsLayout.tsx";
+import SettingsProfile from "./pages/SettingsProfile.tsx";
+import SettingsVoiceprints from "./pages/SettingsVoiceprints.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
