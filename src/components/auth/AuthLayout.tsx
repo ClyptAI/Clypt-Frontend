@@ -138,12 +138,12 @@ const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { authEdge: AuthEdge };
 
 const authNodes: Node[] = [
-  { id: "1", type: "clyptNode", position: { x: 30, y: 60 }, data: { label: "The hook nobody expected", type: "claim", signals: ["trend"] } },
-  { id: "2", type: "clyptNode", position: { x: 210, y: 20 }, data: { label: "Setting the scene", type: "setup_payoff", signals: [] } },
-  { id: "3", type: "clyptNode", position: { x: 20, y: 230 }, data: { label: "The pivot moment", type: "anecdote", signals: ["comment"] } },
-  { id: "4", type: "clyptNode", position: { x: 210, y: 190 }, data: { label: "Why it resonates", type: "explanation", signals: ["retention"] } },
-  { id: "5", type: "clyptNode", position: { x: 100, y: 370 }, data: { label: "The payoff", type: "setup_payoff", signals: [] } },
-  { id: "6", type: "clyptNode", position: { x: 260, y: 340 }, data: { label: "Audience reaction", type: "reaction_beat", signals: ["comment"] } },
+  { id: "1", type: "clyptNode", position: { x: 20, y: 100 }, data: { label: "The hook nobody expected", type: "claim", signals: ["trend"] } },
+  { id: "2", type: "clyptNode", position: { x: 280, y: 30 }, data: { label: "Setting the scene", type: "setup_payoff", signals: [] } },
+  { id: "3", type: "clyptNode", position: { x: 10, y: 320 }, data: { label: "The pivot moment", type: "anecdote", signals: ["comment"] } },
+  { id: "4", type: "clyptNode", position: { x: 270, y: 260 }, data: { label: "Why it resonates", type: "explanation", signals: ["retention"] } },
+  { id: "5", type: "clyptNode", position: { x: 100, y: 510 }, data: { label: "The payoff", type: "setup_payoff", signals: [] } },
+  { id: "6", type: "clyptNode", position: { x: 300, y: 450 }, data: { label: "Audience reaction", type: "reaction_beat", signals: ["comment"] } },
 ];
 
 const authEdges: Edge[] = [
