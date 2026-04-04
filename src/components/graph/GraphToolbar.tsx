@@ -130,7 +130,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
       }}
     >
       {/* G1 — Node type filter */}
-      <div ref={typeRef} style={{ position: "relative" }}>
+      <div ref={typeRef} style={{ position: "relative", flexShrink: 0 }}>
         <GhostBtn onClick={() => { setTypeOpen(!typeOpen); setConfOpen(false); }}>
           <LayoutGrid size={14} />
           {typeLabel}
