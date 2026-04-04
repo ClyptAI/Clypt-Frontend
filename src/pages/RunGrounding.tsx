@@ -1059,7 +1059,7 @@ const CameraIntentPanel = () => {
 };
 
 /* ── Intent Config sub-component ── */
-function IntentConfig({ intent, shot, onChange }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void }) {
+function IntentConfig({ intent, shot, onChange, onOpenCrop }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void; onOpenCrop?: () => void }) {
   const speakers = shot.speakers;
 
   const SpeakerSelect = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
