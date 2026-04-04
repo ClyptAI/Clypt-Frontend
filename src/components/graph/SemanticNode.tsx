@@ -20,6 +20,8 @@ export interface SemanticNodeData {
   timeEnd: string;
   summary: string;
   flags?: string[];
+  signalTags?: ("trend" | "comment" | "retention")[];
+  dimmed?: boolean;
   [key: string]: unknown;
 }
 
