@@ -120,17 +120,17 @@ const demoNodes: Node[] = [
 ];
 
 const demoEdges: Edge[] = [
-  { id: "e1-2", source: "1", target: "2", type: "demoEdge", label: "supports" },
-  { id: "e1-3", source: "1", target: "3", type: "demoEdge", label: "supports" },
-  { id: "e2-4", source: "2", target: "4", type: "demoEdge", label: "elaborates" },
-  { id: "e3-5", source: "3", target: "5", type: "demoEdge", label: "setup_for" },
-  { id: "e4-6", source: "4", target: "6", type: "demoEdge", label: "challenges" },
-  { id: "e5-7", source: "5", target: "7", type: "demoEdge", label: "payoff_of" },
-  { id: "e6-8", source: "6", target: "8", type: "demoEdge", label: "answers" },
-  { id: "e7-8", source: "7", target: "8", type: "demoEdge", label: "escalates" },
-  { id: "e1-6", source: "1", target: "6", type: "demoEdge", label: "callback_to", data: { dashed: true } },
-  { id: "e3-7", source: "3", target: "7", type: "demoEdge", label: "topic_recurrence", data: { dashed: true } },
-  { id: "e5-8", source: "5", target: "8", type: "demoEdge", label: "elaborates" },
+  { id: "e1-2", source: "1", target: "2", type: "clyptEdge", data: { label: "supports" } },
+  { id: "e1-3", source: "1", target: "3", type: "clyptEdge", data: { label: "supports" } },
+  { id: "e2-4", source: "2", target: "4", type: "clyptEdge", data: { label: "elaborates" } },
+  { id: "e3-5", source: "3", target: "5", type: "clyptEdge", data: { label: "setup_for" } },
+  { id: "e4-6", source: "4", target: "6", type: "clyptEdge", data: { label: "challenges" } },
+  { id: "e5-7", source: "5", target: "7", type: "clyptEdge", data: { label: "payoff_of" } },
+  { id: "e6-8", source: "6", target: "8", type: "clyptEdge", data: { label: "answers" } },
+  { id: "e7-8", source: "7", target: "8", type: "clyptEdge", data: { label: "escalates" } },
+  { id: "e1-6", source: "1", target: "6", type: "clyptEdge", data: { label: "callback_to", dashed: true, animated: true } },
+  { id: "e3-7", source: "3", target: "7", type: "clyptEdge", data: { label: "topic_recurrence", dashed: true } },
+  { id: "e5-8", source: "5", target: "8", type: "clyptEdge", data: { label: "elaborates" } },
 ];
 
 const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reaction_beat"];
