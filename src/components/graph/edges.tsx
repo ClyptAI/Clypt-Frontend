@@ -51,6 +51,8 @@ function RhetoricalEdge({
     curvature,
   });
 
+  const isStrongArc = props.label === "setup_for" || props.label === "payoff_of" || props.label === "callback_to";
+
   return (
     <g
       onMouseEnter={() => setHovered(true)}
@@ -58,6 +60,17 @@ function RhetoricalEdge({
     >
       {/* Wider invisible hit area */}
       <path d={path} fill="none" stroke="transparent" strokeWidth={12} />
+      {/* Glow halo — visible on hover */}
+      {hovered && (
+        <path
+          d={path}
+          fill="none"
+          stroke={color}
+          strokeWidth={6}
+          strokeOpacity={0.2}
+          strokeLinecap="round"
+        />
+      )}
       <BaseEdge
         {...props}
         path={path}
@@ -98,6 +111,18 @@ function RhetoricalEdge({
             </span>
           </div>
         </foreignObject>
+      )}
+      {/* Streaming dot on hover */}
+      {hovered && (
+        <circle r={3} fill={color} style={{ filter: `drop-shadow(0 0 4px ${color})` }}>
+          <animateMotion dur="2s" repeatCount="indefinite" path={path} />
+        </circle>
+      )}
+      {/* Ambient streaming dot on strong arcs */}
+      {isStrongArc && !hovered && (
+        <circle r={2.5} fill={color} opacity={0.5} style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
+          <animateMotion dur="3.5s" repeatCount="indefinite" path={path} />
+        </circle>
       )}
     </g>
   );

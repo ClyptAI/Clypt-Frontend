@@ -79,7 +79,7 @@ function GhostBtn({
         fontFamily: "'Bricolage Grotesque', sans-serif",
         fontWeight: 500,
         fontSize: 13,
-        cursor: "pointer",
+        flexShrink: 0,
         border: active ? `1px solid ${activeBorder ?? "transparent"}` : "1px solid transparent",
         background: active ? (activeBg ?? "var(--color-violet-muted)") : "transparent",
         color: active ? (activeColor ?? "var(--color-violet)") : "var(--color-text-secondary)",
@@ -123,12 +123,14 @@ export default function GraphToolbar(props: GraphToolbarProps) {
         borderRadius: 8,
         padding: "6px 10px",
         display: "flex",
+        flexWrap: "nowrap",
         alignItems: "center",
         gap: 6,
+        overflowX: "auto",
       }}
     >
       {/* G1 — Node type filter */}
-      <div ref={typeRef} style={{ position: "relative" }}>
+      <div ref={typeRef} style={{ position: "relative", flexShrink: 0 }}>
         <GhostBtn onClick={() => { setTypeOpen(!typeOpen); setConfOpen(false); }}>
           <LayoutGrid size={14} />
           {typeLabel}
@@ -191,9 +193,9 @@ export default function GraphToolbar(props: GraphToolbarProps) {
       <Divider />
 
       {/* G2 — Confidence */}
-      <div ref={confRef} style={{ position: "relative" }}>
+      <div ref={confRef} style={{ position: "relative", flexShrink: 0 }}>
         <GhostBtn onClick={() => { setConfOpen(!confOpen); setTypeOpen(false); }}>
-          ≥ {props.confidence.toFixed(2)}
+          ≥ {props.confidence === 0 ? '0' : parseFloat(props.confidence.toFixed(2)).toString()}
         </GhostBtn>
         {confOpen && (
           <div
@@ -229,7 +231,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
       {/* G3 — Clip-worthy */}
       <GhostBtn active={props.clipWorthy} onClick={props.onClipWorthyToggle}>
         <Bookmark size={14} />
-        Clip-worthy only
+        Clip-worthy
       </GhostBtn>
 
       <Divider />

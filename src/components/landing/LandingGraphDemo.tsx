@@ -7,12 +7,10 @@ import {
   type NodeProps,
   Handle,
   Position,
-  BaseEdge,
-  getBezierPath,
-  type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import DemoCardShell from "./DemoCardShell";
+import { ClyptEdge } from "@/components/graph/ClyptEdge";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -34,6 +32,14 @@ const SIGNAL_COLORS: Record<string, string> = {
 function ClyptNode({ data }: NodeProps) {
   const d = data as { label: string; type: string; signals: string[] };
   const s = TYPE_STYLES[d.type] || TYPE_STYLES.claim;
+  const nodeGlowMap: Record<string, string> = {
+    claim: "0 0 18px rgba(167,139,250,0.35)",
+    explanation: "0 0 18px rgba(96,165,250,0.30)",
+    anecdote: "0 0 18px rgba(251,178,73,0.30)",
+    setup_payoff: "0 0 18px rgba(251,146,60,0.30)",
+    reaction_beat: "0 0 18px rgba(74,222,128,0.30)",
+    qa_exchange: "0 0 18px rgba(56,189,248,0.30)",
+  };
   return (
     <div
       style={{
@@ -42,6 +48,8 @@ function ClyptNode({ data }: NodeProps) {
         borderRadius: 10,
         padding: "10px 12px",
         border: `1.5px solid ${s.border}`,
+        boxShadow: nodeGlowMap[d.type] ?? "0 0 14px rgba(255,255,255,0.12)",
+        transition: "box-shadow 200ms ease",
       }}
     >
       <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
@@ -97,46 +105,8 @@ function ClyptNode({ data }: NodeProps) {
   );
 }
 
-function DemoEdge(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, data, style: _s, ...rest } = props;
-  const isDashed = (data as any)?.dashed;
-  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, curvature: 0.25 });
-  return (
-    <g>
-      <BaseEdge
-        path={path}
-        style={{
-          stroke: isDashed ? "rgba(167,139,250,0.25)" : "rgba(167,139,250,0.35)",
-          strokeWidth: isDashed ? 1 : 1.5,
-          strokeDasharray: isDashed ? "6 4" : undefined,
-        }}
-      />
-      {props.label && (
-        <foreignObject x={labelX - 40} y={labelY - 10} width={80} height={20} style={{ overflow: "visible", pointerEvents: "none" }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <span
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 9,
-                background: "rgba(10,9,9,0.9)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 4,
-                padding: "2px 5px",
-                color: "rgba(255,255,255,0.5)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {props.label}
-            </span>
-          </div>
-        </foreignObject>
-      )}
-    </g>
-  );
-}
-
 const nodeTypes = { clyptNode: ClyptNode };
-const edgeTypes = { demoEdge: DemoEdge };
+const edgeTypes = { clyptEdge: ClyptEdge };
 
 const demoNodes: Node[] = [
   { id: "1", type: "clyptNode", position: { x: 40, y: 140 }, data: { label: "The core argument", type: "claim", signals: ["trend"] } },
@@ -150,17 +120,17 @@ const demoNodes: Node[] = [
 ];
 
 const demoEdges: Edge[] = [
-  { id: "e1-2", source: "1", target: "2", type: "demoEdge", label: "supports" },
-  { id: "e1-3", source: "1", target: "3", type: "demoEdge", label: "supports" },
-  { id: "e2-4", source: "2", target: "4", type: "demoEdge", label: "elaborates" },
-  { id: "e3-5", source: "3", target: "5", type: "demoEdge", label: "setup_for" },
-  { id: "e4-6", source: "4", target: "6", type: "demoEdge", label: "challenges" },
-  { id: "e5-7", source: "5", target: "7", type: "demoEdge", label: "payoff_of" },
-  { id: "e6-8", source: "6", target: "8", type: "demoEdge", label: "answers" },
-  { id: "e7-8", source: "7", target: "8", type: "demoEdge", label: "escalates" },
-  { id: "e1-6", source: "1", target: "6", type: "demoEdge", label: "callback_to", data: { dashed: true } },
-  { id: "e3-7", source: "3", target: "7", type: "demoEdge", label: "topic_recurrence", data: { dashed: true } },
-  { id: "e5-8", source: "5", target: "8", type: "demoEdge", label: "elaborates" },
+  { id: "e1-2", source: "1", target: "2", type: "clyptEdge", data: { label: "supports" } },
+  { id: "e1-3", source: "1", target: "3", type: "clyptEdge", data: { label: "supports" } },
+  { id: "e2-4", source: "2", target: "4", type: "clyptEdge", data: { label: "elaborates" } },
+  { id: "e3-5", source: "3", target: "5", type: "clyptEdge", data: { label: "setup_for" } },
+  { id: "e4-6", source: "4", target: "6", type: "clyptEdge", data: { label: "challenges" } },
+  { id: "e5-7", source: "5", target: "7", type: "clyptEdge", data: { label: "payoff_of" } },
+  { id: "e6-8", source: "6", target: "8", type: "clyptEdge", data: { label: "answers" } },
+  { id: "e7-8", source: "7", target: "8", type: "clyptEdge", data: { label: "escalates" } },
+  { id: "e1-6", source: "1", target: "6", type: "clyptEdge", data: { label: "callback_to", dashed: true, animated: true } },
+  { id: "e3-7", source: "3", target: "7", type: "clyptEdge", data: { label: "topic_recurrence", dashed: true } },
+  { id: "e5-8", source: "5", target: "8", type: "clyptEdge", data: { label: "elaborates" } },
 ];
 
 const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reaction_beat"];
