@@ -30,7 +30,7 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="w-[40%] bg-[var(--color-surface-1)] border-r border-[var(--color-border)] flex flex-col p-10">
-        <ClyptLogo size="md" />
+        <ClyptLogo size="lg" defaultExpanded={true} />
 
         <div className="flex-1 flex flex-col justify-center gap-12">
           <NodeGraph />

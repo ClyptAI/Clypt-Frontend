@@ -12,7 +12,7 @@ const OnboardingLayout = ({ children, currentStep }: OnboardingLayoutProps) => {
   return (
     <div className="flex flex-col h-screen bg-[var(--color-bg)]">
       <div className="h-16 flex-shrink-0 border-b border-[var(--color-border-subtle)] flex items-center justify-between px-10">
-        <ClyptLogo size="sm" />
+        <ClyptLogo size="md" defaultExpanded={true} />
 
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
