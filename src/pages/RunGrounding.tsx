@@ -1029,7 +1029,7 @@ const CameraIntentPanel = () => {
               </div>
 
               <div style={{ flex: 1, overflow: "hidden" }}>
-                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} />
+                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} onOpenCrop={() => setCropModal(shot.idx)} />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
