@@ -195,7 +195,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
       {/* G2 — Confidence */}
       <div ref={confRef} style={{ position: "relative" }}>
         <GhostBtn onClick={() => { setConfOpen(!confOpen); setTypeOpen(false); }}>
-          ≥ {props.confidence.toFixed(2)}
+          ≥ {props.confidence === 0 ? '0' : parseFloat(props.confidence.toFixed(2)).toString()}
         </GhostBtn>
         {confOpen && (
           <div

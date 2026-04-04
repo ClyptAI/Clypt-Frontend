@@ -82,7 +82,7 @@ const ALL_TYPES = new Set(["claim", "explanation", "example", "anecdote", "react
 
 function layoutGraph(nodes: Node[], edges: Edge[]): Node[] {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", ranksep: 80, nodesep: 40 });
+  g.setGraph({ rankdir: "LR", ranksep: 200, nodesep: 90, edgesep: 50 });
   nodes.forEach((n) => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
   edges.forEach((e) => g.setEdge(e.source, e.target));
   Dagre.layout(g);
