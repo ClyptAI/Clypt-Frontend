@@ -17,6 +17,7 @@ import Library from "./pages/Library.tsx";
 import NewRun from "./pages/NewRun.tsx";
 import RunOverview from "./pages/RunOverview.tsx";
 import RunTimeline from "./pages/RunTimeline.tsx";
+import RunGraph from "./pages/RunGraph.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/runs/new" element={<NewRun />} />
             <Route path="/runs/:id" element={<RunOverview />} />
             <Route path="/runs/:id/timeline" element={<RunTimeline />} />
+            <Route path="/runs/:id/graph" element={<RunGraph />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
