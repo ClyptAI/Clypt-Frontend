@@ -418,15 +418,19 @@ export default function RunTimeline() {
       <div
         className="flex-shrink-0 border-b overflow-hidden transition-[height] duration-200"
         style={{
-          height: videoOpen ? 160 : 0,
+          height: videoOpen ? 240 : 0,
           background: "#000",
           borderColor: "var(--color-border)",
         }}
       >
         <div className="flex flex-col h-full">
-          <div className="flex-1 flex items-center justify-center">
+          {/* video — constrained to 16:9 aspect ratio, centered */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
             {(runDetail?.source_url || runId === "demo") ? (
-              <VideoPlayer videoUrl={runDetail?.source_url ?? DEMO_VIDEO_URL} className="w-full h-full" />
+              <VideoPlayer
+                videoUrl={runDetail?.source_url ?? DEMO_VIDEO_URL}
+                className="h-full w-auto max-w-full"
+              />
             ) : (
               <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>Video Player</span>
             )}
