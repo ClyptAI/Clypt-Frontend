@@ -5,6 +5,8 @@ import RunContextBar from "@/components/app/RunContextBar";
 import { TimeRuler } from "@/components/timeline";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
+import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
+import { useVisibleSegments } from "@/hooks";
 
 /* ─── constants ─── */
 const VIDEO_DURATION = 24 * 60 + 31; // 24:31 in seconds
@@ -205,6 +207,47 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
   );
 }
 
+/* ─── virtualized speaker lane ─── */
+interface SpeakerLaneProps {
+  speaker: typeof MOCK_SPEAKERS[0]
+  pixelsPerSecond: number
+  scrollX: number
+  viewportWidth: number
+  totalWidth: number
+  onSelectTurn: (turn: typeof MOCK_SPEAKERS[0]["turns"][0], speakerName: string) => void
+}
+
+function SpeakerLane({ speaker, pixelsPerSecond, scrollX, viewportWidth, totalWidth, onSelectTurn }: SpeakerLaneProps) {
+  const segments = speaker.turns.map(t => ({
+    ...t,
+    startTime: t.start,
+    endTime: t.end,
+  }))
+
+  const { visibleSegments } = useVisibleSegments(segments, pixelsPerSecond, scrollX, viewportWidth)
+  const color = SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length]
+
+  return (
+    <div className="relative" style={{ width: totalWidth, height: 28 }}>
+      {visibleSegments.map((turn) => (
+        <TT key={turn.id} tip={`${turn.id} · ${fmtTime(turn.start)} → ${fmtTime(turn.end)} · "${turn.transcript.slice(0, 40)}…"`}>
+          <div
+            className="absolute top-1 rounded-sm border cursor-pointer hover:brightness-125"
+            style={{
+              left: turn.start * pixelsPerSecond,
+              width: Math.max((turn.end - turn.start) * pixelsPerSecond, 4),
+              height: 20,
+              background: `${color}66`,
+              borderColor: `${color}cc`,
+            }}
+            onClick={() => onSelectTurn(turn, speaker.name)}
+          />
+        </TT>
+      ))}
+    </div>
+  )
+}
+
 /* ─── page ─── */
 export default function RunTimeline() {
   const { id } = useParams();
@@ -238,6 +281,9 @@ export default function RunTimeline() {
   const pps        = pixelsPerSecond;
   const totalWidth = VIDEO_DURATION * pps;
   const LABEL_W    = 120;
+
+  // Keyboard shortcuts for timeline navigation
+  useTimelineKeyboard({ seekStep: 5 })
 
   // Initialise store zoom to match the page's base PPS on first mount
   useEffect(() => { setStorePps(PPS_BASE) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -321,32 +367,37 @@ export default function RunTimeline() {
         <div className="flex-1" />
 
         {/* zoom */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setStorePps(PPS_BASE)}
-            className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
-            style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
-          >
-            Fit
-          </button>
-          {([1, 2, 4] as const).map((z) => {
-            const targetPps = PPS_BASE * z;
-            const isActive = Math.round(pps / PPS_BASE) === z;
-            return (
-              <button
-                key={z}
-                onClick={() => setStorePps(targetPps)}
-                className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-                style={{
-                  background: isActive ? "var(--color-surface-3)" : "transparent",
-                  color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
-                }}
-              >
-                {z}×
-              </button>
-            );
-          })}
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setStorePps(PPS_BASE)}
+              className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
+              style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
+            >
+              Fit
+            </button>
+            {([1, 2, 4] as const).map((z) => {
+              const targetPps = PPS_BASE * z;
+              const isActive = Math.round(pps / PPS_BASE) === z;
+              return (
+                <button
+                  key={z}
+                  onClick={() => setStorePps(targetPps)}
+                  className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
+                  style={{
+                    background: isActive ? "var(--color-surface-3)" : "transparent",
+                    color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                    border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
+                  }}
+                >
+                  {z}×
+                </button>
+              );
+            })}
+          </div>
+          <span className="font-mono text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+            Space · J/K/L · ←/→ · +/−
+          </span>
         </div>
 
         {/* video toggle */}
@@ -480,32 +531,20 @@ export default function RunTimeline() {
               </div>
             )}
 
-            {/* speaker lanes */}
+            {/* speaker lanes — virtualized: only visible turns are rendered */}
             {layers["Speakers"] && MOCK_SPEAKERS.map((speaker) => (
               <div key={speaker.id} className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
                 <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                   <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
                 </div>
-                <div className="relative" style={{ width: totalWidth, height: 28 }}>
-                  {speaker.turns.map((turn) => {
-                    const c = SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length];
-                    return (
-                      <TT key={turn.id} tip={`${turn.id} · ${fmtTime(turn.start)} → ${fmtTime(turn.end)} · "${turn.transcript.slice(0, 40)}…"`}>
-                        <div
-                          className="absolute top-1 rounded-sm border cursor-pointer hover:brightness-125"
-                          style={{
-                            left: turn.start * pps,
-                            width: Math.max((turn.end - turn.start) * pps, 4),
-                            height: 20,
-                            background: `${c}66`,
-                            borderColor: `${c}cc`,
-                          }}
-                          onClick={() => selectTurn(turn, speaker.name)}
-                        />
-                      </TT>
-                    );
-                  })}
-                </div>
+                <SpeakerLane
+                  speaker={speaker}
+                  pixelsPerSecond={pps}
+                  scrollX={scrollX}
+                  viewportWidth={containerWidth}
+                  totalWidth={totalWidth}
+                  onSelectTurn={selectTurn}
+                />
               </div>
             ))}
 
