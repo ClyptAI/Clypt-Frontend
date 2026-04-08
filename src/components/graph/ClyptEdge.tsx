@@ -2,122 +2,118 @@ import { memo } from "react";
 import { BaseEdge, getBezierPath, type EdgeProps } from "@xyflow/react";
 
 const edgeColorMap: Record<string, string> = {
-  supports: "rgba(167,139,250,0.85)",
-  elaborates: "rgba(96,165,250,0.80)",
-  challenges: "rgba(251,146,60,0.80)",
-  setup_for: "rgba(251,178,73,0.80)",
-  payoff_of: "rgba(251,178,73,0.80)",
-  answers: "rgba(74,222,128,0.80)",
-  escalates: "rgba(251,146,60,0.80)",
-  callback_to: "rgba(167,139,250,0.60)",
-  topic_recurrence: "rgba(96,165,250,0.60)",
-  triggers: "rgba(74,222,128,0.70)",
+  supports:         "#A78BFA",
+  elaborates:       "#60A5FA",
+  challenges:       "#FB923C",
+  setup_for:        "#FBB249",
+  payoff_of:        "#FBB249",
+  answers:          "#4ADE80",
+  escalates:        "#FB923C",
+  callback_to:      "#A78BFA",
+  topic_recurrence: "#60A5FA",
+  triggers:         "#4ADE80",
 };
 
-function ClyptEdgeComponent({
+function ClyptEdgeInner({
   id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  data,
-  label,
+  sourceX, sourceY, targetX, targetY,
+  sourcePosition, targetPosition,
+  data, label,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
+    sourceX, sourceY, sourcePosition,
+    targetX, targetY, targetPosition,
   });
 
   const edgeLabel = (data?.label as string) ?? (label as string) ?? "";
-  const color = edgeColorMap[edgeLabel] ?? "rgba(167,139,250,0.7)";
-  const isDashed =
-    data?.dashed === true ||
-    edgeLabel === "callback_to" ||
-    edgeLabel === "topic_recurrence";
+  const color     = edgeColorMap[edgeLabel] ?? "#A78BFA";
+  const isDashed  = (data as any)?.dashed === true
+    || edgeLabel === "callback_to"
+    || edgeLabel === "topic_recurrence";
 
-  // Hover flags from parent graph component
-  const isHoverHighlighted = !!(data as any)?._isHoverHighlighted;
+  const isHighlighted = !!(data as any)?._isHoverHighlighted;
   const isEdgeHovered = !!(data as any)?._isEdgeHovered;
-  const hasHover = !!(data as any)?._hasHover;
-
-  const showGlow = isHoverHighlighted || isEdgeHovered;
-  const isDimmed = hasHover && !isHoverHighlighted && !isEdgeHovered;
-
-  // Ambient streaming for animated edges (callback_to etc) — subtle always-on
-  const isAmbientAnimated = data?.animated === true && !showGlow;
-
-  const edgeOpacity = showGlow ? 1.0 : isDimmed ? 0.1 : 0.55;
+  const hasHover      = !!(data as any)?._hasHover;
+  const showGlow      = isHighlighted || isEdgeHovered;
+  const isDimmed      = hasHover && !showGlow;
 
   return (
-    <g style={{ transition: "opacity 150ms ease" }} opacity={edgeOpacity}>
-      {/* Glow halo — only on hover */}
+    <>
+      {/* Glow halo — conditionally mounted, no looping animation to restart */}
       {showGlow && (
-        <path
-          d={edgePath}
-          fill="none"
-          stroke={color}
-          strokeWidth={6}
-          strokeOpacity={0.3}
-          strokeLinecap="round"
-          style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+        <BaseEdge
+          id={`${id}-glow`}
+          path={edgePath}
+          style={{
+            stroke: color,
+            strokeWidth: isEdgeHovered ? 8 : 6,
+            opacity: isEdgeHovered ? 0.4 : 0.28,
+            filter: `drop-shadow(0 0 ${isEdgeHovered ? "6px" : "4px"} ${color})`,
+          }}
         />
       )}
-      {/* Main edge line */}
+
+      {/* Main edge */}
       <BaseEdge
+        id={id}
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: showGlow ? 2.5 : isDashed ? 1 : 1.5,
+          strokeWidth: showGlow ? 2.5 : 1.5,
           strokeDasharray: isDashed ? "6 4" : undefined,
+          opacity: isDimmed ? 0.08 : showGlow ? 1 : 0.55,
+          transition: "opacity 0.15s, stroke-width 0.15s",
         }}
       />
-      {/* Edge label */}
-      {edgeLabel && (
+
+      {/*
+        Moving dot — ONLY mounts on connected (highlighted) edges.
+        Fresh mount on each hover = no restart glitch.
+        Matches cortexfinal/NarrativeEdge.tsx exactly.
+      */}
+      {isHighlighted && (
+        <circle
+          r="3"
+          fill={color}
+          filter={`drop-shadow(0 0 3px ${color})`}
+          style={{
+            opacity: 0,
+            animationName: "clypt-dot-appear",
+            animationDuration: "0.001s",
+            animationDelay: "0.075s",
+            animationFillMode: "forwards",
+            animationTimingFunction: "linear",
+          }}
+        >
+          <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+        </circle>
+      )}
+
+      {/* Label chip — only when hovered */}
+      {edgeLabel && showGlow && (
         <foreignObject
-          x={labelX - 40}
-          y={labelY - 10}
-          width={80}
-          height={20}
+          x={labelX - 40} y={labelY - 12}
+          width={80} height={24}
           style={{ overflow: "visible", pointerEvents: "none" }}
         >
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <span
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 9,
-                background: "rgba(10,9,9,0.9)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 4,
-                padding: "2px 5px",
-                color: "rgba(255,255,255,0.5)",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <span style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: 9,
+              background: "rgba(10,9,9,0.92)",
+              border: `1px solid ${color}`,
+              borderRadius: 4,
+              padding: "2px 5px",
+              color,
+              whiteSpace: "nowrap",
+            }}>
               {edgeLabel}
             </span>
           </div>
         </foreignObject>
       )}
-      {/* Streaming dot — on hover */}
-      {showGlow && (
-        <circle r={3} fill={color} style={{ filter: `drop-shadow(0 0 4px ${color})` }}>
-          <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
-        </circle>
-      )}
-      {/* Ambient streaming dot for animated edges (callback_to etc) */}
-      {isAmbientAnimated && (
-        <circle r={2.5} fill={color} opacity={0.4} style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
-          <animateMotion dur="3s" repeatCount="indefinite" path={edgePath} />
-        </circle>
-      )}
-    </g>
+    </>
   );
 }
 
-export const ClyptEdge = memo(ClyptEdgeComponent);
+export const ClyptEdge = memo(ClyptEdgeInner);

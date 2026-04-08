@@ -231,6 +231,12 @@ export default function LandingGraphDemo() {
             onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
             onEdgeMouseLeave={() => setHoveredEdgeId(null)}
             fitView
+            fitViewOptions={{ padding: 0.1 }}
+            onInit={(rf) => {
+              // Framer Motion animates y:32→0 over ~850ms. Re-fit after it settles
+              // so React Flow's coordinate system reflects the final container position.
+              setTimeout(() => rf.fitView({ padding: 0.1, duration: 0 }), 950);
+            }}
             style={{ background: "transparent" }}
           />
         </div>
