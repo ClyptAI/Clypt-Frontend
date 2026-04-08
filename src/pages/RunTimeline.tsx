@@ -322,7 +322,7 @@ export default function RunTimeline() {
   const videoUrl = runDetail?.source_url ?? (runId === "demo" ? DEMO_VIDEO_URL : "");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
       <RunContextBar
         runId={runId}
         runName={runDetail?.display_name ?? "Loading…"}
@@ -396,10 +396,11 @@ export default function RunTimeline() {
         </div>
       </div>
 
-      {/* ── VIDEO AREA — takes all remaining vertical space ── */}
+      {/* ── VIDEO AREA — fills remaining space but never pushes timeline off-screen ── */}
       <div style={{
         flex: 1,
         minHeight: 0,
+        maxHeight: "52vh",
         background: "#000",
         display: "flex",
         alignItems: "center",
