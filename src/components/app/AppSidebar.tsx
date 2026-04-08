@@ -39,10 +39,10 @@ export default function AppSidebar() {
   return (
     <aside
       className="w-[220px] h-screen sticky top-0 flex flex-col bg-[var(--color-surface-1)] border-r border-[var(--color-border)]"
-      style={{ padding: "20px 12px" }}
+      style={{ padding: "8px 12px" }}
     >
       {/* Logo */}
-      <div className="flex items-center px-[8px] pb-[20px] border-b border-[var(--color-border-subtle)]" style={{ padding: "16px 14px", paddingBottom: 20 }}>
+      <div className="flex items-center border-b border-[var(--color-border-subtle)]" style={{ padding: "8px 14px", paddingBottom: 10 }}>
         <ClyptLogo size="sm" />
       </div>
 
@@ -52,6 +52,7 @@ export default function AppSidebar() {
           <NavLink
             key={item.path}
             to={item.path}
+            end
             className={navLinkBase}
             activeClassName={navLinkActive}
           >

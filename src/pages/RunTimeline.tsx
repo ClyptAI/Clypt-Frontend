@@ -34,16 +34,17 @@ const MOCK_SHOTS = Array.from({ length: 42 }, (_, i) => ({
   end: (VIDEO_DURATION / 42) * (i + 1),
 }));
 
-const MOCK_TRACKLETS = MOCK_SHOTS.slice(0, 20).flatMap((shot, si) => {
-  const dur = shot.end - shot.start;
-  const count = si % 3 === 0 ? 2 : 1;
-  return Array.from({ length: count }, (_, ti) => ({
-    id: `T${si}-${String.fromCharCode(65 + ti)}`,
+// Tracklets are shot-level: each shot spans a time range, and multiple tracklets
+// (visual entities) can be present simultaneously within that range.
+const MOCK_SHOT_TRACKLETS = MOCK_SHOTS.slice(0, 20).map((shot, si) => {
+  const count = si % 3 === 0 ? 3 : si % 2 === 0 ? 2 : 1;
+  const letters = Array.from({ length: count }, (_, ti) => String.fromCharCode(65 + ti));
+  return {
     shotId: shot.id,
-    letter: String.fromCharCode(65 + ti),
-    start: shot.start + (dur / count) * ti,
-    end: shot.start + (dur / count) * (ti + 1),
-  }));
+    start: shot.start,
+    end: shot.end,
+    letters,
+  };
 });
 
 const generateTurns = (speaker: number, count: number) => {
@@ -65,9 +66,9 @@ const generateTurns = (speaker: number, count: number) => {
 };
 
 const MOCK_SPEAKERS = [
-  { id: 0, name: "Speaker 0", turns: generateTurns(0, 18) },
-  { id: 1, name: "Speaker 1", turns: generateTurns(1, 14) },
-  { id: 2, name: "Speaker 2", turns: generateTurns(2, 9) },
+  { id: 0, name: "Speaker 01", turns: generateTurns(0, 18) },
+  { id: 1, name: "Speaker 02", turns: generateTurns(1, 14) },
+  { id: 2, name: "Speaker 03", turns: generateTurns(2, 9) },
 ];
 
 const MOCK_EMOTIONS = [
@@ -306,9 +307,10 @@ export default function RunTimeline() {
   const scrubBarRef   = useRef<HTMLDivElement>(null);
   const previewVidRef = useRef<HTMLVideoElement>(null);
   const [minVideoH, setMinVideoH]       = useState(200);
-  const [hoverPct,    setHoverPct]      = useState<number | null>(null);
-  const [hoverClientX, setHoverClientX] = useState(0);
-  const [isScrubbing,  setIsScrubbing]  = useState(false);
+  const [hoverPct,      setHoverPct]      = useState<number | null>(null);
+  const [hoverClientX,  setHoverClientX]  = useState(0);
+  const [scrubberTopY,  setScrubberTopY]  = useState(0);
+  const [isScrubbing,   setIsScrubbing]   = useState(false);
   // Actual duration read from the video element — drives all scrubber/ruler math.
   const [videoDuration, setVideoDuration] = useState(VIDEO_DURATION);
 
@@ -470,7 +472,11 @@ export default function RunTimeline() {
         position: "relative",
       }}>
         {videoUrl ? (
-          <VideoPlayer videoUrl={videoUrl} className="h-full w-auto max-w-full" />
+          <VideoPlayer
+            videoUrl={videoUrl}
+            className="h-full w-auto max-w-full"
+            onDurationChange={setVideoDuration}
+          />
         ) : (
           <span className="font-mono text-[12px]" style={{ color: "rgba(255,255,255,0.3)" }}>No video</span>
         )}
@@ -652,6 +658,7 @@ export default function RunTimeline() {
             const p = getPctFromClientX(e.clientX);
             setHoverPct(p);
             setHoverClientX(e.clientX);
+            setScrubberTopY(e.currentTarget.getBoundingClientRect().top);
             if (p !== null && previewVidRef.current) previewVidRef.current.currentTime = p * videoDuration;
           }}
           onMouseLeave={() => { if (!isScrubbing) setHoverPct(null); }}
@@ -785,20 +792,22 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Tracklets</span>
               </div>
               <div className="relative" style={{ width: totalWidth, height: laneH }}>
-                {MOCK_TRACKLETS.map((t) => (
-                  <TT key={t.id} tip={`${t.id} · Shot ${t.shotId} · ${fmtTime(t.start)} → ${fmtTime(t.end)}`}>
+                {MOCK_SHOT_TRACKLETS.map((st) => (
+                  <TT key={st.shotId} tip={`Shot ${st.shotId} · ${fmtTime(st.start)} → ${fmtTime(st.end)} · tracklets: ${st.letters.join(", ")}`}>
                     <div
                       className="absolute flex items-center justify-center rounded-sm border"
                       style={{
-                        left: t.start * pps,
-                        width: Math.max((t.end - t.start) * pps, 8),
+                        left: st.start * pps,
+                        width: Math.max((st.end - st.start) * pps, 16),
                         top: Math.round(laneH * 0.15),
                         height: Math.round(laneH * 0.70),
                         background: "var(--color-surface-3)",
                         borderColor: "var(--color-border)",
                       }}
                     >
-                      <span className="font-mono text-[10px]" style={{ color: "var(--color-text-primary)" }}>{t.letter}</span>
+                      <span className="font-mono text-[10px]" style={{ color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 3px" }}>
+                        {st.letters.join(", ")}
+                      </span>
                     </div>
                   </TT>
                 ))}
@@ -810,7 +819,7 @@ export default function RunTimeline() {
           {layers["Speakers"] && primarySpeakers.map((speaker) => (
             <div key={speaker.id} className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
+                <span className="font-heading font-medium text-[12px] uppercase tracking-wide whitespace-nowrap" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
               </div>
               <SpeakerLane
                 speaker={speaker}
@@ -932,7 +941,7 @@ export default function RunTimeline() {
         <div style={{
           position: "fixed",
           left: Math.min(Math.max(hoverClientX - 80, 8), window.innerWidth - 168),
-          bottom: 52 + 32 + 8, // transport + ruler + gap
+          top: scrubberTopY - 90 - 24 - 8, // 90px thumb + 24px label + 8px gap above scrubber dot
           pointerEvents: "none",
           zIndex: 100,
           display: "flex",

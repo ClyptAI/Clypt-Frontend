@@ -1,9 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Check, Lock, Play, Pause, Zap, TriangleAlert, Crop, X } from "lucide-react";
+import {
+  Check, Lock, Play, Pause, TriangleAlert, Crop, X,
+  ChevronDown, ChevronRight,
+} from "lucide-react";
+import { TimeRuler } from "@/components/timeline/TimeRuler";
 import { toast } from "sonner";
 
-/* ── Types ── */
+/* ═══════════════════════════════════════════════════════════
+   Types
+   ═══════════════════════════════════════════════════════════ */
+
 interface QueueClip {
   id: string;
   label: string;
@@ -28,7 +35,6 @@ interface ShotData {
   turns: Turn[];
   speakers: number[];
   transcript: string[];
-  voiceprintSuggestion?: { speakerIdx: number; name: string; confidence: number };
   conflict?: { speaker0: number; speaker1: number; tracklet: string; time: string };
 }
 
@@ -40,7 +46,25 @@ interface Binding {
   method: "drag" | "word" | "range";
 }
 
-/* ── Mock data ── */
+type IntentType = "Follow" | "Reaction" | "Split" | "Wide" | "Manual";
+
+interface ShotIntent {
+  intent: IntentType;
+  follow?: number;
+  reactOn?: number;
+  reactFollow?: number;
+  splitLeft?: number;
+  splitRight?: number;
+  wideIncludes?: number[];
+  cropSet?: boolean;
+}
+
+interface CropPosition { x_percent: number; y_percent: number; height_percent: number }
+
+/* ═══════════════════════════════════════════════════════════
+   Mock data
+   ═══════════════════════════════════════════════════════════ */
+
 const QUEUE: QueueClip[] = [
   { id: "001", label: "Clip 001", timeStart: "0:42", timeEnd: "1:18", duration: "35s", status: "partial", speakers: "3/4", camera: "4/4" },
   { id: "002", label: "Clip 002", timeStart: "3:22", timeEnd: "4:05", duration: "43s", status: "not_started" },
@@ -53,6 +77,8 @@ const QUEUE: QueueClip[] = [
 ];
 
 const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
+const SPEAKER_NAMES: Record<number, string> = { 0: "Speaker_00", 1: "Speaker_01", 2: "Speaker_02" };
+const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
 
 const SHOTS: ShotData[] = [
   {
@@ -61,7 +87,6 @@ const SHOTS: ShotData[] = [
     turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 33, widthPct: 67 }],
     speakers: [0, 1],
     transcript: ["I", "think", "we're", "at", "an", "inflection", "point", "with", "AI", "that", "most", "people", "don't", "fully", "appreciate", "yet"],
-    voiceprintSuggestion: { speakerIdx: 0, name: "Rithvik — Host", confidence: 83 },
   },
   {
     idx: 2, timeStart: "0:51.3", timeEnd: "1:04.1", duration: "12.8s", startMs: 51300, endMs: 64100,
@@ -86,7 +111,6 @@ const SHOTS: ShotData[] = [
   },
 ];
 
-/* Initial bindings matching original mock */
 function getInitialBindings(): Record<number, Binding[]> {
   return {
     1: [{ tracklet_id: "tracklet_001", speaker_id: 0, start_ms: 42000, end_ms: 51300, method: "drag" }],
@@ -96,7 +120,21 @@ function getInitialBindings(): Record<number, Binding[]> {
   };
 }
 
-/* ── Helpers ── */
+const INTENT_OPTIONS: IntentType[] = ["Follow", "Reaction", "Split", "Wide", "Manual"];
+
+function getInitialIntents(): ShotIntent[] {
+  return [
+    { intent: "Follow", follow: 0 },
+    { intent: "Reaction", reactOn: 1, reactFollow: 0 },
+    { intent: "Split", splitLeft: 0, splitRight: 1 },
+    { intent: "Wide", wideIncludes: [0, 1] },
+  ];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════ */
+
 function msToTimestamp(ms: number): string {
   const totalSeconds = ms / 1000;
   const minutes = Math.floor(totalSeconds / 60);
@@ -115,572 +153,7 @@ function computeGroundingProgress(bindings: Record<number, Binding[]>): { ground
   return { grounded, total };
 }
 
-/* ── StatusIcon ── */
-function StatusIcon({ status }: { status: QueueClip["status"] }) {
-  const base: React.CSSProperties = { width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 };
-  switch (status) {
-    case "complete":
-      return <span style={{ ...base, background: "var(--color-green-muted)", border: "1px solid var(--color-green)" }}><Check size={12} color="var(--color-green)" /></span>;
-    case "partial":
-      return (
-        <span style={{ ...base, border: "2px solid var(--color-amber)", background: "var(--color-amber-muted)" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--color-amber)" }} />
-        </span>
-      );
-    case "locked":
-      return <span style={{ ...base, border: "1px solid var(--color-border)", opacity: 0.3 }}><Lock size={10} color="var(--color-text-muted)" /></span>;
-    default:
-      return <span style={{ ...base, border: "1px solid var(--color-border)" }} />;
-  }
-}
-
-/* ── Video Player (unchanged) ── */
-function InlineVideoPlayer() {
-  const [playing, setPlaying] = useState(false);
-  const [progress] = useState(25);
-  const [speedOpen, setSpeedOpen] = useState(false);
-  const [speed, setSpeed] = useState("1×");
-
-  return (
-    <div style={{ height: 160, flexShrink: 0, background: "#000", borderBottom: "1px solid var(--color-border)", position: "relative", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 228, height: 128, background: "var(--color-surface-3)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Play size={32} color="var(--color-text-muted)" />
-        </div>
-      </div>
-      <div style={{ height: 32, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", gap: 12, padding: "0 12px" }}>
-        <button onClick={() => setPlaying(!playing)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", color: "#fff" }}>
-          {playing ? <Pause size={16} /> : <Play size={16} />}
-        </button>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "#fff" }}>0:42.4 / 1:18.1</span>
-        <div style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.2)", borderRadius: 2, position: "relative", cursor: "pointer" }}>
-          <div style={{ width: `${progress}%`, height: "100%", background: "var(--color-violet)", borderRadius: 2 }} />
-          <div style={{ position: "absolute", top: -3.5, left: `${progress}%`, transform: "translateX(-50%)", width: 10, height: 10, borderRadius: "50%", background: "var(--color-violet)" }} />
-        </div>
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setSpeedOpen(!speedOpen)} style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "#fff", background: "none", border: "none", cursor: "pointer" }}>{speed}</button>
-          {speedOpen && (
-            <div style={{ position: "absolute", bottom: "100%", right: 0, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: 6, padding: 4, zIndex: 10 }}>
-              {["0.5×", "0.75×", "1×", "1.25×", "1.5×"].map((s) => (
-                <button key={s} onClick={() => { setSpeed(s); setSpeedOpen(false); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "4px 10px", fontFamily: "'Geist Mono', monospace", fontSize: 11, color: speed === s ? "var(--color-text-primary)" : "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", borderRadius: 3 }}>{s}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Shot Lane Section (with interactions) ── */
-function ShotSection({
-  shot,
-  shotBindings,
-  onAddBinding,
-  onRemoveBinding,
-}: {
-  shot: ShotData;
-  shotBindings: Binding[];
-  onAddBinding: (shotIdx: number, binding: Binding) => void;
-  onRemoveBinding: (shotIdx: number, trackletId: string, speakerId: number) => void;
-}) {
-  const [vpAccepted, setVpAccepted] = useState(false);
-  const [vpDismissed, setVpDismissed] = useState(false);
-  const [showRegistry, setShowRegistry] = useState(false);
-
-  /* Drag state */
-  const [dragOverTracklet, setDragOverTracklet] = useState<string | null>(null);
-
-  /* Word popover */
-  const [wordPopover, setWordPopover] = useState<{ wordIdx: number; speakerIdx: number } | null>(null);
-
-  /* Time range selection */
-  const trackletLaneRef = useRef<HTMLDivElement>(null);
-  const [rangeSelect, setRangeSelect] = useState<{ startX: number; currentX: number } | null>(null);
-  const [rangePopover, setRangePopover] = useState<{ x: number; startPct: number; endPct: number } | null>(null);
-  const isDraggingRange = useRef(false);
-
-  /* Context menu for unbinding */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; trackletId: string; speakerId: number } | null>(null);
-
-  /* Close popovers on outside click */
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-popover]")) {
-        setWordPopover(null);
-        setRangePopover(null);
-        setContextMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  /* ── Method 1: Drag speaker to tracklet ── */
-  const handleSpeakerDragStart = (e: React.DragEvent, speakerIdx: number) => {
-    e.dataTransfer.setData("speaker_idx", String(speakerIdx));
-    e.dataTransfer.effectAllowed = "link";
-    // Create drag ghost pill
-    const ghost = document.createElement("div");
-    ghost.textContent = `Speaker_0${speakerIdx}`;
-    ghost.style.cssText = `
-      padding: 4px 10px; border-radius: 12px; font-family: 'Bricolage Grotesque', sans-serif;
-      font-size: 12px; font-weight: 600; color: #0A0909;
-      background: ${SPEAKER_COLORS[speakerIdx]}; position: absolute; top: -1000px;
-    `;
-    document.body.appendChild(ghost);
-    e.dataTransfer.setDragImage(ghost, 40, 14);
-    setTimeout(() => document.body.removeChild(ghost), 0);
-  };
-
-  const handleTrackletDragOver = (e: React.DragEvent, trackletId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "link";
-    setDragOverTracklet(trackletId);
-  };
-
-  const handleTrackletDrop = (e: React.DragEvent, trackletId: string) => {
-    e.preventDefault();
-    setDragOverTracklet(null);
-    const speakerIdx = parseInt(e.dataTransfer.getData("speaker_idx"), 10);
-    if (isNaN(speakerIdx)) return;
-    onAddBinding(shot.idx, {
-      tracklet_id: trackletId,
-      speaker_id: speakerIdx,
-      start_ms: shot.startMs,
-      end_ms: shot.endMs,
-      method: "drag",
-    });
-    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
-  };
-
-  /* ── Method 2: Click word token ── */
-  const handleWordClick = (wordIdx: number) => {
-    // Assign word to speaker 0 for first half of transcript, speaker 1 for second half (mock)
-    const speakerIdx = wordIdx < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
-    setWordPopover({ wordIdx, speakerIdx });
-    setRangePopover(null);
-    setContextMenu(null);
-  };
-
-  const handleWordAssign = (trackletId: string, speakerIdx: number) => {
-    const wordFraction = 1 / shot.transcript.length;
-    const shotDur = shot.endMs - shot.startMs;
-    const startMs = shot.startMs + Math.floor(wordFraction * (wordPopover?.wordIdx ?? 0) * shotDur);
-    const endMs = startMs + Math.floor(wordFraction * shotDur);
-    onAddBinding(shot.idx, {
-      tracklet_id: trackletId,
-      speaker_id: speakerIdx,
-      start_ms: startMs,
-      end_ms: endMs,
-      method: "word",
-    });
-    setWordPopover(null);
-    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
-  };
-
-  /* ── Method 3: Click-drag time range in tracklet lane ── */
-  const handleTrackletLaneMouseDown = (e: React.MouseEvent) => {
-    if (!trackletLaneRef.current) return;
-    const rect = trackletLaneRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    isDraggingRange.current = true;
-    setRangeSelect({ startX: x, currentX: x });
-    setRangePopover(null);
-    setWordPopover(null);
-    setContextMenu(null);
-  };
-
-  const handleTrackletLaneMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
-    const rect = trackletLaneRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    setRangeSelect({ ...rangeSelect, currentX: x });
-  };
-
-  const handleTrackletLaneMouseUp = () => {
-    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
-    isDraggingRange.current = false;
-    const rect = trackletLaneRef.current.getBoundingClientRect();
-    const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
-    const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
-    if (maxX - minX < 10) {
-      setRangeSelect(null);
-      return;
-    }
-    const startPct = (minX / rect.width) * 100;
-    const endPct = (maxX / rect.width) * 100;
-    setRangePopover({ x: maxX, startPct, endPct });
-    setRangeSelect(null);
-  };
-
-  const handleRangeAssign = (speakerIdx: number) => {
-    if (!rangePopover) return;
-    const shotDur = shot.endMs - shot.startMs;
-    const startMs = shot.startMs + Math.floor((rangePopover.startPct / 100) * shotDur);
-    const endMs = shot.startMs + Math.floor((rangePopover.endPct / 100) * shotDur);
-    // Find the tracklet that overlaps this range most
-    const trackletId = shot.tracklets[0]?.id ?? "tracklet_001";
-    onAddBinding(shot.idx, {
-      tracklet_id: trackletId,
-      speaker_id: speakerIdx,
-      start_ms: startMs,
-      end_ms: endMs,
-      method: "range",
-    });
-    setRangePopover(null);
-    toast.success(`Speaker_0${speakerIdx} assigned to ${trackletId}`);
-  };
-
-  /* ── Unbind context menu ── */
-  const handleTrackletContextMenu = (e: React.MouseEvent, trackletId: string) => {
-    e.preventDefault();
-    const binding = shotBindings.find((b) => b.tracklet_id === trackletId);
-    if (!binding) return;
-    setContextMenu({ x: e.clientX, y: e.clientY, trackletId, speakerId: binding.speaker_id });
-    setWordPopover(null);
-    setRangePopover(null);
-  };
-
-  return (
-    <div style={{ borderBottom: "2px solid var(--color-border)", paddingBottom: 4, position: "relative" }}>
-      {/* Shot header */}
-      <div style={{ height: 36, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", alignItems: "center", padding: "0 16px", gap: 12, position: "sticky", top: 0, zIndex: 5 }}>
-        <div style={{ width: 48, height: 27, borderRadius: 3, background: "var(--color-surface-3)", flexShrink: 0 }} />
-        <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)" }}>Shot {shot.idx}</span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>{shot.timeStart} – {shot.timeEnd}</span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>({shot.duration})</span>
-      </div>
-
-      {/* Tracklet lane */}
-      <div style={{ height: 44, display: "flex", alignItems: "center", padding: "0 16px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)", position: "relative" }}>
-        <span className="label-caps" style={{ width: 80, flexShrink: 0, fontSize: 10 }}>TRACKLETS</span>
-        <div
-          ref={trackletLaneRef}
-          style={{ flex: 1, display: "flex", gap: 2, alignItems: "center", height: 32, position: "relative", cursor: "crosshair" }}
-          onMouseDown={handleTrackletLaneMouseDown}
-          onMouseMove={handleTrackletLaneMouseMove}
-          onMouseUp={handleTrackletLaneMouseUp}
-          onMouseLeave={() => { if (isDraggingRange.current) { isDraggingRange.current = false; setRangeSelect(null); } }}
-        >
-          {shot.tracklets.map((t) => {
-            const bound = shotBindings.find((b) => b.tracklet_id === t.id);
-            const speakerColor = bound ? SPEAKER_COLORS[bound.speaker_id] : undefined;
-            const isDragTarget = dragOverTracklet === t.id;
-            return (
-              <div
-                key={t.id}
-                onDragOver={(e) => handleTrackletDragOver(e, t.id)}
-                onDragLeave={() => setDragOverTracklet(null)}
-                onDrop={(e) => { e.stopPropagation(); handleTrackletDrop(e, t.id); }}
-                onContextMenu={(e) => handleTrackletContextMenu(e, t.id)}
-                style={{
-                  flex: t.durationPct,
-                  minWidth: 60,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: isDragTarget ? "var(--color-violet-muted)" : "var(--color-surface-2)",
-                  border: isDragTarget ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
-                  borderLeft: speakerColor ? `3px solid ${speakerColor}` : isDragTarget ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
-                  borderRadius: 4,
-                  padding: "4px 8px",
-                  cursor: "grab",
-                  userSelect: "none",
-                  transition: "border 100ms, background 100ms",
-                  position: "relative",
-                  zIndex: 2,
-                }}
-              >
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--color-surface-3)", flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-primary)" }}>{t.letter}</span>
-              </div>
-            );
-          })}
-
-          {/* Range selection overlay */}
-          {rangeSelect && (() => {
-            const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
-            const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
-            return (
-              <div style={{
-                position: "absolute", left: minX, width: maxX - minX, top: 0, height: "100%",
-                background: "rgba(139, 92, 246, 0.15)", border: "1px solid var(--color-violet)",
-                borderRadius: 2, pointerEvents: "none", zIndex: 3,
-              }} />
-            );
-          })()}
-        </div>
-
-        {/* Range popover */}
-        {rangePopover && (
-          <div
-            data-popover
-            style={{
-              position: "absolute", top: 44, left: 80 + rangePopover.x - 80, zIndex: 30,
-              background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
-              borderRadius: 8, padding: 12, minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", marginBottom: 4 }}>
-              Assign time range to speaker
-            </div>
-            <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
-              {msToTimestamp(shot.startMs + (rangePopover.startPct / 100) * (shot.endMs - shot.startMs))} → {msToTimestamp(shot.startMs + (rangePopover.endPct / 100) * (shot.endMs - shot.startMs))}
-            </div>
-            {shot.speakers.map((sIdx) => (
-              <button
-                key={sIdx}
-                onClick={() => handleRangeAssign(sIdx)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, width: "100%",
-                  padding: "6px 10px", border: "1px solid var(--color-border)", borderRadius: 6,
-                  background: "transparent", cursor: "pointer", marginBottom: 4,
-                  fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
-                  color: "var(--color-text-primary)",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <span style={{ width: 12, height: 12, borderRadius: "50%", background: SPEAKER_COLORS[sIdx], flexShrink: 0 }} />
-                Speaker_0{sIdx}
-              </button>
-            ))}
-            <button
-              onClick={() => setRangePopover(null)}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 4 }}
-            >Cancel</button>
-          </div>
-        )}
-      </div>
-
-      {/* Binding indicators */}
-      {shotBindings.length > 0 && (
-        <svg style={{ width: "100%", height: 12, display: "block" }} preserveAspectRatio="none">
-          {shotBindings.map((b, i) => {
-            const color = SPEAKER_COLORS[b.speaker_id];
-            const xStart = 126;
-            const tIdx = shot.tracklets.findIndex((t) => t.id === b.tracklet_id);
-            const xEnd = 96 + 40 + tIdx * 80;
-            return <line key={i} x1={xStart} y1={10} x2={xEnd} y2={2} stroke={color} strokeWidth={1} opacity={0.6} strokeDasharray="4 3" />;
-          })}
-        </svg>
-      )}
-
-      {/* Speaker lanes */}
-      {shot.speakers.map((sIdx) => {
-        const turn = shot.turns.find((t) => t.speakerIdx === sIdx);
-        const color = SPEAKER_COLORS[sIdx];
-        const hasVp = shot.voiceprintSuggestion?.speakerIdx === sIdx && !vpAccepted && !vpDismissed;
-        return (
-          <div key={sIdx}>
-            <div style={{ height: 32, display: "flex", alignItems: "center", padding: "0 16px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-              <div
-                draggable
-                onDragStart={(e) => handleSpeakerDragStart(e, sIdx)}
-                style={{ width: 80, flexShrink: 0, display: "flex", alignItems: "center", gap: 6, cursor: "grab" }}
-              >
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)" }}>
-                  {vpAccepted && sIdx === shot.voiceprintSuggestion?.speakerIdx ? shot.voiceprintSuggestion.name.split(" — ")[0] : `Speaker_0${sIdx}`}
-                </span>
-                {hasVp && <Zap size={10} color="var(--color-amber)" />}
-              </div>
-              <div style={{ flex: 1, position: "relative", height: 20 }}>
-                {turn && (
-                  <div style={{ position: "absolute", left: `${turn.startPct}%`, width: `${turn.widthPct}%`, height: "100%", background: `${color}66`, borderRadius: 2, cursor: "pointer" }} />
-                )}
-              </div>
-            </div>
-            {hasVp && (
-              <div style={{ padding: "4px 8px 4px 96px", display: "flex", alignItems: "center", gap: 8, background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-                <Zap size={12} color="var(--color-amber)" />
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)" }}>
-                  Likely: {shot.voiceprintSuggestion!.name} ({shot.voiceprintSuggestion!.confidence}%)
-                </span>
-                <button onClick={() => { setVpAccepted(true); setShowRegistry(true); }} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-green)", background: "none", border: "none", cursor: "pointer" }}>Accept</button>
-                <button onClick={() => setVpDismissed(true)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-rose)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
-                >Reject</button>
-              </div>
-            )}
-            {showRegistry && sIdx === shot.voiceprintSuggestion?.speakerIdx && (
-              <div style={{ padding: "6px 8px 6px 96px", display: "flex", alignItems: "center", gap: 8, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)" }}>
-                  Save &apos;{shot.voiceprintSuggestion!.name}&apos; to your voiceprint registry?
-                </span>
-                <button onClick={() => setShowRegistry(false)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, padding: "3px 8px", borderRadius: 4, background: "var(--color-violet)", color: "#0A0909", border: "none", cursor: "pointer" }}>Save to registry</button>
-                <button onClick={() => setShowRegistry(false)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer" }}>This run only</button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Conflict */}
-      {shot.conflict && (
-        <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, background: "var(--color-rose-muted)", borderLeft: "3px solid var(--color-rose)" }}>
-          <TriangleAlert size={14} color="var(--color-rose)" />
-          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-rose)" }}>
-            Conflict: Speaker_0{shot.conflict.speaker0} and Speaker_0{shot.conflict.speaker1} both assigned to {shot.conflict.tracklet} at {shot.conflict.time}
-          </span>
-        </div>
-      )}
-
-      {/* Transcript lane */}
-      <div style={{ minHeight: 36, padding: "8px 16px 8px 96px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", flexWrap: "wrap", gap: 2, alignContent: "flex-start", position: "relative" }}>
-        {shot.transcript.map((word, i) => {
-          const isSelected = wordPopover?.wordIdx === i;
-          const speakerIdx = i < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
-          const hasBoundWord = shotBindings.some((b) => b.method === "word" && b.speaker_id === speakerIdx);
-          return (
-            <span
-              key={i}
-              style={{
-                padding: "1px 3px", borderRadius: 2,
-                fontFamily: "'Geist Mono', monospace", fontSize: 11,
-                color: isSelected ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                cursor: "pointer", position: "relative",
-                background: isSelected ? "var(--color-violet-muted)" : hasBoundWord ? `${SPEAKER_COLORS[speakerIdx]}22` : "transparent",
-                border: isSelected ? "1px solid var(--color-violet)" : "1px solid transparent",
-              }}
-              onClick={(e) => { e.stopPropagation(); handleWordClick(i); }}
-              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = "var(--color-surface-3)"; e.currentTarget.style.color = "var(--color-text-primary)"; } }}
-              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = hasBoundWord ? `${SPEAKER_COLORS[speakerIdx]}22` : "transparent"; e.currentTarget.style.color = "var(--color-text-secondary)"; } }}
-            >
-              {word}
-              {/* Word popover */}
-              {isSelected && wordPopover && (
-                <div
-                  data-popover
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    position: "absolute", bottom: "100%", left: 0, marginBottom: 6, zIndex: 30,
-                    background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
-                    borderRadius: 8, padding: 12, minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                  }}
-                >
-                  <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", marginBottom: 8 }}>
-                    Assign word span to tracklet
-                  </div>
-                  {shot.tracklets.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleWordAssign(t.id, speakerIdx)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8, width: "100%",
-                        padding: "6px 10px", border: "1px solid var(--color-border)", borderRadius: 6,
-                        background: "transparent", cursor: "pointer", marginBottom: 4,
-                        fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
-                        color: "var(--color-text-primary)",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--color-surface-3)", flexShrink: 0 }} />
-                      <span>{t.letter}</span>
-                      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)", marginLeft: "auto" }}>{shot.duration}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setWordPopover(null)}
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 4 }}
-                  >Cancel</button>
-                </div>
-              )}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Context menu for unbinding */}
-      {contextMenu && (
-        <div
-          data-popover
-          style={{
-            position: "fixed", left: contextMenu.x, top: contextMenu.y, zIndex: 50,
-            background: "var(--color-surface-1)", border: "1px solid var(--color-border)",
-            borderRadius: 6, padding: 4, minWidth: 240, boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          }}
-        >
-          <button
-            onClick={() => {
-              onRemoveBinding(shot.idx, contextMenu.trackletId, contextMenu.speakerId);
-              setContextMenu(null);
-              toast("Assignment removed");
-            }}
-            style={{
-              display: "block", width: "100%", textAlign: "left", padding: "8px 12px",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 13,
-              color: "var(--color-text-primary)", background: "none", border: "none",
-              cursor: "pointer", borderRadius: 4,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            Remove assignment: Speaker_0{contextMenu.speakerId} → {contextMenu.trackletId}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Shot Lane Editor ── */
-function ShotLaneEditor({
-  bindings,
-  onAddBinding,
-  onRemoveBinding,
-}: {
-  bindings: Record<number, Binding[]>;
-  onAddBinding: (shotIdx: number, binding: Binding) => void;
-  onRemoveBinding: (shotIdx: number, trackletId: string, speakerId: number) => void;
-}) {
-  return (
-    <>
-      <InlineVideoPlayer />
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", background: "var(--color-bg)" }}>
-        {SHOTS.map((s) => (
-          <ShotSection
-            key={s.idx}
-            shot={s}
-            shotBindings={bindings[s.idx] || []}
-            onAddBinding={onAddBinding}
-            onRemoveBinding={onRemoveBinding}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* ── Camera Intent Types ── */
-type IntentType = "Follow" | "Reaction" | "Split" | "Wide" | "Manual";
-
-interface ShotIntent {
-  intent: IntentType;
-  follow?: number;
-  reactOn?: number;
-  reactFollow?: number;
-  splitLeft?: number;
-  splitRight?: number;
-  wideIncludes?: number[];
-  cropSet?: boolean;
-}
-
-const INTENT_OPTIONS: IntentType[] = ["Follow", "Reaction", "Split", "Wide", "Manual"];
-
-function getInitialIntents(): ShotIntent[] {
-  return [
-    { intent: "Follow", follow: 0 },
-    { intent: "Reaction", reactOn: 1, reactFollow: 0 },
-    { intent: "Split", splitLeft: 0, splitRight: 1 },
-    { intent: "Wide", wideIncludes: [0, 1] },
-  ];
-}
-
-function isShotIntentComplete(si: ShotIntent, speakers: number[]): boolean {
+function isShotIntentComplete(si: ShotIntent): boolean {
   if (!si.intent) return false;
   switch (si.intent) {
     case "Follow": return si.follow != null;
@@ -692,25 +165,98 @@ function isShotIntentComplete(si: ShotIntent, speakers: number[]): boolean {
   }
 }
 
-const SPEAKER_NAMES: Record<number, string> = { 0: "Rithvik — Host", 1: "Speaker_01", 2: "Speaker_02" };
+/* ═══════════════════════════════════════════════════════════
+   StatusIcon (queue)
+   ═══════════════════════════════════════════════════════════ */
 
-/* ── Manual Crop Modal ── */
-interface CropPosition { x_percent: number; y_percent: number; height_percent: number }
+function StatusIcon({ status }: { status: QueueClip["status"] }) {
+  const base: React.CSSProperties = { width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 };
+  switch (status) {
+    case "complete":
+      return <span style={{ ...base, background: "var(--color-green-muted)", border: "1px solid var(--color-green)" }}><Check size={10} color="var(--color-green)" /></span>;
+    case "partial":
+      return <span style={{ ...base, border: "2px solid var(--color-amber)", background: "var(--color-amber-muted)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-amber)" }} /></span>;
+    case "locked":
+      return <span style={{ ...base, border: "1px solid var(--color-border)", opacity: 0.3 }}><Lock size={9} color="var(--color-text-muted)" /></span>;
+    default:
+      return <span style={{ ...base, border: "1px solid var(--color-border)" }} />;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BoundingBoxOverlay — draws tracklet boxes on video
+   ═══════════════════════════════════════════════════════════ */
+
+function BoundingBoxOverlay({ shot, bindings }: { shot: ShotData; bindings: Binding[] }) {
+  const boxes = useMemo(() => {
+    return shot.tracklets.map((t, i) => {
+      const bound = bindings.find((b) => b.tracklet_id === t.id);
+      const color = bound ? SPEAKER_COLORS[bound.speaker_id] : "rgba(255,255,255,0.6)";
+      // Mock positions — in production these come from TrackletGeometryPoint bbox_xyxy
+      const positions = [
+        { left: "18%", top: "22%", width: "28%", height: "56%" },
+        { left: "54%", top: "20%", width: "28%", height: "58%" },
+        { left: "36%", top: "25%", width: "26%", height: "50%" },
+      ];
+      const pos = positions[i % positions.length];
+      return { ...t, color, pos, bound };
+    });
+  }, [shot, bindings]);
+
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
+      {boxes.map((b) => (
+        <div
+          key={b.id}
+          style={{
+            position: "absolute",
+            ...b.pos,
+            border: `2px solid ${b.color}`,
+            borderRadius: 3,
+            transition: "border-color 150ms",
+          }}
+        >
+          {/* Letter label */}
+          <div style={{
+            position: "absolute", top: -1, left: -1,
+            background: b.color, color: "#0A0909",
+            fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
+            padding: "1px 5px", borderRadius: "0 0 3px 0",
+            lineHeight: "14px",
+          }}>
+            {b.letter}
+          </div>
+          {/* Speaker name badge */}
+          {b.bound && (
+            <div style={{
+              position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)",
+              background: "rgba(10,9,9,0.85)", border: `1px solid ${b.color}`,
+              borderRadius: 3, padding: "1px 6px",
+              fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 9, fontWeight: 600,
+              color: b.color, whiteSpace: "nowrap",
+            }}>
+              {SPEAKER_NAMES[b.bound.speaker_id] ?? `Spk_0${b.bound.speaker_id}`}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ManualCropModal (preserved from original)
+   ═══════════════════════════════════════════════════════════ */
 
 function ManualCropModal({
-  shotIdx,
-  initial,
-  onSave,
-  onClose,
+  shotIdx, initial, onSave, onClose,
 }: {
-  shotIdx: number;
-  initial?: CropPosition;
-  onSave: (shotIdx: number, crop: CropPosition) => void;
-  onClose: () => void;
+  shotIdx: number; initial?: CropPosition;
+  onSave: (shotIdx: number, crop: CropPosition) => void; onClose: () => void;
 }) {
-  const ASPECT = 9 / 16; // w/h
+  const ASPECT = 9 / 16;
   const FRAME_W = 520;
-  const FRAME_H = Math.round(FRAME_W / (16 / 9)); // ~293
+  const FRAME_H = Math.round(FRAME_W / (16 / 9));
 
   const defaultH = FRAME_H * 0.8;
   const defaultW = defaultH * ASPECT;
@@ -729,9 +275,8 @@ function ManualCropModal({
   const [box, setBox] = useState(initFromSaved(initial));
   const [dragging, setDragging] = useState<null | "move" | "tl" | "tr" | "bl" | "br">(null);
   const dragStart = useRef({ mx: 0, my: 0, bx: 0, by: 0, bw: 0, bh: 0 });
-  const frameRef = useRef<HTMLDivElement>(null);
 
-  const clampBox = (b: { x: number; y: number; w: number; h: number }) => {
+  const clampBox = useCallback((b: { x: number; y: number; w: number; h: number }) => {
     let { x, y, w, h } = b;
     w = Math.max(36, Math.min(w, FRAME_W));
     h = w / ASPECT;
@@ -739,11 +284,10 @@ function ManualCropModal({
     x = Math.max(0, Math.min(x, FRAME_W - w));
     y = Math.max(0, Math.min(y, FRAME_H - h));
     return { x, y, w, h };
-  };
+  }, []);
 
   const onMouseDown = (e: React.MouseEvent, mode: "move" | "tl" | "tr" | "bl" | "br") => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setDragging(mode);
     dragStart.current = { mx: e.clientX, my: e.clientY, bx: box.x, by: box.y, bw: box.w, bh: box.h };
   };
@@ -754,100 +298,49 @@ function ManualCropModal({
       const dx = e.clientX - dragStart.current.mx;
       const dy = e.clientY - dragStart.current.my;
       const { bx, by, bw, bh } = dragStart.current;
-
       if (dragging === "move") {
         setBox(clampBox({ x: bx + dx, y: by + dy, w: bw, h: bh }));
       } else {
-        let newH = bh;
-        let newX = bx;
-        let newY = by;
-
-        if (dragging === "br") { newH = bh + dy; }
+        let newH = bh, newX = bx, newY = by;
+        if (dragging === "br") newH = bh + dy;
         else if (dragging === "bl") { newH = bh + dy; newX = bx + dx; }
         else if (dragging === "tr") { newH = bh - dy; newY = by + dy; }
         else if (dragging === "tl") { newH = bh - dy; newX = bx + dx; newY = by + dy; }
-
-        const newW = Math.max(36, newH * ASPECT);
-        setBox(clampBox({ x: newX, y: newY, w: newW, h: newH }));
+        setBox(clampBox({ x: newX, y: newY, w: Math.max(36, newH * ASPECT), h: newH }));
       }
     };
     const onUp = () => setDragging(null);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [dragging]);
-
-  const handleReset = () => {
-    setBox({ x: defaultX, y: defaultY, w: defaultW, h: defaultH });
-  };
+  }, [dragging, clampBox]);
 
   const handleSave = () => {
-    const crop: CropPosition = {
-      x_percent: (box.x / FRAME_W) * 100,
-      y_percent: (box.y / FRAME_H) * 100,
-      height_percent: (box.h / FRAME_H) * 100,
-    };
-    onSave(shotIdx, crop);
+    onSave(shotIdx, { x_percent: (box.x / FRAME_W) * 100, y_percent: (box.y / FRAME_H) * 100, height_percent: (box.h / FRAME_H) * 100 });
     toast.success(`Crop position saved for Shot ${shotIdx}.`);
   };
 
-  // Preview transform
-  const previewW = 108;
-  const previewH = 192;
-  const scaleX = previewW / box.w;
-  const scaleY = previewH / box.h;
-
-  // Clip-path for dim overlay (polygon with hole)
-  const outerL = 0, outerT = 0, outerR = FRAME_W, outerB = FRAME_H;
+  const previewW = 108, previewH = 192;
+  const scaleX = previewW / box.w, scaleY = previewH / box.h;
   const iL = box.x, iT = box.y, iR = box.x + box.w, iB = box.y + box.h;
-  const clipPath = `polygon(
-    ${outerL}px ${outerT}px, ${outerR}px ${outerT}px, ${outerR}px ${outerB}px, ${outerL}px ${outerB}px, ${outerL}px ${outerT}px,
-    ${iL}px ${iT}px, ${iL}px ${iB}px, ${iR}px ${iB}px, ${iR}px ${iT}px, ${iL}px ${iT}px
-  )`;
-
-  const cornerStyle = (cursor: string): React.CSSProperties => ({
-    position: "absolute", width: 10, height: 10, background: "var(--color-violet)", borderRadius: 1, cursor, zIndex: 3,
-  });
+  const clipPath = `polygon(0 0,${FRAME_W}px 0,${FRAME_W}px ${FRAME_H}px,0 ${FRAME_H}px,0 0,${iL}px ${iT}px,${iL}px ${iB}px,${iR}px ${iB}px,${iR}px ${iT}px,${iL}px ${iT}px)`;
+  const corner = (cursor: string): React.CSSProperties => ({ position: "absolute", width: 10, height: 10, background: "var(--color-violet)", borderRadius: 1, cursor, zIndex: 3 });
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(10,9,9,0.80)" }}>
       <div style={{ width: 720, maxHeight: "90vh", background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-
-        {/* Header */}
         <div style={{ height: 52, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderBottom: "1px solid var(--color-border-subtle)" }}>
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, color: "var(--color-text-primary)" }}>
-            Manual crop — Shot {shotIdx}
-          </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
-            <X size={18} style={{ color: "var(--color-text-muted)" }} />
-          </button>
+          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, color: "var(--color-text-primary)" }}>Manual crop — Shot {shotIdx}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}><X size={18} style={{ color: "var(--color-text-muted)" }} /></button>
         </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, display: "flex", gap: 0, overflow: "hidden" }}>
-
-          {/* Left — frame editor */}
-          <div ref={frameRef} style={{ flex: 1, position: "relative", background: "#000", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {/* Source frame placeholder */}
+        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+          <div style={{ flex: 1, position: "relative", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: FRAME_W, height: FRAME_H, position: "relative", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)", flexShrink: 0 }}>
-              {/* Placeholder content */}
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Shot {shotIdx} frame</span>
               </div>
-
-              {/* Dim overlay with clip-path hole */}
               <div style={{ position: "absolute", inset: 0, background: "rgba(10,9,9,0.55)", pointerEvents: "none", clipPath, zIndex: 1 }} />
-
-              {/* Crop box */}
-              <div
-                onMouseDown={(e) => onMouseDown(e, "move")}
-                style={{
-                  position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h,
-                  border: "2px solid var(--color-violet)", borderRadius: 2, cursor: dragging === "move" ? "grabbing" : "grab",
-                  zIndex: 2, boxSizing: "border-box",
-                }}
-              >
-                {/* Rule of thirds — visible only while dragging */}
+              <div onMouseDown={(e) => onMouseDown(e, "move")} style={{ position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h, border: "2px solid var(--color-violet)", borderRadius: 2, cursor: dragging === "move" ? "grabbing" : "grab", zIndex: 2, boxSizing: "border-box" }}>
                 {dragging && (
                   <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                     <line x1="33.33%" y1="0" x2="33.33%" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
@@ -856,52 +349,30 @@ function ManualCropModal({
                     <line x1="0" y1="66.66%" x2="100%" y2="66.66%" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
                   </svg>
                 )}
-
-                {/* Corner handles */}
-                <div onMouseDown={(e) => onMouseDown(e, "tl")} style={{ ...cornerStyle("nwse-resize"), top: -5, left: -5 }} />
-                <div onMouseDown={(e) => onMouseDown(e, "tr")} style={{ ...cornerStyle("nesw-resize"), top: -5, right: -5 }} />
-                <div onMouseDown={(e) => onMouseDown(e, "bl")} style={{ ...cornerStyle("nesw-resize"), bottom: -5, left: -5 }} />
-                <div onMouseDown={(e) => onMouseDown(e, "br")} style={{ ...cornerStyle("nwse-resize"), bottom: -5, right: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "tl")} style={{ ...corner("nwse-resize"), top: -5, left: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "tr")} style={{ ...corner("nesw-resize"), top: -5, right: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "bl")} style={{ ...corner("nesw-resize"), bottom: -5, left: -5 }} />
+                <div onMouseDown={(e) => onMouseDown(e, "br")} style={{ ...corner("nwse-resize"), bottom: -5, right: -5 }} />
               </div>
             </div>
           </div>
-
-          {/* Right — live preview */}
           <div style={{ width: 140, flexShrink: 0, background: "var(--color-surface-2)", borderLeft: "1px solid var(--color-border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 16 }}>
             <span className="label-caps" style={{ textAlign: "center" }}>Preview</span>
             <div style={{ width: previewW, height: previewH, borderRadius: 4, overflow: "hidden", background: "#000", border: "1px solid var(--color-border)", position: "relative" }}>
-              <div style={{
-                width: FRAME_W, height: FRAME_H, position: "absolute",
-                background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-                transformOrigin: "0 0",
-                transform: `scale(${scaleX}, ${scaleY}) translate(${-box.x}px, ${-box.y}px)`,
-              }}>
+              <div style={{ width: FRAME_W, height: FRAME_H, position: "absolute", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)", transformOrigin: "0 0", transform: `scale(${scaleX}, ${scaleY}) translate(${-box.x}px, ${-box.y}px)` }}>
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Shot {shotIdx}</span>
                 </div>
               </div>
             </div>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)", textAlign: "center" }}>1080 × 1920</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)" }}>1080 × 1920</span>
           </div>
         </div>
-
-        {/* Footer */}
         <div style={{ height: 56, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", borderTop: "1px solid var(--color-border-subtle)" }}>
-          <button
-            onClick={handleReset}
-            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-secondary)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
-          >Reset to center</button>
+          <button onClick={() => setBox({ x: defaultX, y: defaultY, w: defaultW, h: defaultH })} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--color-text-secondary)" }}>Reset to center</button>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-surface-2)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", cursor: "pointer" }}
-            >Cancel</button>
-            <button
-              onClick={handleSave}
-              style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "var(--color-violet)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "#0A0909", cursor: "pointer" }}
-            >Save crop</button>
+            <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-surface-2)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSave} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "var(--color-violet)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "#0A0909", cursor: "pointer" }}>Save crop</button>
           </div>
         </div>
       </div>
@@ -909,406 +380,775 @@ function ManualCropModal({
   );
 }
 
-const CameraIntentPanel = () => {
-  const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [manualCrops, setManualCrops] = useState<Record<number, CropPosition>>({});
-  const [cropModal, setCropModal] = useState<number | null>(null);
+/* ═══════════════════════════════════════════════════════════
+   IntentConfig — camera intent controls for a single shot
+   ═══════════════════════════════════════════════════════════ */
 
-  const completedCount = SHOTS.reduce((acc, shot, i) => {
-    const si = intents[i];
-    return acc + (si && isShotIntentComplete(si, shot.speakers) ? 1 : 0);
-  }, 0);
-
-  const updateIntent = (idx: number, patch: Partial<ShotIntent>) => {
-    setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  };
-
-  const handleSaveCrop = (shotIdx: number, crop: CropPosition) => {
-    setManualCrops((prev) => ({ ...prev, [shotIdx]: crop }));
-    // Also mark cropSet on the intent
-    const i = SHOTS.findIndex((s) => s.idx === shotIdx);
-    if (i >= 0) updateIntent(i, { cropSet: true });
-    setCropModal(null);
-  };
-
-  return (
-    <div
-      style={{
-        height: 200,
-        flexShrink: 0,
-        background: "var(--color-surface-1)",
-        borderTop: "1px solid var(--color-border)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          height: 40,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 16px",
-          justifyContent: "space-between",
-          borderBottom: "1px solid var(--color-border-subtle)",
-        }}
-      >
-        <span className="label-caps">Camera intent</span>
-        <span
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: 12,
-            color: completedCount === SHOTS.length ? "var(--color-green)" : "var(--color-amber)",
-          }}
-        >
-          {completedCount}/{SHOTS.length} shots
-        </span>
-      </div>
-
-      <div style={{ flex: 1, overflowX: "auto", overflowY: "hidden", display: "flex", gap: 0, alignItems: "stretch" }}>
-        {SHOTS.map((shot, i) => {
-          const si = intents[i] ?? { intent: "Follow" as IntentType };
-          const complete = isShotIntentComplete(si, shot.speakers);
-          const hasIntent = !!si.intent;
-
-          return (
-            <div
-              key={shot.idx}
-              ref={(el) => {
-                cardRefs.current[i] = el;
-              }}
-              style={{
-                minWidth: 240,
-                maxWidth: 280,
-                flexShrink: 0,
-                display: "flex",
-                flexDirection: "column",
-                padding: "10px 14px",
-                borderRight: "1px solid var(--color-border-subtle)",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <div style={{ width: 32, height: 18, borderRadius: 2, background: "var(--color-surface-3)", flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)" }}>
-                  Shot {shot.idx}
-                </span>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
-                  {shot.timeStart.split(".")[0]} – {shot.timeEnd.split(".")[0]}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
-                {INTENT_OPTIONS.map((opt) => {
-                  const active = si.intent === opt;
-
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => updateIntent(i, { intent: opt })}
-                      style={{
-                        height: 26,
-                        padding: "0 8px",
-                        borderRadius: 4,
-                        fontFamily: "'Bricolage Grotesque', sans-serif",
-                        fontWeight: 500,
-                        fontSize: 11,
-                        background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
-                        color: active ? "var(--color-violet)" : "var(--color-text-muted)",
-                        border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
-                        cursor: "pointer",
-                        transition: "all 100ms",
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{ flex: 1, overflow: "hidden" }}>
-                <IntentConfig intent={si} shot={shot} onChange={(patch) => updateIntent(i, patch)} onOpenCrop={() => setCropModal(shot.idx)} />
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: complete ? "var(--color-green)" : hasIntent ? "var(--color-amber)" : "var(--color-surface-3)",
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {cropModal !== null && (
-        <ManualCropModal
-          shotIdx={cropModal}
-          initial={manualCrops[cropModal]}
-          onSave={handleSaveCrop}
-          onClose={() => setCropModal(null)}
-        />
-      )}
-    </div>
-  );
-};
-
-/* ── Intent Config sub-component ── */
-function IntentConfig({ intent, shot, onChange, onOpenCrop }: { intent: ShotIntent; shot: ShotData; onChange: (patch: Partial<ShotIntent>) => void; onOpenCrop?: () => void }) {
+function IntentConfig({ intent, shot, onChange, onOpenCrop }: {
+  intent: ShotIntent; shot: ShotData;
+  onChange: (patch: Partial<ShotIntent>) => void; onOpenCrop?: () => void;
+}) {
   const speakers = shot.speakers;
-
-  const SpeakerSelect = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+  const Sel = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
       <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>{label}</span>
-      <select
-        value={value ?? ""}
-        onChange={(e) => onSelect(Number(e.target.value))}
-        style={{
-          flex: 1, height: 28, background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
-          borderRadius: 4, fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12,
-          color: "var(--color-text-primary)", padding: "0 8px", cursor: "pointer", outline: "none",
-        }}
-      >
+      <select value={value ?? ""} onChange={(e) => onSelect(Number(e.target.value))} style={{ flex: 1, height: 26, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: 4, fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)", padding: "0 6px", cursor: "pointer", outline: "none" }}>
         <option value="" disabled>Select…</option>
-        {speakers.map((s) => (
-          <option key={s} value={s}>{SPEAKER_NAMES[s] ?? `Speaker_0${s}`}</option>
-        ))}
+        {speakers.map((s) => <option key={s} value={s}>{SPEAKER_NAMES[s] ?? `Spk_0${s}`}</option>)}
       </select>
     </div>
   );
 
   switch (intent.intent) {
-    case "Follow":
-      return <SpeakerSelect label="Follow speaker" value={intent.follow} onSelect={(v) => onChange({ follow: v })} />;
-
-    case "Reaction":
-      return (
-        <>
-          <SpeakerSelect label="React on" value={intent.reactOn} onSelect={(v) => onChange({ reactOn: v })} />
-          <SpeakerSelect label="Speaker talking" value={intent.reactFollow} onSelect={(v) => onChange({ reactFollow: v })} />
-        </>
-      );
-
-    case "Split":
-      return (
-        <>
-          <SpeakerSelect label="Left" value={intent.splitLeft} onSelect={(v) => onChange({ splitLeft: v })} />
-          <SpeakerSelect label="Right" value={intent.splitRight} onSelect={(v) => onChange({ splitRight: v })} />
-        </>
-      );
-
-    case "Wide":
-      return (
-        <div>
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)" }}>Includes</span>
-          {speakers.map((s) => {
-            const checked = (intent.wideIncludes ?? []).includes(s);
-            return (
-              <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    const current = intent.wideIncludes ?? [];
-                    onChange({ wideIncludes: checked ? current.filter((x) => x !== s) : [...current, s] });
-                  }}
-                  style={{ accentColor: "var(--color-violet)", width: 14, height: 14 }}
-                />
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-primary)" }}>
-                  {SPEAKER_NAMES[s] ?? `Speaker_0${s}`}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      );
-
-    case "Manual":
-      return (
-        <div>
-          <button
-            onClick={onOpenCrop}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: 4,
-              background: "transparent", border: "none", cursor: "pointer",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-violet)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            <Crop size={12} />
-            Edit crop position →
-          </button>
-          {intent.cropSet && (
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-green)", marginTop: 4, display: "block" }}>Crop set ✓</span>
-          )}
-        </div>
-      );
-
-    default:
-      return null;
+    case "Follow": return <Sel label="Follow" value={intent.follow} onSelect={(v) => onChange({ follow: v })} />;
+    case "Reaction": return (
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}><Sel label="React on" value={intent.reactOn} onSelect={(v) => onChange({ reactOn: v })} /></div>
+        <div style={{ flex: 1 }}><Sel label="Talking" value={intent.reactFollow} onSelect={(v) => onChange({ reactFollow: v })} /></div>
+      </div>
+    );
+    case "Split": return (
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}><Sel label="Top" value={intent.splitLeft} onSelect={(v) => onChange({ splitLeft: v })} /></div>
+        <div style={{ flex: 1 }}><Sel label="Bottom" value={intent.splitRight} onSelect={(v) => onChange({ splitRight: v })} /></div>
+      </div>
+    );
+    case "Wide": return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {speakers.map((s) => {
+          const checked = (intent.wideIncludes ?? []).includes(s);
+          return (
+            <label key={s} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+              <input type="checkbox" checked={checked} onChange={() => onChange({ wideIncludes: checked ? (intent.wideIncludes ?? []).filter((x) => x !== s) : [...(intent.wideIncludes ?? []), s] })} style={{ accentColor: "var(--color-violet)", width: 13, height: 13 }} />
+              <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)" }}>{SPEAKER_NAMES[s] ?? `Spk_0${s}`}</span>
+            </label>
+          );
+        })}
+      </div>
+    );
+    case "Manual": return (
+      <button onClick={onOpenCrop} style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 7px", borderRadius: 4, background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-violet)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+        <Crop size={11} /> Edit crop →
+        {intent.cropSet && <span style={{ color: "var(--color-green)", marginLeft: 4 }}>✓</span>}
+      </button>
+    );
+    default: return null;
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   ActiveShotWorkspace — tracklets + speakers + transcript
+   for the currently selected shot
+   ═══════════════════════════════════════════════════════════ */
+
+function ActiveShotWorkspace({
+  shot, shotBindings, onAddBinding, onRemoveBinding, speakerNames, laneH,
+}: {
+  shot: ShotData; shotBindings: Binding[];
+  onAddBinding: (shotIdx: number, binding: Binding) => void;
+  onRemoveBinding: (shotIdx: number, trackletId: string, speakerId: number) => void;
+  speakerNames: Record<number, string>;
+  laneH: number;
+}) {
+  const [dragOverTracklet, setDragOverTracklet] = useState<string | null>(null);
+  const [wordPopover, setWordPopover] = useState<{ wordIdx: number; speakerIdx: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; trackletId: string; speakerId: number } | null>(null);
+
+  const trackletLaneRef = useRef<HTMLDivElement>(null);
+  const [rangeSelect, setRangeSelect] = useState<{ startX: number; currentX: number } | null>(null);
+  const [rangePopover, setRangePopover] = useState<{ x: number; startPct: number; endPct: number } | null>(null);
+  const isDraggingRange = useRef(false);
+
+  const trackletH = laneH;
+  const speakerH = laneH;
+  const transcriptH = laneH;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-popover]")) {
+        setWordPopover(null); setRangePopover(null); setContextMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* Drag speaker → tracklet */
+  const handleSpeakerDragStart = (e: React.DragEvent, sIdx: number) => {
+    e.dataTransfer.setData("speaker_idx", String(sIdx));
+    e.dataTransfer.effectAllowed = "link";
+    const ghost = document.createElement("div");
+    ghost.textContent = speakerNames[sIdx] ?? `Speaker_0${sIdx}`;
+    ghost.style.cssText = `padding:4px 10px;border-radius:12px;font-family:'Bricolage Grotesque',sans-serif;font-size:12px;font-weight:600;color:#0A0909;background:${SPEAKER_COLORS[sIdx]};position:absolute;top:-1000px`;
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 40, 14);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+  };
+
+  const handleTrackletDrop = (e: React.DragEvent, trackletId: string) => {
+    e.preventDefault(); setDragOverTracklet(null);
+    const sIdx = parseInt(e.dataTransfer.getData("speaker_idx"), 10);
+    if (isNaN(sIdx)) return;
+    onAddBinding(shot.idx, { tracklet_id: trackletId, speaker_id: sIdx, start_ms: shot.startMs, end_ms: shot.endMs, method: "drag" });
+    toast.success(`${speakerNames[sIdx] ?? `Speaker_0${sIdx}`} → ${trackletId}`);
+  };
+
+  /* Word click */
+  const handleWordClick = (wordIdx: number) => {
+    const sIdx = wordIdx < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
+    setWordPopover({ wordIdx, speakerIdx: sIdx }); setRangePopover(null); setContextMenu(null);
+  };
+
+  const handleWordAssign = (trackletId: string, sIdx: number) => {
+    const frac = 1 / shot.transcript.length;
+    const dur = shot.endMs - shot.startMs;
+    const startMs = shot.startMs + Math.floor(frac * (wordPopover?.wordIdx ?? 0) * dur);
+    onAddBinding(shot.idx, { tracklet_id: trackletId, speaker_id: sIdx, start_ms: startMs, end_ms: startMs + Math.floor(frac * dur), method: "word" });
+    setWordPopover(null); toast.success(`${speakerNames[sIdx] ?? `Speaker_0${sIdx}`} → ${trackletId}`);
+  };
+
+  /* Range select */
+  const handleRangeDown = (e: React.MouseEvent) => {
+    if (!trackletLaneRef.current) return;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    isDraggingRange.current = true;
+    setRangeSelect({ startX: e.clientX - rect.left, currentX: e.clientX - rect.left });
+    setRangePopover(null); setWordPopover(null); setContextMenu(null);
+  };
+  const handleRangeMove = (e: React.MouseEvent) => {
+    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    setRangeSelect({ ...rangeSelect, currentX: Math.max(0, Math.min(e.clientX - rect.left, rect.width)) });
+  };
+  const handleRangeUp = () => {
+    if (!isDraggingRange.current || !rangeSelect || !trackletLaneRef.current) return;
+    isDraggingRange.current = false;
+    const rect = trackletLaneRef.current.getBoundingClientRect();
+    const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
+    const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
+    if (maxX - minX < 10) { setRangeSelect(null); return; }
+    setRangePopover({ x: maxX, startPct: (minX / rect.width) * 100, endPct: (maxX / rect.width) * 100 });
+    setRangeSelect(null);
+  };
+  const handleRangeAssign = (sIdx: number) => {
+    if (!rangePopover) return;
+    const dur = shot.endMs - shot.startMs;
+    onAddBinding(shot.idx, { tracklet_id: shot.tracklets[0]?.id ?? "tracklet_001", speaker_id: sIdx, start_ms: shot.startMs + Math.floor((rangePopover.startPct / 100) * dur), end_ms: shot.startMs + Math.floor((rangePopover.endPct / 100) * dur), method: "range" });
+    setRangePopover(null); toast.success(`${speakerNames[sIdx] ?? `Speaker_0${sIdx}`} assigned`);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Tracklet lane */}
+      <div style={{ height: trackletH, display: "flex", alignItems: "center", padding: "0 12px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)", position: "relative" }}>
+        <span className="label-caps" style={{ width: 72, flexShrink: 0, fontSize: 9 }}>TRACKLETS</span>
+        <div ref={trackletLaneRef} style={{ flex: 1, display: "flex", gap: 2, alignItems: "center", height: Math.max(20, trackletH - 12), position: "relative", cursor: "crosshair" }}
+          onMouseDown={handleRangeDown} onMouseMove={handleRangeMove} onMouseUp={handleRangeUp}
+          onMouseLeave={() => { if (isDraggingRange.current) { isDraggingRange.current = false; setRangeSelect(null); } }}
+        >
+          {shot.tracklets.map((t) => {
+            const bound = shotBindings.find((b) => b.tracklet_id === t.id);
+            const sColor = bound ? SPEAKER_COLORS[bound.speaker_id] : undefined;
+            const isDT = dragOverTracklet === t.id;
+            return (
+              <div key={t.id}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "link"; setDragOverTracklet(t.id); }}
+                onDragLeave={() => setDragOverTracklet(null)}
+                onDrop={(e) => { e.stopPropagation(); handleTrackletDrop(e, t.id); }}
+                onContextMenu={(e) => { e.preventDefault(); if (bound) setContextMenu({ x: e.clientX, y: e.clientY, trackletId: t.id, speakerId: bound.speaker_id }); }}
+                style={{
+                  flex: t.durationPct, minWidth: 54, display: "flex", alignItems: "center", gap: 5,
+                  background: isDT ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                  border: isDT ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
+                  borderLeft: sColor ? `3px solid ${sColor}` : isDT ? "2px dashed var(--color-violet)" : "1px solid var(--color-border)",
+                  borderRadius: 4, padding: "3px 7px", cursor: "grab", userSelect: "none",
+                  transition: "border 100ms, background 100ms", position: "relative", zIndex: 2,
+                }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: sColor ?? "var(--color-surface-3)", border: sColor ? `2px solid ${sColor}` : "none", flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-primary)" }}>{t.letter}</span>
+                {bound && <span style={{ fontFamily: "'Geist Mono'", fontSize: 9, color: "var(--color-text-muted)" }}>{speakerNames[bound.speaker_id]?.split(" ")[0] ?? `Spk_0${bound.speaker_id}`}</span>}
+              </div>
+            );
+          })}
+          {rangeSelect && (() => {
+            const minX = Math.min(rangeSelect.startX, rangeSelect.currentX);
+            const maxX = Math.max(rangeSelect.startX, rangeSelect.currentX);
+            return <div style={{ position: "absolute", left: minX, width: maxX - minX, top: 0, height: "100%", background: "rgba(139,92,246,0.15)", border: "1px solid var(--color-violet)", borderRadius: 2, pointerEvents: "none", zIndex: 3 }} />;
+          })()}
+        </div>
+        {rangePopover && (
+          <div data-popover style={{ position: "absolute", top: 40, left: 72 + rangePopover.x - 60, zIndex: 30, background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: 8, padding: 10, minWidth: 180, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+            <div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)", marginBottom: 3 }}>Assign range to speaker</div>
+            <div style={{ fontFamily: "'Geist Mono'", fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
+              {msToTimestamp(shot.startMs + (rangePopover.startPct / 100) * (shot.endMs - shot.startMs))} → {msToTimestamp(shot.startMs + (rangePopover.endPct / 100) * (shot.endMs - shot.startMs))}
+            </div>
+            {shot.speakers.map((sIdx) => (
+              <button key={sIdx} onClick={() => handleRangeAssign(sIdx)} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "5px 8px", border: "1px solid var(--color-border)", borderRadius: 5, background: "transparent", cursor: "pointer", marginBottom: 3, fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: SPEAKER_COLORS[sIdx] }} />{speakerNames[sIdx] ?? `Speaker_0${sIdx}`}
+              </button>
+            ))}
+            <button onClick={() => setRangePopover(null)} style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 2 }}>Cancel</button>
+          </div>
+        )}
+      </div>
+
+      {/* Speaker lanes */}
+      {shot.speakers.map((sIdx) => {
+        const turn = shot.turns.find((t) => t.speakerIdx === sIdx);
+        const color = SPEAKER_COLORS[sIdx];
+        return (
+          <div key={sIdx}>
+            <div style={{ height: speakerH, display: "flex", alignItems: "center", padding: "0 12px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
+              <div draggable onDragStart={(e) => handleSpeakerDragStart(e, sIdx)} style={{ width: 72, flexShrink: 0, display: "flex", alignItems: "center", gap: 5, cursor: "grab" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)" }}>{speakerNames[sIdx]?.split("—")[0]?.trim() ?? `Spk_0${sIdx}`}</span>
+              </div>
+              <div style={{ flex: 1, position: "relative", height: 18 }}>
+                {turn && <div style={{ position: "absolute", left: `${turn.startPct}%`, width: `${turn.widthPct}%`, height: "100%", background: `${color}66`, borderRadius: 2 }} />}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Conflict */}
+      {shot.conflict && (
+        <div style={{ padding: "4px 12px", display: "flex", alignItems: "center", gap: 6, background: "var(--color-rose-muted)", borderLeft: "3px solid var(--color-rose)" }}>
+          <TriangleAlert size={12} color="var(--color-rose)" />
+          <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 12, color: "var(--color-rose)" }}>
+            Conflict: Speaker_0{shot.conflict.speaker0} & Speaker_0{shot.conflict.speaker1} both on {shot.conflict.tracklet} at {shot.conflict.time}
+          </span>
+        </div>
+      )}
+
+      {/* Transcript lane */}
+      <div style={{ height: transcriptH, padding: "6px 12px 6px 84px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", flexWrap: "wrap", gap: 2, alignContent: "flex-start", position: "relative", overflow: "hidden" }}>
+        {shot.transcript.map((word, i) => {
+          const isSelected = wordPopover?.wordIdx === i;
+          const sIdx = i < shot.transcript.length / 2 ? (shot.speakers[0] ?? 0) : (shot.speakers[1] ?? shot.speakers[0] ?? 0);
+          const hasBoundWord = shotBindings.some((b) => b.method === "word" && b.speaker_id === sIdx);
+          return (
+            <span key={i} onClick={(e) => { e.stopPropagation(); handleWordClick(i); }}
+              style={{
+                padding: "1px 3px", borderRadius: 2, fontFamily: "'Geist Mono', monospace", fontSize: 11,
+                color: isSelected ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", position: "relative",
+                background: isSelected ? "var(--color-violet-muted)" : hasBoundWord ? `${SPEAKER_COLORS[sIdx]}22` : "transparent",
+                border: isSelected ? "1px solid var(--color-violet)" : "1px solid transparent",
+              }}
+              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = "var(--color-surface-3)"; e.currentTarget.style.color = "var(--color-text-primary)"; } }}
+              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = hasBoundWord ? `${SPEAKER_COLORS[sIdx]}22` : "transparent"; e.currentTarget.style.color = "var(--color-text-secondary)"; } }}
+            >
+              {word}
+              {isSelected && wordPopover && (
+                <div data-popover onClick={(e) => e.stopPropagation()} style={{ position: "absolute", bottom: "100%", left: 0, marginBottom: 4, zIndex: 30, background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: 6, padding: 10, minWidth: 170, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+                  <div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)", marginBottom: 6 }}>Assign word → tracklet</div>
+                  {shot.tracklets.map((t) => (
+                    <button key={t.id} onClick={() => handleWordAssign(t.id, sIdx)} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "5px 8px", border: "1px solid var(--color-border)", borderRadius: 5, background: "transparent", cursor: "pointer", marginBottom: 3, fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "var(--color-surface-3)" }} />{t.letter} <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)", marginLeft: "auto" }}>{shot.duration}</span>
+                    </button>
+                  ))}
+                  <button onClick={() => setWordPopover(null)} style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", marginTop: 2 }}>Cancel</button>
+                </div>
+              )}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div data-popover style={{ position: "fixed", left: contextMenu.x, top: contextMenu.y, zIndex: 50, background: "var(--color-surface-1)", border: "1px solid var(--color-border)", borderRadius: 6, padding: 4, minWidth: 220, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+          <button onClick={() => { onRemoveBinding(shot.idx, contextMenu.trackletId, contextMenu.speakerId); setContextMenu(null); toast("Assignment removed"); }}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 12, color: "var(--color-text-primary)", background: "none", border: "none", cursor: "pointer", borderRadius: 4 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-3)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+            Remove: {speakerNames[contextMenu.speakerId] ?? `Spk_0${contextMenu.speakerId}`} → {contextMenu.trackletId}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Main Component — RunGrounding
+   ═══════════════════════════════════════════════════════════ */
 
 export default function RunGrounding() {
   const { id, clipId } = useParams();
   const [activeClip, setActiveClip] = useState(clipId ?? "001");
+  const [activeShotIdx, setActiveShotIdx] = useState(1);
+  const [cameraOpen, setCameraOpen] = useState(true);
 
-  /* ── Binding state ── */
+  /* Bindings */
   const [bindings, setBindings] = useState<Record<number, Binding[]>>(getInitialBindings);
-
   const handleAddBinding = useCallback((shotIdx: number, binding: Binding) => {
     setBindings((prev) => {
       const existing = prev[shotIdx] || [];
-      // Replace if same tracklet+speaker already exists
-      const filtered = existing.filter((b) => !(b.tracklet_id === binding.tracklet_id && b.speaker_id === binding.speaker_id));
-      return { ...prev, [shotIdx]: [...filtered, binding] };
+      return { ...prev, [shotIdx]: [...existing.filter((b) => !(b.tracklet_id === binding.tracklet_id && b.speaker_id === binding.speaker_id)), binding] };
     });
   }, []);
-
   const handleRemoveBinding = useCallback((shotIdx: number, trackletId: string, speakerId: number) => {
-    setBindings((prev) => {
-      const existing = prev[shotIdx] || [];
-      return { ...prev, [shotIdx]: existing.filter((b) => !(b.tracklet_id === trackletId && b.speaker_id === speakerId)) };
-    });
+    setBindings((prev) => ({ ...prev, [shotIdx]: (prev[shotIdx] || []).filter((b) => !(b.tracklet_id === trackletId && b.speaker_id === speakerId)) }));
   }, []);
 
-  /* ── Derived grounding progress ── */
+  /* Camera intents */
+  const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
+  const [manualCrops, setManualCrops] = useState<Record<number, CropPosition>>({});
+  const [cropModal, setCropModal] = useState<number | null>(null);
+  const updateIntent = (idx: number, patch: Partial<ShotIntent>) => setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  const handleSaveCrop = (shotIdx: number, crop: CropPosition) => {
+    setManualCrops((prev) => ({ ...prev, [shotIdx]: crop }));
+    const i = SHOTS.findIndex((s) => s.idx === shotIdx);
+    if (i >= 0) updateIntent(i, { cropSet: true });
+    setCropModal(null);
+  };
+
+  /* Speaker naming */
+  const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({ ...SPEAKER_NAMES });
+
+  /* Progress */
   const progress = computeGroundingProgress(bindings);
-  const speakerLabel = `${progress.grounded}/${progress.total}`;
-  const cameraLabel = "4/4"; // camera is static for now
-
-  const clipStatus: QueueClip["status"] =
-    progress.grounded === progress.total ? "complete" :
-    progress.grounded > 0 ? "partial" : "not_started";
-
+  const completedIntents = SHOTS.reduce((a, _, i) => a + (intents[i] && isShotIntentComplete(intents[i]) ? 1 : 0), 0);
+  const clipStatus: QueueClip["status"] = progress.grounded === progress.total ? "complete" : progress.grounded > 0 ? "partial" : "not_started";
   const isComplete = clipStatus === "complete";
-
   const current = QUEUE.find((c) => c.id === activeClip) ?? QUEUE[0];
+  const activeShot = SHOTS.find((s) => s.idx === activeShotIdx) ?? SHOTS[0];
+  const activeShotIntentIdx = SHOTS.findIndex((s) => s.idx === activeShotIdx);
+  const activeShotIntent = intents[activeShotIntentIdx] ?? { intent: "Follow" as IntentType };
+
+  /* Video player */
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const previewRef  = useRef<HTMLVideoElement>(null);
+  const scrubBarRef = useRef<HTMLDivElement>(null);
+  const [playing,       setPlaying]       = useState(false);
+  const [currentTime,   setCurrentTime]   = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [hoverPct,      setHoverPct]      = useState<number | null>(null);
+  const [hoverClientX,  setHoverClientX]  = useState(0);
+  const [scrubberTopY,  setScrubberTopY]  = useState(0);
+  const [isScrubbing,   setIsScrubbing]   = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onTime = () => setCurrentTime(v.currentTime);
+    const onMeta = () => { if (v.duration && isFinite(v.duration)) setVideoDuration(v.duration); };
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("loadedmetadata", onMeta);
+    return () => { v.removeEventListener("timeupdate", onTime); v.removeEventListener("loadedmetadata", onMeta); };
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
+  }, []);
+
+  // Jump to shot start when shot changes
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && activeShot) { v.currentTime = activeShot.startMs / 1000; setCurrentTime(activeShot.startMs / 1000); }
+  }, [activeShotIdx, activeShot]);
+
+  const getPctFromClientX = useCallback((clientX: number) => {
+    const rect = scrubBarRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }, []);
+
+  const seekToPct = useCallback((pct: number) => {
+    const v = videoRef.current;
+    if (!v || videoDuration === 0) return;
+    v.currentTime = pct * videoDuration;
+    if (previewRef.current) previewRef.current.currentTime = pct * videoDuration;
+  }, [videoDuration]);
+
+  const startScrub = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsScrubbing(true);
+    const pct = getPctFromClientX(e.clientX);
+    if (pct !== null) {
+      seekToPct(pct);
+      setHoverPct(pct);
+      setHoverClientX(e.clientX);
+    }
+    const onMove = (ev: MouseEvent) => {
+      const p = getPctFromClientX(ev.clientX);
+      if (p === null) return;
+      seekToPct(p);
+      setHoverPct(p);
+      setHoverClientX(ev.clientX);
+    };
+    const onUp = (ev: MouseEvent) => {
+      const p = getPctFromClientX(ev.clientX);
+      if (p !== null) seekToPct(p);
+      setIsScrubbing(false);
+      setHoverPct(null);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [getPctFromClientX, seekToPct]);
+
+  /* Drag divider — same pattern as Timeline: inline window listeners, no useEffect */
+  // Queue needs: header(32) + items(QUEUE.length * 34) + insets(16)
+  const MIN_VIDEO_H = 32 + QUEUE.length * 34 + 16;
+  // Lane counting: tracklet(1) + speakers(activeShot.speakers.length) + transcript(1) + camera header(1) + camera content(1 if open)
+  const numLanes = 1 + activeShot.speakers.length + 1 + 1 + (cameraOpen ? 1 : 0);
+  const LANE_MIN_H = 24;
+  // Chrome below video: divider(6) + transport(48) + ruler(32) + shot-strip(40) = 126. Context bar: 48.
+  // MAX ensures each lane >= LANE_MIN_H
+  const MAX_VIDEO_H = window.innerHeight - 48 - 126 - numLanes * LANE_MIN_H;
+  const [videoH, setVideoH] = useState(() => Math.round(window.innerHeight * 0.50));
+  const isDraggingDivider = useRef(false);
+  const rulerContainerRef = useRef<HTMLDivElement>(null);
+  const [rulerWidth, setRulerWidth] = useState(800);
+  const queuePanelRef = useRef<HTMLDivElement>(null);
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+  const [workspaceContainerH, setWorkspaceContainerH] = useState(300);
+  const parseTimeStr = (t: string) => { const [m, s] = t.split(":"); return parseInt(m) * 60 + parseInt(s); };
+  const clipStartS = parseTimeStr(current.timeStart);
+  const clipEndS   = parseTimeStr(current.timeEnd);
+  const clipDurationS = Math.max(1, clipEndS - clipStartS);
+
+  useEffect(() => {
+    const el = rulerContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setRulerWidth(entry.contentRect.width));
+    ro.observe(el);
+    setRulerWidth(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = workspaceContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWorkspaceContainerH(entry.contentRect.height));
+    ro.observe(el);
+    setWorkspaceContainerH(el.getBoundingClientRect().height);
+    return () => ro.disconnect();
+  }, []);
+
+  // Dynamic lane height — exactly like Timeline: measured container ÷ total lanes
+  const laneH = numLanes > 0
+    ? Math.max(LANE_MIN_H, Math.floor(workspaceContainerH / numLanes))
+    : LANE_MIN_H;
+
+  /* Scrubber derived state */
+  const scrubPct = videoDuration > 0
+    ? Math.max(0, Math.min(100, (currentTime / videoDuration) * 100))
+    : 0;
 
   return (
-    <div className="flex flex-col" style={{ height: "100vh" }}>
-      {/* ── Header bar ── */}
-      <div style={{ height: 56, flexShrink: 0, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", padding: "0 20px", justifyContent: "space-between" }}>
-        {/* Left */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link
-            to={`/runs/${id ?? "demo"}/clips`}
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-muted)", textDecoration: "none" }}
-            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-          >
-            ← Clip Candidates
+    <div className="flex flex-col" style={{ height: "100vh", overflow: "hidden" }}>
+      {/* ── Context bar ── */}
+      <div style={{ height: 48, flexShrink: 0, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", padding: "0 16px", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link to={`/runs/${id ?? "demo"}/clips`} style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 12, color: "var(--color-text-muted)", textDecoration: "none" }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")} onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}>
+            ← Clips
           </Link>
-          <span style={{ width: 1, height: 16, background: "var(--color-border)" }} />
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--color-text-primary)" }}>Lex ep. 412 — Sam Altman</span>
-          <span style={{ color: "var(--color-text-muted)", fontSize: 14 }}>›</span>
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 14, color: "var(--color-text-secondary)" }}>Grounding</span>
+          <span style={{ width: 1, height: 14, background: "var(--color-border)" }} />
+          <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)" }}>Grounding</span>
+          <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>·</span>
+          <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 13, color: "var(--color-text-secondary)" }}>Clip {current.id}</span>
+          <span style={{ fontFamily: "'Geist Mono'", fontSize: 11, color: "var(--color-text-muted)" }}>{current.timeStart} → {current.timeEnd} · {current.duration}</span>
         </div>
-
-        {/* Center */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 14, color: "var(--color-text-primary)" }}>Clip {current.id}</span>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, color: "var(--color-text-muted)" }}>·  {current.timeStart} → {current.timeEnd}  ·  {current.duration}</span>
-        </div>
-
-        {/* Right */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {[
-              { label: `Speakers ${speakerLabel}`, done: progress.grounded === progress.total },
-              { label: `Camera ${cameraLabel}`, done: true },
-            ].map((p) => (
-              <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.done ? "var(--color-green)" : "var(--color-amber)" }} />
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)" }}>{p.label}</span>
-              </div>
-            ))}
-          </div>
-          <button style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-surface-2)", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)", cursor: "pointer" }}>Save</button>
-          <button
-            disabled={!isComplete}
-            style={{
-              padding: "6px 14px", borderRadius: 6, border: "none",
-              background: isComplete ? "var(--color-violet)" : "var(--color-surface-3)",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13,
-              color: isComplete ? "#0A0909" : "var(--color-text-muted)",
-              cursor: isComplete ? "pointer" : "not-allowed",
-            }}
-          >Done →</button>
+          {[
+            { label: `Speakers ${progress.grounded}/${progress.total}`, done: progress.grounded === progress.total },
+            { label: `Camera ${completedIntents}/${SHOTS.length}`, done: completedIntents === SHOTS.length },
+          ].map((p) => (
+            <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: p.done ? "var(--color-green)" : "var(--color-amber)" }} />
+              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 11, color: "var(--color-text-muted)" }}>{p.label}</span>
+            </div>
+          ))}
+          <button style={{ padding: "5px 12px", borderRadius: 5, border: "1px solid var(--color-border)", background: "var(--color-surface-2)", fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 12, color: "var(--color-text-primary)", cursor: "pointer" }}>Save</button>
+          <button disabled={!isComplete} style={{ padding: "5px 12px", borderRadius: 5, border: "none", background: isComplete ? "var(--color-violet)" : "var(--color-surface-3)", fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 12, color: isComplete ? "#0A0909" : "var(--color-text-muted)", cursor: isComplete ? "pointer" : "not-allowed" }}>Done →</button>
         </div>
       </div>
 
-      {/* ── Main work area ── */}
+      {/* ── Main area ── */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Left clip sidebar */}
-        <div style={{ width: 220, flexShrink: 0, background: "var(--color-surface-1)", borderRight: "1px solid var(--color-border)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--color-border-subtle)", display: "flex", alignItems: "center" }}>
-            <span className="label-caps">Grounding queue</span>
-            <span style={{ marginLeft: 6, fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>8 clips</span>
-          </div>
-          {QUEUE.map((clip) => {
-            const isActive = clip.id === activeClip;
-            const isLocked = clip.status === "locked";
-            const displayStatus: QueueClip["status"] = isActive ? clipStatus : clip.status;
-            return (
-              <div
-                key={clip.id}
-                onClick={() => !isLocked && setActiveClip(clip.id)}
-                style={{
-                  padding: "12px 14px",
-                  borderBottom: "1px solid var(--color-border-subtle)",
-                  cursor: isLocked ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  background: isActive ? "var(--color-surface-2)" : "transparent",
-                  borderLeft: isActive ? "3px solid var(--color-violet)" : "3px solid transparent",
-                  transition: "background 100ms",
-                }}
-                onMouseEnter={(e) => { if (!isActive && !isLocked) e.currentTarget.style.background = "var(--color-surface-2)"; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-              >
-                <StatusIcon status={displayStatus} />
-                <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", gap: 3 }}>
-                  <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--color-text-primary)" }}>{clip.label}</span>
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>{clip.timeStart} → {clip.timeEnd}  ·  {clip.duration}</span>
-                  {isActive && (
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 11, color: "var(--color-text-muted)" }}>
-                      Speakers: {speakerLabel}  ·  Camera: {cameraLabel}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        {/* Center + right */}
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-          {/* Center column */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <ShotLaneEditor
-              bindings={bindings}
-              onAddBinding={handleAddBinding}
-              onRemoveBinding={handleRemoveBinding}
+        {/* ── Work area (full width) ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* Video player + queue in left black bar */}
+          <div style={{ height: videoH, flexShrink: 0, background: "#000", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <video ref={videoRef} src={`${DEMO_VIDEO_URL}#t=${activeShot.startMs / 1000}`} preload="metadata"
+              style={{ height: "100%", width: "auto", maxWidth: "100%", objectFit: "contain" }}
             />
-            <CameraIntentPanel />
+            <BoundingBoxOverlay shot={activeShot} bindings={bindings[activeShot.idx] || []} />
+
+            {/* Queue — floats in the left black bar, same pattern as Timeline layer toggles */}
+            <div style={{
+              position: "absolute", left: 8, top: 8,
+              width: 172, zIndex: 4,
+              maxHeight: "calc(100% - 16px)",
+              display: "flex", flexDirection: "column",
+              background: "rgba(10,9,9,0.72)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 8,
+              overflow: "hidden",
+            }}>
+              {/* Header */}
+              <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <span className="label-caps" style={{ fontSize: 9, color: "var(--color-text-muted)" }}>Queue</span>
+                <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)" }}>{QUEUE.length}</span>
+              </div>
+              {/* Items */}
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {QUEUE.map((clip) => {
+                  const isActive = clip.id === activeClip;
+                  const isLocked = clip.status === "locked";
+                  const dStatus: QueueClip["status"] = isActive ? clipStatus : clip.status;
+                  return (
+                    <div key={clip.id} onClick={() => !isLocked && setActiveClip(clip.id)}
+                      style={{
+                        padding: "7px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)",
+                        cursor: isLocked ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 7,
+                        background: isActive ? "rgba(139,92,246,0.15)" : "transparent",
+                        borderLeft: isActive ? "2px solid var(--color-violet)" : "2px solid transparent",
+                        transition: "background 100ms",
+                      }}
+                      onMouseEnter={(e) => { if (!isActive && !isLocked) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <StatusIcon status={dStatus} />
+                      <div style={{ flex: 1, overflow: "hidden" }}>
+                        <div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 11, color: "var(--color-text-primary)" }}>{clip.label}</div>
+                        <div style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)" }}>{clip.timeStart} → {clip.timeEnd}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* Right details placeholder */}
-          <div style={{ width: 360, flexShrink: 0, background: "var(--color-surface-1)", borderLeft: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 14, color: "var(--color-text-muted)" }}>
-              Details panel loads here
+          {/* Drag divider — exact Timeline pattern: inline window listeners */}
+          <div
+            style={{ flexShrink: 0, height: 6, background: "var(--color-border-subtle)", cursor: "ns-resize", position: "relative", zIndex: 10 }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              isDraggingDivider.current = true;
+              const startY = e.clientY;
+              const startH = videoH;
+              const onMove = (ev: MouseEvent) => {
+                if (!isDraggingDivider.current) return;
+                setVideoH(Math.max(MIN_VIDEO_H, Math.min(MAX_VIDEO_H, startH + (ev.clientY - startY))));
+              };
+              const onUp = () => {
+                isDraggingDivider.current = false;
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onUp);
+              };
+              window.addEventListener("mousemove", onMove);
+              window.addEventListener("mouseup", onUp);
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-violet-muted)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-border-subtle)"; }}
+          >
+            <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 32, height: 3, borderRadius: 2, background: "var(--color-border)", pointerEvents: "none" }} />
+          </div>
+
+          {/* Transport bar */}
+          <div style={{ height: 48, flexShrink: 0, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+            <button onClick={togglePlay} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 4, background: "var(--color-surface-3)", border: "none", cursor: "pointer", color: "var(--color-text-primary)", flexShrink: 0 }}>
+              {playing ? <Pause size={14} /> : <Play size={14} />}
+            </button>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, color: "var(--color-text-primary)", minWidth: 80, flexShrink: 0 }}>
+              {msToTimestamp(currentTime * 1000)}
+            </span>
+            {/* Scrubber */}
+            <div
+              ref={scrubBarRef}
+              onMouseDown={startScrub}
+              onMouseMove={(e) => {
+                if (isScrubbing) return;
+                const p = getPctFromClientX(e.clientX);
+                setHoverPct(p);
+                setHoverClientX(e.clientX);
+                setScrubberTopY(e.currentTarget.getBoundingClientRect().top);
+                if (p !== null && previewRef.current) previewRef.current.currentTime = p * videoDuration;
+              }}
+              onMouseLeave={() => { if (!isScrubbing) setHoverPct(null); }}
+              style={{ flex: 1, height: 16, display: "flex", alignItems: "center", cursor: "pointer", position: "relative", userSelect: "none" }}
+            >
+              {/* Track */}
+              <div style={{ position: "absolute", left: 0, right: 0, height: 4, borderRadius: 2, background: "var(--color-surface-3)" }}>
+                <div style={{ width: `${scrubPct}%`, height: "100%", background: "var(--color-violet)", borderRadius: 2 }} />
+              </div>
+              {/* Dot */}
+              <div style={{
+                position: "absolute",
+                top: "50%",
+                left: `${scrubPct}%`,
+                transform: "translate(-50%, -50%)",
+                width: isScrubbing || hoverPct !== null ? 14 : 10,
+                height: isScrubbing || hoverPct !== null ? 14 : 10,
+                borderRadius: "50%",
+                background: "var(--color-violet)",
+                boxShadow: isScrubbing ? "0 0 0 3px rgba(167,139,250,0.3)" : "none",
+                transition: isScrubbing ? "none" : "width 0.1s, height 0.1s",
+                pointerEvents: "none",
+              }} />
+            </div>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", flexShrink: 0 }}>
+              {msToTimestamp(videoDuration * 1000)}
             </span>
           </div>
+
+          {/* Bottom workspace */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* Time ruler — identical structure to the Timeline page */}
+            <div ref={rulerContainerRef} style={{
+              flexShrink: 0, height: 32,
+              background: "var(--color-surface-1)",
+              borderBottom: "1px solid var(--color-border-subtle)",
+              display: "flex",
+            }}>
+              <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+                <div>
+                  <TimeRuler
+                    duration={clipDurationS}
+                    pixelsPerSecond={clipDurationS > 0 ? rulerWidth / clipDurationS : 1}
+                    scrollX={0}
+                    viewportWidth={rulerWidth}
+                    onSeek={(t) => {
+                      const v = videoRef.current;
+                      if (v) { v.currentTime = clipStartS + t; setCurrentTime(clipStartS + t); }
+                    }}
+                  />
+                </div>
+                {/* Playhead line — same as Timeline */}
+                <div style={{
+                  position: "absolute", top: 0, bottom: 0, width: 1,
+                  left: Math.max(0, (currentTime - clipStartS) / clipDurationS) * rulerWidth,
+                  background: "var(--color-violet)",
+                  pointerEvents: "none", zIndex: 20,
+                }} />
+              </div>
+            </div>
+
+            {/* Shot strip */}
+            <div style={{ height: 40, flexShrink: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: 4, background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border)", overflowX: "auto" }}>
+              <span className="label-caps" style={{ fontSize: 9, marginRight: 4, flexShrink: 0 }}>SHOTS</span>
+              {SHOTS.map((s) => {
+                const isActive = s.idx === activeShotIdx;
+                const shotBound = (bindings[s.idx] || []).length > 0;
+                const allBound = s.tracklets.every((t) => (bindings[s.idx] || []).some((b) => b.tracklet_id === t.id));
+                return (
+                  <button key={s.idx} onClick={() => setActiveShotIdx(s.idx)}
+                    style={{
+                      height: 28, padding: "0 10px", borderRadius: 4, flexShrink: 0,
+                      display: "flex", alignItems: "center", gap: 5,
+                      fontFamily: "'Bricolage Grotesque'", fontWeight: 600, fontSize: 11,
+                      background: isActive ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                      color: isActive ? "var(--color-violet)" : "var(--color-text-secondary)",
+                      border: isActive ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
+                      cursor: "pointer", transition: "all 100ms",
+                    }}
+                  >
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: allBound ? "var(--color-green)" : shotBound ? "var(--color-amber)" : "var(--color-surface-3)" }} />
+                    Shot {s.idx}
+                    <span style={{ fontFamily: "'Geist Mono'", fontSize: 9, color: "var(--color-text-muted)", fontWeight: 400 }}>{s.duration}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Unified workspace — lanes fill container exactly, same as Timeline */}
+            <div ref={workspaceContainerRef} style={{ flex: 1, overflow: "hidden" }}>
+                  <ActiveShotWorkspace
+                    shot={activeShot}
+                    shotBindings={bindings[activeShot.idx] || []}
+                    onAddBinding={handleAddBinding}
+                    onRemoveBinding={handleRemoveBinding}
+                    speakerNames={speakerNames}
+                    laneH={laneH}
+                  />
+
+                {/* Camera intent — uses same laneH as all other lanes */}
+                <div style={{ height: laneH, display: "flex", alignItems: "center", padding: "0 12px", background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border-subtle)", cursor: "pointer" }}
+                  onClick={() => setCameraOpen(!cameraOpen)}>
+                  {cameraOpen ? <ChevronDown size={12} color="var(--color-text-muted)" /> : <ChevronRight size={12} color="var(--color-text-muted)" />}
+                  <span className="label-caps" style={{ fontSize: 9, marginLeft: 6 }}>Camera Intent — Shot {activeShot.idx}</span>
+                  <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: isShotIntentComplete(activeShotIntent) ? "var(--color-green)" : "var(--color-amber)", marginLeft: "auto" }}>
+                    {isShotIntentComplete(activeShotIntent) ? "Set" : "Needs input"}
+                  </span>
+                </div>
+                {cameraOpen && (
+                  <div style={{ height: laneH, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", overflow: "hidden" }}>
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      {INTENT_OPTIONS.map((opt) => {
+                        const active = activeShotIntent.intent === opt;
+                        return (
+                          <button key={opt} onClick={() => updateIntent(activeShotIntentIdx, { intent: opt })}
+                            style={{
+                              height: 22, padding: "0 7px", borderRadius: 4,
+                              fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 10,
+                              background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                              color: active ? "var(--color-violet)" : "var(--color-text-muted)",
+                              border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
+                              cursor: "pointer", transition: "all 100ms",
+                            }}>
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <IntentConfig intent={activeShotIntent} shot={activeShot} onChange={(p) => updateIntent(activeShotIntentIdx, p)} onOpenCrop={() => setCropModal(activeShot.idx)} />
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
         </div>
+      </div>
+
+      {cropModal !== null && (
+        <ManualCropModal shotIdx={cropModal} initial={manualCrops[cropModal]} onSave={handleSaveCrop} onClose={() => setCropModal(null)} />
+      )}
+
+      {/* ── Scrub preview — fixed so no parent overflow clips it ── */}
+      <div style={{
+        position: "fixed",
+        left: Math.min(Math.max(hoverClientX - 80, 8), window.innerWidth - 168),
+        top: scrubberTopY - 90 - 24 - 8,
+        pointerEvents: "none",
+        zIndex: 100,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        opacity: hoverPct !== null ? 1 : 0,
+        transition: "opacity 0.1s",
+      }}>
+        <video
+          ref={previewRef}
+          src={DEMO_VIDEO_URL}
+          style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 4, border: "1px solid var(--color-border)", background: "#000", display: "block" }}
+          preload="metadata"
+          muted
+          onLoadedMetadata={() => {
+            if (previewRef.current && previewRef.current.duration && isFinite(previewRef.current.duration))
+              setVideoDuration(previewRef.current.duration);
+          }}
+        />
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "var(--color-text-muted)", background: "var(--color-surface-2)", padding: "2px 6px", borderRadius: 3 }}>
+          {hoverPct !== null ? msToTimestamp(hoverPct * videoDuration * 1000) : ""}
+        </span>
       </div>
     </div>
   );

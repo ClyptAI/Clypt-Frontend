@@ -13,6 +13,7 @@ export interface VideoPlayerProps {
   /** YouTube URL or a local/CDN path e.g. /videos/clip.mp4 */
   videoUrl: string
   className?: string
+  onDurationChange?: (durationSeconds: number) => void
 }
 
 function extractYouTubeId(url: string): string | null {
@@ -55,7 +56,7 @@ function loadYTApi(onReady: () => void) {
 
 // ─── Native <video> player ───────────────────────────────────────────────────
 
-function NativeVideoPlayer({ videoUrl, className }: VideoPlayerProps) {
+function NativeVideoPlayer({ videoUrl, className, onDurationChange }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastSeekRef = useRef<number>(0)
   const suppressStoreSeekRef = useRef(false)
@@ -78,21 +79,25 @@ function NativeVideoPlayer({ videoUrl, className }: VideoPlayerProps) {
       lastSeekRef.current = t
       suppressStoreSeekRef.current = true
       seekTo(t)
-      // Allow store seek → player after a brief tick
       setTimeout(() => { suppressStoreSeekRef.current = false }, 50)
+    }
+    const onMeta = () => {
+      if (v.duration && isFinite(v.duration)) onDurationChange?.(v.duration)
     }
 
     v.addEventListener('play', onPlay)
     v.addEventListener('pause', onPause)
     v.addEventListener('ended', onPause)
     v.addEventListener('timeupdate', onTimeUpdate)
+    v.addEventListener('loadedmetadata', onMeta)
     return () => {
       v.removeEventListener('play', onPlay)
       v.removeEventListener('pause', onPause)
       v.removeEventListener('ended', onPause)
       v.removeEventListener('timeupdate', onTimeUpdate)
+      v.removeEventListener('loadedmetadata', onMeta)
     }
-  }, [play, pause, seekTo])
+  }, [play, pause, seekTo, onDurationChange])
 
   // Store playback state → player
   useEffect(() => {
@@ -208,7 +213,7 @@ function YouTubePlayer({ videoUrl, className }: VideoPlayerProps) {
 
 // ─── Public component — auto-detects URL type ────────────────────────────────
 
-export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
+export function VideoPlayer({ videoUrl, className, onDurationChange }: VideoPlayerProps) {
   if (!videoUrl) {
     return (
       <div
@@ -223,7 +228,7 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
   }
 
   if (isLocalOrDirectVideo(videoUrl)) {
-    return <NativeVideoPlayer videoUrl={videoUrl} className={className} />
+    return <NativeVideoPlayer videoUrl={videoUrl} className={className} onDurationChange={onDurationChange} />
   }
 
   return <YouTubePlayer videoUrl={videoUrl} className={className} />
