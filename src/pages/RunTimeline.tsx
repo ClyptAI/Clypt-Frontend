@@ -1,11 +1,13 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { ChevronUp, ChevronDown, X, Pencil } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
+import { TimeRuler } from "@/components/timeline";
+import { useTimelineStore } from "@/stores/timeline-store";
+import { useRunDetail } from "@/hooks/api/useRuns";
 
 /* ─── constants ─── */
 const VIDEO_DURATION = 24 * 60 + 31; // 24:31 in seconds
-const ZOOM_LEVELS = [1, 2, 4] as const;
 const PPS_BASE = 8; // pixels per second at 1×
 
 const LAYER_TOGGLES = ["Shots", "Tracklets", "Speakers", "Transcript", "Emotion", "Audio Events"] as const;
@@ -208,19 +210,60 @@ export default function RunTimeline() {
   const { id } = useParams();
   const runId = id || "demo";
 
-  const [zoom, setZoom] = useState<1 | 2 | 4>(1);
+  // ── Timeline store ──────────────────────────────────────────────────────────
+  const playheadPosition = useTimelineStore(s => s.playheadPosition);
+  const seekTo           = useTimelineStore(s => s.seekTo);
+  const pixelsPerSecond  = useTimelineStore(s => s.pixelsPerSecond);
+  const setStorePps      = useTimelineStore(s => s.setZoom);
+  const scrollX          = useTimelineStore(s => s.scrollX);
+  const setScrollX       = useTimelineStore(s => s.setScrollX);
+
+  // ── Run metadata ────────────────────────────────────────────────────────────
+  const { data: runDetail } = useRunDetail(runId);
+
+  const completedPhases = runDetail?.phases.filter(p => p.status === "completed").length ?? 0;
+  const runningPhase    = runDetail?.phases.find(p => p.status === "running");
+  const currentPhase    = runningPhase?.phase ?? (completedPhases + 1);
+
+  // ── Local UI state ──────────────────────────────────────────────────────────
   const [layers, setLayers] = useState<Record<string, boolean>>(
     Object.fromEntries(LAYER_TOGGLES.map((l) => [l, true]))
   );
   const [videoOpen, setVideoOpen] = useState(true);
-  const [playhead, setPlayhead] = useState(0);
   const [selection, setSelection] = useState<Selection>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const pps = PPS_BASE * zoom;
+  const pps        = pixelsPerSecond;
   const totalWidth = VIDEO_DURATION * pps;
-  const LABEL_W = 120;
+  const LABEL_W    = 120;
+
+  // ── Container width tracking (for TimeRuler viewportWidth) ─────────────────
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // ── Scroll sync: store scrollX → DOM ───────────────────────────────────────
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && Math.abs(el.scrollLeft - scrollX) > 1) {
+      el.scrollLeft = scrollX;
+    }
+  }, [scrollX]);
+
+  // ── Scroll sync: DOM → store ────────────────────────────────────────────────
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      setScrollX(scrollRef.current.scrollLeft);
+    }
+  }, [setScrollX]);
 
   const toggleLayer = (l: string) => setLayers((p) => ({ ...p, [l]: !p[l] }));
 
@@ -229,29 +272,25 @@ export default function RunTimeline() {
     setPanelOpen(true);
   };
 
-  // ruler ticks
-  const tickInterval = zoom >= 4 ? 10 : zoom >= 2 ? 15 : 30;
-  const ticks = useMemo(() => {
-    const arr: number[] = [];
-    for (let t = 0; t <= VIDEO_DURATION; t += tickInterval) arr.push(t);
-    return arr;
-  }, [tickInterval]);
+  // Ruler viewport width — falls back to a generous initial value before the
+  // ResizeObserver fires so that ticks are rendered immediately on mount.
+  const rulerViewportWidth = Math.max(containerWidth - LABEL_W, 1200);
 
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       <RunContextBar
         runId={runId}
-        runName="Lex ep. 412 — Sam Altman"
-        videoUrl="youtube.com/watch?v=dQw4w9WgXcQ"
-        currentPhase={3}
-        completedPhases={2}
+        runName={runDetail?.display_name ?? "Loading…"}
+        videoUrl={runDetail?.source_url ?? ""}
+        currentPhase={currentPhase}
+        completedPhases={completedPhases}
       />
 
       {/* toolbar */}
       <div className="flex items-center gap-4 px-5 flex-shrink-0 border-b" style={{ height: 48, background: "var(--color-surface-1)", borderColor: "var(--color-border)" }}>
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-heading font-semibold text-[14px] truncate" style={{ color: "var(--color-text-primary)", maxWidth: 240 }}>
-            Lex ep. 412 — Sam Altman
+            {runDetail?.display_name ?? "Loading…"}
           </span>
           <span className="font-mono text-[13px] flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>24:31</span>
         </div>
@@ -281,26 +320,30 @@ export default function RunTimeline() {
         {/* zoom */}
         <div className="flex items-center gap-1">
           <button
-            onClick={() => { setZoom(1); }}
+            onClick={() => setStorePps(PPS_BASE)}
             className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
             style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
           >
             Fit
           </button>
-          {ZOOM_LEVELS.map((z) => (
-            <button
-              key={z}
-              onClick={() => setZoom(z)}
-              className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-              style={{
-                background: zoom === z ? "var(--color-surface-3)" : "transparent",
-                color: zoom === z ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                border: zoom === z ? "1px solid var(--color-border)" : "1px solid transparent",
-              }}
-            >
-              {z}×
-            </button>
-          ))}
+          {([1, 2, 4] as const).map((z) => {
+            const targetPps = PPS_BASE * z;
+            const isActive = Math.round(pps / PPS_BASE) === z;
+            return (
+              <button
+                key={z}
+                onClick={() => setStorePps(targetPps)}
+                className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
+                style={{
+                  background: isActive ? "var(--color-surface-3)" : "transparent",
+                  color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
+                }}
+              >
+                {z}×
+              </button>
+            );
+          })}
         </div>
 
         {/* video toggle */}
@@ -329,43 +372,56 @@ export default function RunTimeline() {
           </div>
           {/* scrubber */}
           <div className="px-4 pb-2 flex items-center gap-3">
-            <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>{fmtTime(playhead)}</span>
+            <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>{fmtTime(playheadPosition)}</span>
             <div className="flex-1 relative h-3 flex items-center cursor-pointer"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                setPlayhead(pct * VIDEO_DURATION);
+                seekTo(pct * VIDEO_DURATION);
               }}
             >
               <div className="absolute inset-x-0 h-[3px] rounded-full" style={{ background: "var(--color-surface-3)" }} />
-              <div className="absolute left-0 h-[3px] rounded-full" style={{ background: "var(--color-violet)", width: `${(playhead / VIDEO_DURATION) * 100}%` }} />
-              <div className="absolute h-2.5 w-2.5 rounded-full -translate-x-1/2" style={{ background: "var(--color-violet)", left: `${(playhead / VIDEO_DURATION) * 100}%` }} />
+              <div className="absolute left-0 h-[3px] rounded-full" style={{ background: "var(--color-violet)", width: `${(playheadPosition / VIDEO_DURATION) * 100}%` }} />
+              <div className="absolute h-2.5 w-2.5 rounded-full -translate-x-1/2" style={{ background: "var(--color-violet)", left: `${(playheadPosition / VIDEO_DURATION) * 100}%` }} />
             </div>
             <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>24:31</span>
           </div>
         </div>
       </div>
 
+      {/* ruler row — lives outside the scroll container so TimeRuler's internal
+           position calculation (getBoundingClientRect on parentElement.parentElement)
+           correctly maps to the timeline content area without a LABEL_W offset.
+           The two wrapper divs create the parentElement → parentElement chain that
+           TimeRuler's getTimeFromEvent traverses. */}
+      <div className="flex flex-shrink-0 border-b" style={{ height: 32, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+        {/* label column spacer */}
+        <div className="flex-shrink-0 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }} />
+        {/* parentElement.parentElement of TimeRuler's rulerRef — starts exactly at time=0 */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* parentElement of TimeRuler's rulerRef */}
+          <div>
+            <TimeRuler
+              duration={VIDEO_DURATION}
+              pixelsPerSecond={pps}
+              scrollX={scrollX}
+              viewportWidth={rulerViewportWidth}
+              onSeek={seekTo}
+            />
+          </div>
+          {/* playhead line in ruler */}
+          <div
+            className="absolute top-0 bottom-0 w-px z-20 pointer-events-none"
+            style={{ left: playheadPosition * pps - scrollX, background: "var(--color-violet)" }}
+          />
+        </div>
+      </div>
+
       {/* main content: timeline + panel */}
       <div className="flex flex-1 min-h-0">
         {/* timeline scroll area */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto" ref={scrollRef}>
+        <div className="flex-1 overflow-x-auto overflow-y-auto" ref={scrollRef} onScroll={handleScroll}>
           <div style={{ width: LABEL_W + totalWidth, minHeight: "100%" }}>
-
-            {/* ruler */}
-            <div className="sticky top-0 z-10 flex border-b" style={{ height: 28, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-              <div className="flex-shrink-0 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }} />
-              <div className="relative" style={{ width: totalWidth }}>
-                {ticks.map((t) => (
-                  <div key={t} className="absolute top-0 h-full flex flex-col items-center" style={{ left: t * pps }}>
-                    <div className="w-px h-2" style={{ background: "var(--color-border)" }} />
-                    <span className="font-mono text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{fmtTime(t)}</span>
-                  </div>
-                ))}
-                {/* playhead */}
-                <div className="absolute top-0 bottom-0 w-px z-20" style={{ left: playhead * pps, background: "var(--color-violet)" }} />
-              </div>
-            </div>
 
             {/* shots lane */}
             {layers["Shots"] && (
