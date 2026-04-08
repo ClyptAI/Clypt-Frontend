@@ -214,9 +214,11 @@ interface SpeakerLaneProps {
   viewportWidth: number
   totalWidth: number
   onSelectTurn: (turn: typeof MOCK_SPEAKERS[0]["turns"][0], speakerName: string) => void
+  laneH: number
+  color?: string
 }
 
-function SpeakerLane({ speaker, pixelsPerSecond, scrollX, viewportWidth, totalWidth, onSelectTurn }: SpeakerLaneProps) {
+function SpeakerLane({ speaker, pixelsPerSecond, scrollX, viewportWidth, totalWidth, onSelectTurn, laneH, color: colorProp }: SpeakerLaneProps) {
   const segments = speaker.turns.map(t => ({
     ...t,
     startTime: t.start,
@@ -224,10 +226,10 @@ function SpeakerLane({ speaker, pixelsPerSecond, scrollX, viewportWidth, totalWi
   }))
 
   const { visibleSegments } = useVisibleSegments(segments, pixelsPerSecond, scrollX, viewportWidth)
-  const color = SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length]
+  const color = colorProp ?? SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length]
 
   return (
-    <div className="relative" style={{ width: totalWidth, height: 28 }}>
+    <div className="relative" style={{ width: totalWidth, height: laneH }}>
       {visibleSegments.map((turn) => (
         <TT key={turn.id} tip={`${turn.id} · ${fmtTime(turn.start)} → ${fmtTime(turn.end)} · "${turn.transcript.slice(0, 40)}…"`}>
           <div
@@ -279,11 +281,45 @@ export default function RunTimeline() {
     Object.fromEntries(LAYER_TOGGLES.map((l) => [l, true]))
   );
   const [selection, setSelection] = useState<Selection>(null);
+  const [videoHeightPx, setVideoHeightPx] = useState<number>(() => Math.round(window.innerHeight * 0.50));
+  const isDraggingDivider = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const pps        = pixelsPerSecond;
   const totalWidth = VIDEO_DURATION * pps;
   const LABEL_W    = 100;
+
+  // ── Speaker grouping (max 5 primary + 1 minor) ──────────────────────────────
+  const MAX_PRIMARY_SPEAKERS = 5;
+  const sortedSpeakers  = [...MOCK_SPEAKERS].sort((a, b) => b.turns.length - a.turns.length);
+  const primarySpeakers = sortedSpeakers.slice(0, MAX_PRIMARY_SPEAKERS);
+  const minorSpeakers   = sortedSpeakers.slice(MAX_PRIMARY_SPEAKERS);
+  const hasMinorSpeakers = minorSpeakers.length > 0;
+  const minorTurns       = minorSpeakers.flatMap(s => s.turns);
+  const minorSpeakerObj  = { id: 99, name: "Minor Speakers", turns: minorTurns };
+
+  // ── Dynamic lane heights ─────────────────────────────────────────────────────
+  const LANE_MIN_H   = 24;
+  const LANE_MAX_H   = 56;
+  const TRANSPORT_H  = 52;
+  const RULER_H      = 28;
+
+  const numSpeakerLanes = primarySpeakers.length + (hasMinorSpeakers ? 1 : 0);
+  const numVisibleLanes =
+    (layers["Shots"]        ? 1 : 0) +
+    (layers["Tracklets"]    ? 1 : 0) +
+    (layers["Speakers"]     ? numSpeakerLanes : 0) +
+    (layers["Transcript"]   ? 1 : 0) +
+    (layers["Emotion"]      ? 1 : 0) +
+    (layers["Audio Events"] ? 1 : 0);
+
+  const lanesSectionH = Math.max(
+    numVisibleLanes * LANE_MIN_H,
+    window.innerHeight - videoHeightPx - TRANSPORT_H - RULER_H - 88,
+  );
+  const rawLaneH = numVisibleLanes > 0 ? Math.floor(lanesSectionH / numVisibleLanes) : LANE_MIN_H;
+  const laneH    = Math.max(LANE_MIN_H, Math.min(LANE_MAX_H, rawLaneH));
+  const lanesContainerH = numVisibleLanes * laneH;
 
   // Viewport width approximation — avoids a ResizeObserver on the lanes div.
   // Subtracting LABEL_W aligns with the scrollable content region.
@@ -333,9 +369,8 @@ export default function RunTimeline() {
 
       {/* ── VIDEO AREA — controls float in the black bars on either side ── */}
       <div style={{
-        flex: 1,
-        minHeight: 0,
-        maxHeight: "52vh",
+        flexShrink: 0,
+        height: videoHeightPx,
         background: "#000",
         display: "flex",
         alignItems: "center",
@@ -422,6 +457,52 @@ export default function RunTimeline() {
             Space · J/K/L · ←/→ · +/−
           </span>
         </div>
+      </div>
+
+      {/* ── DRAG HANDLE ── */}
+      <div
+        style={{
+          flexShrink: 0,
+          height: 6,
+          background: 'var(--color-border-subtle)',
+          cursor: 'ns-resize',
+          position: 'relative',
+          zIndex: 10,
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          isDraggingDivider.current = true;
+          const startY = e.clientY;
+          const startH = videoHeightPx;
+          const MIN_VIDEO_H = Math.round(window.innerHeight * 0.15);
+          const MAX_VIDEO_H = Math.round(window.innerHeight * 0.75);
+          const onMove = (ev: MouseEvent) => {
+            if (!isDraggingDivider.current) return;
+            const newH = Math.max(MIN_VIDEO_H, Math.min(MAX_VIDEO_H, startH + (ev.clientY - startY)));
+            setVideoHeightPx(newH);
+          };
+          const onUp = () => {
+            isDraggingDivider.current = false;
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-violet-muted)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-border-subtle)'; }}
+      >
+        <div style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 32,
+          height: 3,
+          borderRadius: 2,
+          background: 'var(--color-border)',
+          pointerEvents: 'none',
+        }} />
       </div>
 
       {/* ── TRANSPORT BAR ── */}
@@ -558,9 +639,9 @@ export default function RunTimeline() {
         ref={scrollRef}
         style={{
           flexShrink: 0,
-          flexShrink: 0,
+          height: lanesContainerH,
           overflowX: "auto",
-          overflowY: "visible",
+          overflowY: "hidden",
           background: "var(--color-bg)",
         }}
         onScroll={handleScroll}
@@ -569,7 +650,7 @@ export default function RunTimeline() {
 
           {/* shots lane */}
           {layers["Shots"] && (
-            <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Shots</span>
               </div>
@@ -577,8 +658,9 @@ export default function RunTimeline() {
                 {MOCK_SHOTS.map((shot, i) => (
                   <TT key={shot.id} tip={`Shot ${shot.id}: ${fmtTime(shot.start)} → ${fmtTime(shot.end)}`}>
                     <div
-                      className="h-8 flex items-center px-1 border-r"
+                      className="flex items-center px-1 border-r"
                       style={{
+                        height: laneH,
                         width: (shot.end - shot.start) * pps,
                         background: i % 2 === 0 ? "var(--color-surface-2)" : "var(--color-surface-3)",
                         borderColor: "var(--color-border)",
@@ -596,11 +678,11 @@ export default function RunTimeline() {
 
           {/* tracklets lane */}
           {layers["Tracklets"] && (
-            <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Tracklets</span>
               </div>
-              <div className="relative" style={{ width: totalWidth, height: 28 }}>
+              <div className="relative" style={{ width: totalWidth, height: laneH }}>
                 {MOCK_TRACKLETS.map((t) => (
                   <TT key={t.id} tip={`${t.id} · Shot ${t.shotId} · ${fmtTime(t.start)} → ${fmtTime(t.end)}`}>
                     <div
@@ -622,8 +704,8 @@ export default function RunTimeline() {
           )}
 
           {/* speaker lanes — virtualized: only visible turns are rendered */}
-          {layers["Speakers"] && MOCK_SPEAKERS.map((speaker) => (
-            <div key={speaker.id} className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+          {layers["Speakers"] && primarySpeakers.map((speaker) => (
+            <div key={speaker.id} className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
               </div>
@@ -634,13 +716,31 @@ export default function RunTimeline() {
                 viewportWidth={viewportWidth}
                 totalWidth={totalWidth}
                 onSelectTurn={selectTurn}
+                laneH={laneH}
               />
             </div>
           ))}
+          {layers["Speakers"] && hasMinorSpeakers && (
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
+              <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Minor Speakers</span>
+              </div>
+              <SpeakerLane
+                speaker={minorSpeakerObj}
+                pixelsPerSecond={pps}
+                scrollX={scrollX}
+                viewportWidth={viewportWidth}
+                totalWidth={totalWidth}
+                onSelectTurn={selectTurn}
+                laneH={laneH}
+                color="#71717A"
+              />
+            </div>
+          )}
 
           {/* transcript lane */}
           {layers["Transcript"] && (
-            <div className="flex border-b" style={{ height: 40, borderColor: "var(--color-border-subtle)" }}>
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Transcript</span>
               </div>
@@ -669,7 +769,7 @@ export default function RunTimeline() {
 
           {/* emotion lane */}
           {layers["Emotion"] && (
-            <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Emotion</span>
               </div>
@@ -677,8 +777,9 @@ export default function RunTimeline() {
                 {MOCK_EMOTIONS.map((emo, i) => (
                   <TT key={i} tip={`${emo.label} · ${fmtTime(emo.start)} → ${fmtTime(emo.end)}`}>
                     <div
-                      className="h-7 flex items-center px-1"
+                      className="flex items-center px-1"
                       style={{
+                        height: laneH,
                         width: (emo.end - emo.start) * pps,
                         background: EMOTION_COLORS[emo.label] || "var(--color-surface-2)",
                       }}
@@ -695,16 +796,16 @@ export default function RunTimeline() {
 
           {/* audio events lane */}
           {layers["Audio Events"] && (
-            <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
+            <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Audio</span>
               </div>
-              <div className="relative" style={{ width: totalWidth, height: 32 }}>
+              <div className="relative" style={{ width: totalWidth, height: laneH }}>
                 {MOCK_AUDIO_EVENTS.map((ev, i) => (
                   <TT key={i} tip={`${ev.label} · ${(ev.confidence * 100).toFixed(0)}% · ${fmtTime(ev.start)}`}>
                     <div
                       className="absolute top-0 flex flex-col items-center"
-                      style={{ left: ev.start * pps, height: 32 }}
+                      style={{ left: ev.start * pps, height: laneH }}
                     >
                       <div className="w-[2px] h-full rounded-sm" style={{ background: "var(--color-amber)" }} />
                       <span className="absolute bottom-0.5 left-1 font-mono text-[9px] whitespace-nowrap" style={{ color: "var(--color-amber)" }}>
