@@ -1,18 +1,19 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight, Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useCreateRun } from "@/hooks/api/useRuns";
 
 const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)[\w-]{11}/;
-
-const MOCK_VIDEO = {
-  title: "Lex Fridman Podcast #412 — Sam Altman: OpenAI, GPT-5, and the Future of AI",
-  duration: "2:34:17",
-};
 
 type Quality = "fast" | "balanced" | "high";
 
 export default function NewRun() {
+  const navigate = useNavigate();
+  const createRun = useCreateRun();
+
   const [url, setUrl] = useState("");
   const [urlTouched, setUrlTouched] = useState(false);
   const [runName, setRunName] = useState("");
@@ -24,22 +25,51 @@ export default function NewRun() {
   const [retention, setRetention] = useState(false);
   const [trends, setTrends] = useState(false);
   const [quality, setQuality] = useState<Quality>("balanced");
-  const [submitting, setSubmitting] = useState(false);
+  const [videoMeta, setVideoMeta] = useState<{ title: string; duration: string } | null>(null);
+  const [metaLoading, setMetaLoading] = useState(false);
 
   const isValid = YOUTUBE_REGEX.test(url.trim());
   const showError = urlTouched && url.trim().length > 0 && !isValid;
   const showPreview = urlTouched && isValid;
 
+  async function fetchVideoMeta(videoUrl: string) {
+    setMetaLoading(true);
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`;
+      const res = await fetch(oembedUrl);
+      if (!res.ok) throw new Error("oEmbed failed");
+      const data = await res.json();
+      setVideoMeta({ title: data.title ?? "", duration: "" });
+      if (!runNameTouched && data.title) setRunName(data.title);
+    } catch {
+      setVideoMeta(null);
+    } finally {
+      setMetaLoading(false);
+    }
+  }
+
   const handleUrlBlur = useCallback(() => {
     setUrlTouched(true);
-    if (YOUTUBE_REGEX.test(url.trim()) && !runNameTouched) {
-      setRunName(MOCK_VIDEO.title);
+    if (YOUTUBE_REGEX.test(url.trim())) {
+      fetchVideoMeta(url.trim());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, runNameTouched]);
 
   const handleSubmit = () => {
-    if (!isValid) return;
-    setSubmitting(true);
+    if (!isValid || createRun.isPending) return;
+    createRun.mutate(
+      { sourceUrl: url.trim(), displayName: runName.trim() || undefined },
+      {
+        onSuccess: (run) => {
+          toast.success("Run started!");
+          navigate(`/runs/${run.run_id}`);
+        },
+        onError: () => {
+          toast.error("Failed to start run. Check the URL and try again.");
+        },
+      }
+    );
   };
 
   const qualities: { key: Quality; label: string }[] = [
@@ -82,15 +112,21 @@ export default function NewRun() {
             <div className="flex items-center gap-[10px] mt-[10px]">
               <div className="w-[48px] h-[27px] rounded-[4px] bg-[var(--color-surface-3)] shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-heading font-medium text-[14px] text-[var(--color-text-primary)] truncate">
-                  {MOCK_VIDEO.title}
-                </p>
-                <span className="font-mono text-[12px] text-[var(--color-text-muted)]">
-                  {MOCK_VIDEO.duration}
-                </span>
+                {metaLoading ? (
+                  <div className="h-3 w-32 rounded animate-pulse" style={{ background: "var(--color-surface-2)" }} />
+                ) : (
+                  <p className="font-heading font-medium text-[14px] text-[var(--color-text-primary)] truncate">
+                    {videoMeta?.title ?? url}
+                  </p>
+                )}
               </div>
-              <Check size={14} className="text-[var(--color-green)] shrink-0" />
+              {!metaLoading && <Check size={14} className="text-[var(--color-green)] shrink-0" />}
             </div>
+          )}
+          {urlTouched && isValid && !metaLoading && !videoMeta && (
+            <p className="font-mono text-[11px] mt-[6px]" style={{ color: "var(--color-text-muted)" }}>
+              Could not fetch video info — the URL looks valid, continuing anyway.
+            </p>
           )}
         </div>
 
@@ -240,14 +276,13 @@ export default function NewRun() {
         {/* CTA */}
         <Button
           onClick={handleSubmit}
-          disabled={!isValid || submitting}
+          disabled={!isValid || createRun.isPending}
           className="w-full h-[48px] font-heading font-semibold text-[16px]"
           variant="default"
         >
-          {submitting ? (
+          {createRun.isPending ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
-              Starting…
+              <Loader2 size={16} className="animate-spin" /> Starting…
             </>
           ) : (
             "Start run →"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ChevronDown,
@@ -12,7 +12,11 @@ import {
   Film,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import RunContextBar from "@/components/app/RunContextBar";
+import { useClipList } from "@/hooks/api/useClips";
+import { renderApi } from "@/lib/api";
+import type { ClipCandidate, RenderPreset } from "@/types/clypt";
 
 /* ── Types ── */
 type IntentType = "Follow" | "Reaction" | "Split" | "Wide" | "Manual" | "NotSet";
@@ -75,21 +79,69 @@ const INTENT_STYLES: Record<IntentType, { bg: string; color: string; prefix: str
   NotSet:   { bg: "var(--color-rose-muted)",     color: "var(--color-rose)",   prefix: "Not set" },
 };
 
+/* ── Adapter ── */
+function adaptClipToPlan(c: ClipCandidate, idx: number): ClipPlan {
+  const startSec = c.start_ms / 1000;
+  const endSec = c.end_ms / 1000;
+  const fmtTime = (s: number) =>
+    `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+  return {
+    id: c.clip_id ?? `clip-${idx}`,
+    label: `Clip ${String(idx + 1).padStart(3, "0")}`,
+    timeRange: `${fmtTime(startSec)} → ${fmtTime(endSec)}`,
+    duration: `${Math.round(endSec - startSec)}s`,
+    rank: c.pool_rank ?? idx + 1,
+    score: c.score,
+    complete: true,
+    shots: [],
+  };
+}
+
 /* ── Stage A — Review ── */
-function ReviewStage({ onRender }: { onRender: () => void }) {
+interface ReviewStageProps {
+  onRender: () => void;
+  apiClips?: ClipCandidate[];
+  clipsLoading?: boolean;
+  presets?: RenderPreset[];
+}
+
+function ReviewStage({ onRender, apiClips, clipsLoading, presets }: ReviewStageProps) {
   const { id } = useParams();
-  const [clips, setClips] = useState(CLIPS);
+  const runId = id ?? "demo";
+
+  const [clips, setClips] = useState<ClipPlan[]>(
+    apiClips ? apiClips.map(adaptClipToPlan) : CLIPS
+  );
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ "001": true });
   const [captions, setCaptions] = useState<"Off" | "On" | "Auto">("Auto");
   const [captionStyle, setCaptionStyle] = useState("Minimal");
   const [resolution, setResolution] = useState<"720p" | "1080p">("1080p");
 
+  useEffect(() => {
+    if (apiClips) {
+      setClips(apiClips.map(adaptClipToPlan));
+    }
+  }, [apiClips]);
+
+  const renderMutation = useMutation({
+    mutationFn: ({ clipId, presetId }: { clipId: string; presetId: string }) =>
+      renderApi.submit(runId, clipId, presetId),
+    onError: () => toast.error("Render failed to submit — please try again"),
+  });
+
   const completeClips = clips.filter((c) => c.complete);
   const incompleteClips = clips.filter((c) => !c.complete);
 
   const removeClip = (clipId: string) => setClips((prev) => prev.filter((c) => c.id !== clipId));
-
   const toggle = (clipId: string) => setExpanded((prev) => ({ ...prev, [clipId]: !prev[clipId] }));
+
+  const handleRender = () => {
+    const presetId = presets?.[0]?.id ?? "1080p-916";
+    completeClips.forEach((clip) => {
+      renderMutation.mutate({ clipId: clip.id, presetId });
+    });
+    onRender();
+  };
 
   const SegmentedControl = ({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) => (
     <div style={{ display: "flex", gap: 0, border: "1px solid var(--color-border)", borderRadius: 6, overflow: "hidden" }}>
@@ -109,6 +161,10 @@ function ReviewStage({ onRender }: { onRender: () => void }) {
     </div>
   );
 
+  const resolutionOptions = presets
+    ? [...new Set(presets.map((p) => (p.height >= 1080 ? "1080p" : "720p")))]
+    : ["720p", "1080p"];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto" }}>
@@ -121,102 +177,123 @@ function ReviewStage({ onRender }: { onRender: () => void }) {
 
           {/* Clip cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {clips.map((clip) => {
-              const isOpen = !!expanded[clip.id];
-              return (
-                <div key={clip.id} style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface-1)", overflow: "hidden" }}>
-                  {/* Card header */}
-                  <div
-                    onClick={() => toggle(clip.id)}
-                    style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "background 100ms" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <ChevronDown size={16} style={{ color: "var(--color-text-muted)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms" }} />
-                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 15, color: "var(--color-text-primary)" }}>{clip.label}</span>
-                        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)" }}>
-                          {clip.timeRange}  ·  {clip.duration}  ·  Rank #{clip.rank}  ·  Score {clip.score}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{
-                        padding: "3px 8px", borderRadius: 4,
-                        fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
-                        background: clip.complete ? "var(--color-green-muted)" : "var(--color-rose-muted)",
-                        border: clip.complete ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(251,113,133,0.4)",
-                        color: clip.complete ? "var(--color-green)" : "var(--color-rose)",
-                      }}>
-                        {clip.complete ? "Grounding complete ✓" : "Grounding incomplete"}
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeClip(clip.id); }}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", color: "var(--color-text-muted)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-rose)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
-                      >
-                        <X size={14} />
-                      </button>
+            {clipsLoading && !apiClips ? (
+              /* Loading skeleton */
+              [1, 2, 3].map((i) => (
+                <div key={i} style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface-1)", overflow: "hidden", height: 64, animation: "pulse 1.5s infinite" }}>
+                  <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, background: "var(--color-surface-3)" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ width: 80, height: 14, borderRadius: 3, background: "var(--color-surface-3)" }} />
+                      <div style={{ width: 180, height: 11, borderRadius: 3, background: "var(--color-surface-3)" }} />
                     </div>
                   </div>
-
-                  {/* Card body */}
-                  {isOpen && (
-                    <div style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)", display: "flex", flexDirection: "column", gap: 10 }}>
-                      {/* Incomplete warning */}
-                      {!clip.complete && clip.incompleteNote && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--color-rose-muted)", borderRadius: 6 }}>
-                          <TriangleAlert size={14} style={{ color: "var(--color-rose)", flexShrink: 0 }} />
-                          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-rose)", flex: 1 }}>
-                            Grounding incomplete — {clip.incompleteNote}
+                </div>
+              ))
+            ) : (
+              clips.map((clip) => {
+                const isOpen = !!expanded[clip.id];
+                return (
+                  <div key={clip.id} style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface-1)", overflow: "hidden" }}>
+                    {/* Card header */}
+                    <div
+                      onClick={() => toggle(clip.id)}
+                      style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "background 100ms" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <ChevronDown size={16} style={{ color: "var(--color-text-muted)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms" }} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 15, color: "var(--color-text-primary)" }}>{clip.label}</span>
+                          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)" }}>
+                            {clip.timeRange}  ·  {clip.duration}  ·  Rank #{clip.rank}  ·  Score {clip.score}
                           </span>
-                          <Link
-                            to={`/runs/${id ?? "demo"}/grounding/${clip.id}`}
-                            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, fontSize: 13, color: "var(--color-rose)", textDecoration: "none" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                          >Fix →</Link>
                         </div>
-                      )}
-
-                      {/* Shot list */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {clip.shots.map((shot) => {
-                          const style = INTENT_STYLES[shot.intent];
-                          return (
-                            <div key={shot.idx} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "var(--color-surface-2)", borderRadius: 6 }}>
-                              <div style={{ width: 40, height: 22, borderRadius: 3, background: "var(--color-surface-3)", flexShrink: 0 }} />
-                              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", width: 160, flexShrink: 0 }}>
-                                Shot {shot.idx}  ·  {shot.time}
-                              </span>
-                              <span style={{
-                                padding: "3px 8px", borderRadius: 4,
-                                fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
-                                background: style.bg, color: style.color,
-                              }}>
-                                {shot.intent === "NotSet" ? "Not set" : `${style.prefix}${shot.detail ? ` · ${shot.detail}` : ""}`}
-                              </span>
-                            </div>
-                          );
-                        })}
                       </div>
-
-                      {/* Bottom links */}
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                        <Link
-                          to={`/runs/${id ?? "demo"}/grounding/${clip.id}`}
-                          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-muted)", textDecoration: "none" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                        >← Edit grounding</Link>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{
+                          padding: "3px 8px", borderRadius: 4,
+                          fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
+                          background: clip.complete ? "var(--color-green-muted)" : "var(--color-rose-muted)",
+                          border: clip.complete ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(251,113,133,0.4)",
+                          color: clip.complete ? "var(--color-green)" : "var(--color-rose)",
+                        }}>
+                          {clip.complete ? "Grounding complete ✓" : "Grounding incomplete"}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeClip(clip.id); }}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", color: "var(--color-text-muted)" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-rose)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {/* Card body */}
+                    {isOpen && (
+                      <div style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)", display: "flex", flexDirection: "column", gap: 10 }}>
+                        {/* Incomplete warning */}
+                        {!clip.complete && clip.incompleteNote && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--color-rose-muted)", borderRadius: 6 }}>
+                            <TriangleAlert size={14} style={{ color: "var(--color-rose)", flexShrink: 0 }} />
+                            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-rose)", flex: 1 }}>
+                              Grounding incomplete — {clip.incompleteNote}
+                            </span>
+                            <Link
+                              to={`/runs/${runId}/grounding/${clip.id}`}
+                              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, fontSize: 13, color: "var(--color-rose)", textDecoration: "none" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                            >Fix →</Link>
+                          </div>
+                        )}
+
+                        {/* Shot list */}
+                        {clip.shots.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {clip.shots.map((shot) => {
+                              const style = INTENT_STYLES[shot.intent];
+                              return (
+                                <div key={shot.idx} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "var(--color-surface-2)", borderRadius: 6 }}>
+                                  <div style={{ width: 40, height: 22, borderRadius: 3, background: "var(--color-surface-3)", flexShrink: 0 }} />
+                                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", width: 160, flexShrink: 0 }}>
+                                    Shot {shot.idx}  ·  {shot.time}
+                                  </span>
+                                  <span style={{
+                                    padding: "3px 8px", borderRadius: 4,
+                                    fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11,
+                                    background: style.bg, color: style.color,
+                                  }}>
+                                    {shot.intent === "NotSet" ? "Not set" : `${style.prefix}${shot.detail ? ` · ${shot.detail}` : ""}`}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>
+                            Shot grounding not yet available — clip will render with auto-crop.
+                          </p>
+                        )}
+
+                        {/* Bottom links */}
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                          <Link
+                            to={`/runs/${runId}/grounding/${clip.id}`}
+                            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 13, color: "var(--color-text-muted)", textDecoration: "none" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                          >← Edit grounding</Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Global render settings */}
@@ -253,7 +330,7 @@ function ReviewStage({ onRender }: { onRender: () => void }) {
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 14, color: "var(--color-text-primary)" }}>Resolution</span>
-                <SegmentedControl options={["720p", "1080p"]} value={resolution} onChange={(v) => setResolution(v as typeof resolution)} />
+                <SegmentedControl options={resolutionOptions} value={resolution} onChange={(v) => setResolution(v as typeof resolution)} />
               </div>
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-muted)", margin: "8px 0 0" }}>
                 Output is always 9:16 portrait. Resolution refers to the short edge.
@@ -276,7 +353,7 @@ function ReviewStage({ onRender }: { onRender: () => void }) {
           }}>Save plan for later</button>
           <button
             disabled={completeClips.length === 0}
-            onClick={onRender}
+            onClick={handleRender}
             style={{
               padding: "0 28px", height: 44, borderRadius: 6, border: "none",
               background: completeClips.length > 0 ? "var(--color-violet)" : "var(--color-surface-3)",
@@ -447,7 +524,9 @@ function RenderStage() {
               }}>
                 <Download size={14} />Download
               </button>
-              <button style={{
+              <button
+                onClick={() => toast.success("Link copied")}
+                style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6,
                 border: "1px solid var(--color-border)", background: "transparent",
                 fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14,
@@ -474,20 +553,33 @@ const pulseKeyframes = `
 /* ── Main page ── */
 export default function RunRender() {
   const { id } = useParams();
+  const runId = id ?? "demo";
   const [stage, setStage] = useState<"review" | "rendering">("review");
+
+  const { data: apiClips, isLoading: clipsLoading } = useClipList(runId);
+
+  const { data: presets } = useQuery({
+    queryKey: ["render", "presets"],
+    queryFn: renderApi.presets,
+  });
 
   return (
     <div className="flex flex-col h-full">
       <style>{pulseKeyframes}</style>
       <RunContextBar
-        runId={id ?? "demo"}
+        runId={runId}
         runName="Lex ep. 412 — Sam Altman"
         videoUrl="https://youtube.com/watch?v=example"
         currentPhase={6}
         completedPhases={6}
       />
       {stage === "review" ? (
-        <ReviewStage onRender={() => setStage("rendering")} />
+        <ReviewStage
+          onRender={() => setStage("rendering")}
+          apiClips={apiClips}
+          clipsLoading={clipsLoading}
+          presets={presets}
+        />
       ) : (
         <RenderStage />
       )}
