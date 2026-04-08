@@ -4,6 +4,7 @@ import { Check, X, AlertTriangle, Play, ChevronRight, FileText } from "lucide-re
 import RunContextBar from "@/components/app/RunContextBar";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useRunStore } from "@/stores/run-store";
+import { useRunSSE } from "@/hooks/useRunSSE";
 import type { RunDetail, PhaseStatusEntry } from "@/types/clypt";
 
 /* ─── phase data ─── */
@@ -244,6 +245,9 @@ export default function RunOverview() {
     ? runDetail.phases.map(mapApiPhaseToLocal)
     : MOCK_PHASES;
 
+  const isPhaseRunning = phases.some(p => p.status === "running");
+  const { connectionState } = useRunSSE(isPhaseRunning ? runId : null);
+
   const completedPhases = runDetail
     ? runDetail.phases.filter((p) => p.status === "completed").length
     : 2;
@@ -277,7 +281,15 @@ export default function RunOverview() {
         <div className="flex gap-10 items-start" style={{ minWidth: 0 }}>
           {/* left — phase tracker */}
           <div className="flex-1 min-w-0">
-            <span className="label-caps mb-5 block">Pipeline</span>
+            <div className="flex items-center justify-between mb-5">
+              <span className="label-caps">Pipeline</span>
+              {connectionState === "connected" && (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--color-cyan)" }} />
+                  <span className="font-mono text-[11px]" style={{ color: "var(--color-cyan)" }}>Live</span>
+                </div>
+              )}
+            </div>
 
             {isError && !runDetail && (
               <div
