@@ -239,6 +239,9 @@ export default function RunTimeline() {
   const totalWidth = VIDEO_DURATION * pps;
   const LABEL_W    = 120;
 
+  // Initialise store zoom to match the page's base PPS on first mount
+  useEffect(() => { setStorePps(PPS_BASE) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Container width tracking (for TimeRuler viewportWidth) ─────────────────
   useEffect(() => {
     const el = scrollRef.current;
