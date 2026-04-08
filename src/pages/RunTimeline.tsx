@@ -558,9 +558,9 @@ export default function RunTimeline() {
         ref={scrollRef}
         style={{
           flexShrink: 0,
-          height: 200,
+          flexShrink: 0,
           overflowX: "auto",
-          overflowY: "hidden",
+          overflowY: "visible",
           background: "var(--color-bg)",
         }}
         onScroll={handleScroll}
