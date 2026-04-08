@@ -3,12 +3,13 @@ interface PlayheadProps {
   pixelsPerSecond: number
   scrollX: number
   headerOffset: number
+  viewportWidth: number
 }
 
-export function Playhead({ position, pixelsPerSecond, scrollX, headerOffset }: PlayheadProps) {
+export function Playhead({ position, pixelsPerSecond, scrollX, headerOffset, viewportWidth }: PlayheadProps) {
   const pixelPosition = position * pixelsPerSecond - scrollX
 
-  if (pixelPosition < 0) return null
+  if (pixelPosition < 0 || pixelPosition > viewportWidth) return null
 
   return (
     <div
@@ -31,11 +32,11 @@ export function Playhead({ position, pixelsPerSecond, scrollX, headerOffset }: P
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="drop-shadow-[0_0_8px_rgba(167,139,250,0.8)]"
-        style={{ position: 'absolute', top: 0, left: -6 }}
+        style={{ position: 'absolute', top: 0, left: -6, color: 'var(--color-violet)' }}
       >
         <path
           d="M0.5 0H12.5V8L6.5 14L0.5 8V0Z"
-          fill="#A78BFA"
+          fill="currentColor"
         />
       </svg>
 

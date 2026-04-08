@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface TimeRulerProps {
   duration: number
@@ -44,21 +44,23 @@ export function TimeRuler({
   const rulerRef = useRef<HTMLDivElement>(null)
   const scrollXRef = useRef(scrollX)
   const isDraggingRef = useRef(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     scrollXRef.current = scrollX
   }, [scrollX])
 
-  function getTimeFromEvent(e: MouseEvent): number {
+  const getTimeFromEvent = useCallback((e: MouseEvent): number => {
     const container = rulerRef.current?.parentElement?.parentElement
     if (!container) return 0
     const rect = container.getBoundingClientRect()
     const x = e.clientX - rect.left + scrollXRef.current
     return Math.max(0, Math.min(duration, x / pixelsPerSecond))
-  }
+  }, [duration, pixelsPerSecond])
 
   function handleMouseDown(e: React.MouseEvent) {
     isDraggingRef.current = true
+    setIsDragging(true)
     onScrubStart?.()
     const time = getTimeFromEvent(e.nativeEvent)
     onSeek(time)
@@ -74,6 +76,7 @@ export function TimeRuler({
     function handleMouseUp(e: MouseEvent) {
       if (!isDraggingRef.current) return
       isDraggingRef.current = false
+      setIsDragging(false)
       const time = getTimeFromEvent(e)
       onSeek(time)
       onScrubEnd?.()
@@ -85,8 +88,7 @@ export function TimeRuler({
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pixelsPerSecond, duration, onSeek, onScrubEnd])
+  }, [getTimeFromEvent, onSeek, onScrubEnd])
 
   const config = getTickConfig(pixelsPerSecond)
   const visibleStart = Math.max(0, scrollX / pixelsPerSecond)
@@ -107,7 +109,7 @@ export function TimeRuler({
     <div
       ref={rulerRef}
       className={`h-8 border-b border-border flex items-end relative bg-surface-1 select-none ${
-        isDraggingRef.current ? 'cursor-grabbing' : 'cursor-pointer'
+        isDragging ? 'cursor-grabbing' : 'cursor-pointer'
       }`}
       onMouseDown={handleMouseDown}
       style={{ width: duration * pixelsPerSecond }}
