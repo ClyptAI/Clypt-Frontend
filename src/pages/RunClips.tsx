@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import RunContextBar from "@/components/app/RunContextBar";
 import { Bookmark, X, ChevronRight, RotateCcw } from "lucide-react";
+import { useClipList, useApproveClip, useRejectClip } from "@/hooks/api/useClips";
+import { useClipStore } from "@/stores/clip-store";
+import type { ClipCandidate } from "@/types/clypt";
 
 /* ── Colors ── */
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -39,6 +43,52 @@ const CLIPS: ClipData[] = [
   { id: "007", rank: 7, score: 6.8, timeStart: "14:33", timeEnd: "15:10", duration: "37s", nodeTypes: ["qa_exchange", "example"], source: "comment_cluster", queryAligned: true, pinned: false, scores: [{ label: "Overall clip quality", value: 6.9 }, { label: "Query alignment", value: 7.2 }, { label: "Novelty within run", value: 6.5 }, { label: "Editorial usability", value: 6.7 }, { label: "Confidence", value: 6.8 }], rationale: "Addresses the query with a concrete example — slightly lower energy than top clips.", seedNode: "node_042", subgraph: "sg_045", subgraphNodes: 6 },
   { id: "008", rank: 8, score: 6.5, timeStart: "17:02", timeEnd: "17:38", duration: "36s", nodeTypes: ["transition", "explanation"], source: "meta_prompt_4", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 6.6 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 6.3 }, { label: "Editorial usability", value: 6.4 }, { label: "Confidence", value: 6.5 }], rationale: "Solid transition into a new topic with useful context — works as a segment opener.", seedNode: "node_050", subgraph: "sg_052", subgraphNodes: 4 },
 ];
+
+/* ── Helpers ── */
+function fmtTime(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function adaptApiClip(c: ClipCandidate, idx: number): ClipData {
+  const startSec = c.start_ms / 1000;
+  const endSec = c.end_ms / 1000;
+  const durationSec = Math.round(endSec - startSec);
+  return {
+    id: c.clip_id ?? `clip-${idx}`,
+    rank: c.pool_rank ?? idx + 1,
+    score: c.score,
+    timeStart: fmtTime(startSec),
+    timeEnd: fmtTime(endSec),
+    duration: `${durationSec}s`,
+    nodeTypes: [],
+    source: c.source_prompt_ids[0] ?? "unknown",
+    queryAligned: c.query_aligned ?? false,
+    pinned: false,
+    scores: Object.entries(c.score_breakdown ?? {}).map(([label, value]) => ({ label, value })),
+    rationale: c.rationale,
+    seedNode: c.seed_node_id ?? "—",
+    subgraph: c.subgraph_id ?? "—",
+    subgraphNodes: c.node_ids.length,
+  };
+}
+
+/* ── Skeleton card ── */
+function ClipCardSkeleton() {
+  return (
+    <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--color-border-subtle)", borderLeft: "3px solid transparent" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ width: 60, height: 16, borderRadius: 3, background: "var(--color-surface-3)" }} />
+        <div style={{ width: 120, height: 12, borderRadius: 3, background: "var(--color-surface-3)" }} />
+        <div style={{ display: "flex", gap: 4 }}>
+          <div style={{ width: 60, height: 18, borderRadius: 3, background: "var(--color-surface-3)" }} />
+          <div style={{ width: 80, height: 18, borderRadius: 3, background: "var(--color-surface-3)" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TypeChip({ type, small }: { type: string; small?: boolean }) {
   const color = NODE_TYPE_COLORS[type] ?? "#71717A";
@@ -261,28 +311,56 @@ function ClipDetail({ clip, onPin, onReject }: { clip: ClipData; onPin: () => vo
 /* ── Page ── */
 export default function RunClips() {
   const { id } = useParams();
-  const [clips, setClips] = useState(CLIPS);
-  const [selectedId, setSelectedId] = useState("001");
+  const runId = id ?? "demo";
+
+  const { data: apiClips, isLoading } = useClipList(runId);
+  const { approveClip, rejectClip, resetApproval, setActiveClipId } = useClipStore();
+  const approveMutation = useApproveClip(runId);
+  const rejectMutation = useRejectClip(runId);
+
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string>(CLIPS[0].id);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   const [rejectedOpen, setRejectedOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"score" | "duration" | "earliest">("score");
   const [sortOpen, setSortOpen] = useState(false);
 
+  const baseClips = apiClips ? apiClips.map(adaptApiClip) : CLIPS;
+  const clips = baseClips.map((c) => ({ ...c, pinned: pinnedIds.has(c.id) }));
+
   const activeClips = clips.filter((c) => !rejectedIds.has(c.id));
   const rejectedClips = clips.filter((c) => rejectedIds.has(c.id));
   const selected = clips.find((c) => c.id === selectedId) ?? activeClips[0];
 
-  const togglePin = (cid: string) => setClips((cs) => cs.map((c) => c.id === cid ? { ...c, pinned: !c.pinned } : c));
+  const togglePin = (cid: string) => setPinnedIds((s) => {
+    const n = new Set(s);
+    n.has(cid) ? n.delete(cid) : n.add(cid);
+    return n;
+  });
+
   const reject = (cid: string) => {
     setRejectedIds((s) => { const n = new Set(s); n.add(cid); return n; });
-    if (selectedId === cid) setSelectedId(activeClips.find((c) => c.id !== cid)?.id ?? "001");
+    if (selectedId === cid) setSelectedId(activeClips.find((c) => c.id !== cid)?.id ?? activeClips[0]?.id ?? "");
+    rejectClip(cid);
+    rejectMutation.mutate(cid, { onError: () => toast.error("Failed to reject clip") });
   };
-  const restore = (cid: string) => setRejectedIds((s) => { const n = new Set(s); n.delete(cid); return n; });
+
+  const restore = (cid: string) => {
+    setRejectedIds((s) => { const n = new Set(s); n.delete(cid); return n; });
+    resetApproval(cid);
+  };
+
+  const handleSelect = (cid: string) => {
+    setSelectedId(cid);
+    setActiveClipId(cid);
+  };
+
+  void approveMutation;
 
   return (
     <div className="flex flex-col" style={{ height: "100vh" }}>
       <RunContextBar
-        runId={id ?? "demo"}
+        runId={runId}
         runName="Lex ep. 412 — Sam Altman"
         videoUrl="youtube.com/watch?v=abc123"
         currentPhase={5}
@@ -296,7 +374,7 @@ export default function RunClips() {
           <div style={{ padding: 16, borderBottom: "1px solid var(--color-border-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: "var(--color-surface-1)", zIndex: 5 }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 16, color: "var(--color-text-primary)" }}>Clip Candidates</span>
-              <span style={{ marginLeft: 8, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", padding: "2px 7px", borderRadius: 4 }}>{activeClips.length}</span>
+              <span style={{ marginLeft: 8, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", padding: "2px 7px", borderRadius: 4 }}>{isLoading ? "…" : activeClips.length}</span>
             </div>
             <div style={{ position: "relative" }}>
               <button onClick={() => setSortOpen(!sortOpen)} style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 13, color: "var(--color-text-secondary)", background: "none", border: "none", cursor: "pointer" }}>
@@ -314,10 +392,13 @@ export default function RunClips() {
             </div>
           </div>
 
-          {/* Cards */}
-          {activeClips.map((c) => (
-            <ClipCard key={c.id} clip={c} selected={c.id === selectedId} onSelect={() => setSelectedId(c.id)} onPin={() => togglePin(c.id)} onReject={() => reject(c.id)} />
-          ))}
+          {/* Cards or skeleton */}
+          {isLoading && !apiClips
+            ? Array.from({ length: 5 }).map((_, i) => <ClipCardSkeleton key={i} />)
+            : activeClips.map((c) => (
+                <ClipCard key={c.id} clip={c} selected={c.id === selectedId} onSelect={() => handleSelect(c.id)} onPin={() => togglePin(c.id)} onReject={() => reject(c.id)} />
+              ))
+          }
 
           {/* Rejected */}
           {rejectedClips.length > 0 && (
