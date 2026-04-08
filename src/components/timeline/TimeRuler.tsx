@@ -10,7 +10,7 @@ interface TimeRulerProps {
   onScrubEnd?: () => void
 }
 
-interface TickConfig {
+export interface TickConfig {
   minor: number
   major: number
   label: number

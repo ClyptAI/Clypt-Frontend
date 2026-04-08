@@ -1,5 +1,4 @@
 /// <reference types="@types/youtube" />
-'use client'
 import { useEffect, useRef, useCallback } from 'react'
 import { useTimelineStore } from '@/stores/timeline-store'
 
