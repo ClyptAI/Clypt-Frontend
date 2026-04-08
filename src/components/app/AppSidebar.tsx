@@ -1,4 +1,5 @@
 import { LayoutGrid, Film, Plus, Settings, ChevronDown } from "lucide-react";
+import { useMatch } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
@@ -12,12 +13,29 @@ const bottomNavItems = [
   { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
+const RUN_TABS = [
+  { label: "Overview",        path: ""           },
+  { label: "Timeline",        path: "/timeline"  },
+  { label: "Cortex Graph",    path: "/graph"     },
+  { label: "Clip Candidates", path: "/clips"     },
+  { label: "Grounding",       path: "/grounding" },
+  { label: "Render",          path: "/render"    },
+];
+
 const navLinkBase =
   "w-full flex items-center gap-[10px] px-[10px] py-[8px] rounded-[6px] text-[14px] font-heading font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] transition-colors";
 const navLinkActive =
   "bg-[var(--color-surface-2)] text-[var(--color-text-primary)] [&_svg]:text-[var(--color-violet)]";
 
+const runTabBase =
+  "w-full flex items-center px-[10px] py-[6px] pl-[18px] rounded-[6px] text-[13px] font-heading font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text-secondary)] transition-colors";
+const runTabActive =
+  "text-[var(--color-text-primary)] bg-[var(--color-surface-2)] border-l-2 border-[var(--color-violet)] pl-[16px]";
+
 export default function AppSidebar() {
+  const runMatch = useMatch("/runs/:id/*");
+  const runId = runMatch?.params?.id;
+
   return (
     <aside
       className="w-[220px] h-screen sticky top-0 flex flex-col bg-[var(--color-surface-1)] border-r border-[var(--color-border)]"
@@ -49,6 +67,28 @@ export default function AppSidebar() {
           <Plus size={16} />
           <span className="font-heading font-semibold text-[14px]">New Run</span>
         </Button>
+
+        {runId && (
+          <div className="mt-[16px] flex flex-col gap-[1px]">
+            <span
+              className="px-[10px] pb-[6px] font-heading font-semibold text-[10px] uppercase tracking-[0.08em]"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Current Run
+            </span>
+            {RUN_TABS.map((tab) => (
+              <NavLink
+                key={tab.label}
+                to={`/runs/${runId}${tab.path}`}
+                end={tab.path === ""}
+                className={runTabBase}
+                activeClassName={runTabActive}
+              >
+                {tab.label}
+              </NavLink>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Bottom */}
