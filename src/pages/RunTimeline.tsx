@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronUp, ChevronDown, X, Pencil } from "lucide-react";
+import { X, Pencil, Play, Pause } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
 import { TimeRuler, VideoPlayer } from "@/components/timeline";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
 import { useVisibleSegments } from "@/hooks";
+import { formatTimecode } from "@/lib/timeline-utils";
 
 /* ─── constants ─── */
 const VIDEO_DURATION = 24 * 60 + 31; // 24:31 in seconds
@@ -126,10 +127,8 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
 
   if (!selection) {
     return (
-      <div className="flex items-center justify-center h-full px-6">
-        <span className="font-body text-[14px] text-center" style={{ color: "var(--color-text-muted)" }}>
-          Click any lane segment to inspect it.
-        </span>
+      <div style={{ padding: "16px", color: "var(--color-text-muted)", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13 }}>
+        Click any lane segment to inspect it.
       </div>
     );
   }
@@ -138,7 +137,7 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
   const emo = turn.emotion;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* header */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
         <span className="label-caps">Speaker turn</span>
@@ -148,7 +147,7 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
       </div>
 
       {/* content */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <div className="p-4 flex flex-col gap-4">
         {/* identity */}
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>{turn.id}</span>
@@ -253,7 +252,6 @@ export default function RunTimeline() {
   const { id } = useParams();
   const runId = id || "demo";
 
-  // Demo video — used when no real run is loaded
   const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
 
   // ── Timeline store ──────────────────────────────────────────────────────────
@@ -263,6 +261,11 @@ export default function RunTimeline() {
   const setStorePps      = useTimelineStore(s => s.setZoom);
   const scrollX          = useTimelineStore(s => s.scrollX);
   const setScrollX       = useTimelineStore(s => s.setScrollX);
+  const play             = useTimelineStore(s => s.play);
+  const pause            = useTimelineStore(s => s.pause);
+  const playbackState    = useTimelineStore(s => s.playbackState);
+
+  const isPlaying = playbackState === "playing";
 
   // ── Run metadata ────────────────────────────────────────────────────────────
   const { data: runDetail } = useRunDetail(runId);
@@ -275,15 +278,13 @@ export default function RunTimeline() {
   const [layers, setLayers] = useState<Record<string, boolean>>(
     Object.fromEntries(LAYER_TOGGLES.map((l) => [l, true]))
   );
-  const [videoOpen, setVideoOpen] = useState(true);
   const [selection, setSelection] = useState<Selection>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const pps        = pixelsPerSecond;
   const totalWidth = VIDEO_DURATION * pps;
-  const LABEL_W    = 120;
+  const LABEL_W    = 100;
 
   // Keyboard shortcuts for timeline navigation
   useTimelineKeyboard({ seekStep: 5 })
@@ -321,7 +322,6 @@ export default function RunTimeline() {
 
   const selectTurn = (turn: typeof MOCK_SPEAKERS[0]["turns"][0], speakerName: string) => {
     setSelection({ type: "turn", data: turn, speakerName });
-    setPanelOpen(true);
   };
 
   // Ruler viewport width — falls back to a generous initial value before the
@@ -338,93 +338,15 @@ export default function RunTimeline() {
         completedPhases={completedPhases}
       />
 
-      {/* toolbar */}
-      <div className="flex items-center gap-4 px-5 flex-shrink-0 border-b" style={{ height: 48, background: "var(--color-surface-1)", borderColor: "var(--color-border)" }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="font-heading font-semibold text-[14px] truncate" style={{ color: "var(--color-text-primary)", maxWidth: 240 }}>
-            {runDetail?.display_name ?? (runId === "demo" ? "Joe Rogan × Flagrant" : "Loading…")}
-          </span>
-          <span className="font-mono text-[13px] flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>24:31</span>
-        </div>
+      {/* content row: left video panel + right timeline panel */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        <div className="flex-1" />
-
-        {/* layer toggles */}
-        <div className="flex gap-1">
-          {LAYER_TOGGLES.map((l) => (
-            <button
-              key={l}
-              onClick={() => toggleLayer(l)}
-              className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-              style={{
-                background: layers[l] ? "var(--color-surface-3)" : "transparent",
-                color: layers[l] ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                border: layers[l] ? "1px solid var(--color-border)" : "1px solid transparent",
-              }}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1" />
-
-        {/* zoom */}
-        <div className="flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setStorePps(PPS_BASE)}
-              className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
-              style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
-            >
-              Fit
-            </button>
-            {([1, 2, 4] as const).map((z) => {
-              const targetPps = PPS_BASE * z;
-              const isActive = Math.round(pps / PPS_BASE) === z;
-              return (
-                <button
-                  key={z}
-                  onClick={() => setStorePps(targetPps)}
-                  className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-                  style={{
-                    background: isActive ? "var(--color-surface-3)" : "transparent",
-                    color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                    border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
-                  }}
-                >
-                  {z}×
-                </button>
-              );
-            })}
-          </div>
-          <span className="font-mono text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-            Space · J/K/L · ←/→ · +/−
-          </span>
-        </div>
-
-        {/* video toggle */}
-        <button
-          onClick={() => setVideoOpen(!videoOpen)}
-          className="flex items-center gap-1.5 font-heading font-medium text-[13px] px-2 py-1 rounded hover:bg-[var(--color-surface-2)]"
-          style={{ color: "var(--color-text-muted)", background: "transparent", border: "none" }}
+        {/* ── LEFT PANEL ── */}
+        <div
+          className="flex flex-col flex-shrink-0"
+          style={{ width: 400, background: "#000", borderRight: "1px solid var(--color-border)" }}
         >
-          {videoOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          Video
-        </button>
-      </div>
-
-      {/* video player */}
-      <div
-        className="flex-shrink-0 border-b overflow-hidden transition-[height] duration-200"
-        style={{
-          height: videoOpen ? 240 : 0,
-          background: "#000",
-          borderColor: "var(--color-border)",
-        }}
-      >
-        <div className="flex flex-col h-full">
-          {/* video — constrained to 16:9 aspect ratio, centered */}
+          {/* video area — fills remaining height, centers 16:9 */}
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             {(runDetail?.source_url || runId === "demo") ? (
               <VideoPlayer
@@ -435,10 +357,30 @@ export default function RunTimeline() {
               <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>Video Player</span>
             )}
           </div>
-          {/* scrubber */}
-          <div className="px-4 pb-2 flex items-center gap-3">
-            <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>{fmtTime(playheadPosition)}</span>
-            <div className="flex-1 relative h-3 flex items-center cursor-pointer"
+
+          {/* scrubber + transport controls */}
+          <div
+            className="flex-shrink-0 flex flex-col gap-2 px-4 py-3"
+            style={{ borderTop: "1px solid var(--color-border-subtle)", background: "#111" }}
+          >
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => isPlaying ? pause() : play()}
+                className="flex items-center justify-center w-7 h-7 rounded hover:bg-[var(--color-surface-2)]"
+                style={{ color: "var(--color-text-primary)", background: "var(--color-surface-3)", border: "none" }}
+              >
+                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+              <span className="font-mono text-[13px]" style={{ color: "var(--color-text-muted)" }}>
+                {formatTimecode(playheadPosition)}
+              </span>
+              <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)", marginLeft: "auto" }}>
+                24:31
+              </span>
+            </div>
+            {/* click-to-seek scrubber bar */}
+            <div
+              className="relative h-3 flex items-center cursor-pointer"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -447,206 +389,277 @@ export default function RunTimeline() {
             >
               <div className="absolute inset-x-0 h-[3px] rounded-full" style={{ background: "var(--color-surface-3)" }} />
               <div className="absolute left-0 h-[3px] rounded-full" style={{ background: "var(--color-violet)", width: `${(playheadPosition / VIDEO_DURATION) * 100}%` }} />
-              <div className="absolute h-2.5 w-2.5 rounded-full -translate-x-1/2" style={{ background: "var(--color-violet)", left: `${(playheadPosition / VIDEO_DURATION) * 100}%` }} />
+              <div
+                className="absolute h-2.5 w-2.5 rounded-full -translate-x-1/2"
+                style={{ background: "var(--color-violet)", left: `${(playheadPosition / VIDEO_DURATION) * 100}%` }}
+              />
             </div>
-            <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>24:31</span>
           </div>
-        </div>
-      </div>
 
-      {/* ruler row — lives outside the scroll container so TimeRuler's internal
-           position calculation (getBoundingClientRect on parentElement.parentElement)
-           correctly maps to the timeline content area without a LABEL_W offset.
-           The two wrapper divs create the parentElement → parentElement chain that
-           TimeRuler's getTimeFromEvent traverses. */}
-      <div className="flex flex-shrink-0 border-b" style={{ height: 32, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-        {/* label column spacer */}
-        <div className="flex-shrink-0 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }} />
-        {/* parentElement.parentElement of TimeRuler's rulerRef — starts exactly at time=0 */}
-        <div className="flex-1 overflow-hidden relative">
-          {/* parentElement of TimeRuler's rulerRef */}
-          <div>
-            <TimeRuler
-              duration={VIDEO_DURATION}
-              pixelsPerSecond={pps}
-              scrollX={scrollX}
-              viewportWidth={rulerViewportWidth}
-              onSeek={seekTo}
-            />
-          </div>
-          {/* playhead line in ruler */}
+          {/* info panel — shows selected turn details, or hint when nothing selected */}
           <div
-            className="absolute top-0 bottom-0 w-px z-20 pointer-events-none"
-            style={{ left: playheadPosition * pps - scrollX, background: "var(--color-violet)" }}
-          />
+            className="flex-shrink-0 overflow-y-auto"
+            style={{ maxHeight: 280, borderTop: "1px solid var(--color-border-subtle)", background: "var(--color-surface-1)" }}
+          >
+            <InfoPanel selection={selection} onClose={() => setSelection(null)} />
+          </div>
         </div>
-      </div>
 
-      {/* main content: timeline + panel */}
-      <div className="flex flex-1 min-h-0">
-        {/* timeline scroll area */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto" ref={scrollRef} onScroll={handleScroll}>
-          <div style={{ width: LABEL_W + totalWidth, minHeight: "100%" }}>
-
-            {/* shots lane */}
-            {layers["Shots"] && (
-              <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Shots</span>
-                </div>
-                <div className="relative flex" style={{ width: totalWidth }}>
-                  {MOCK_SHOTS.map((shot, i) => (
-                    <TT key={shot.id} tip={`Shot ${shot.id}: ${fmtTime(shot.start)} → ${fmtTime(shot.end)}`}>
-                      <div
-                        className="h-8 flex items-center px-1 border-r"
-                        style={{
-                          width: (shot.end - shot.start) * pps,
-                          background: i % 2 === 0 ? "var(--color-surface-2)" : "var(--color-surface-3)",
-                          borderColor: "var(--color-border)",
-                        }}
-                      >
-                        {(shot.end - shot.start) * pps > 40 && (
-                          <span className="font-mono text-[10px] truncate" style={{ color: "var(--color-text-muted)" }}>Shot {shot.id}</span>
-                        )}
-                      </div>
-                    </TT>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* tracklets lane */}
-            {layers["Tracklets"] && (
-              <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Tracklets</span>
-                </div>
-                <div className="relative" style={{ width: totalWidth, height: 28 }}>
-                  {MOCK_TRACKLETS.map((t) => (
-                    <TT key={t.id} tip={`${t.id} · Shot ${t.shotId} · ${fmtTime(t.start)} → ${fmtTime(t.end)}`}>
-                      <div
-                        className="absolute top-1 flex items-center justify-center rounded-sm border"
-                        style={{
-                          left: t.start * pps,
-                          width: Math.max((t.end - t.start) * pps, 8),
-                          height: 20,
-                          background: "var(--color-surface-3)",
-                          borderColor: "var(--color-border)",
-                        }}
-                      >
-                        <span className="font-mono text-[10px]" style={{ color: "var(--color-text-primary)" }}>{t.letter}</span>
-                      </div>
-                    </TT>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* speaker lanes — virtualized: only visible turns are rendered */}
-            {layers["Speakers"] && MOCK_SPEAKERS.map((speaker) => (
-              <div key={speaker.id} className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
-                </div>
-                <SpeakerLane
-                  speaker={speaker}
-                  pixelsPerSecond={pps}
-                  scrollX={scrollX}
-                  viewportWidth={containerWidth}
-                  totalWidth={totalWidth}
-                  onSelectTurn={selectTurn}
-                />
-              </div>
+        {/* ── RIGHT PANEL ── */}
+        <div
+          className="flex flex-col flex-1 overflow-hidden"
+          style={{ background: "var(--color-bg)" }}
+        >
+          {/* toolbar row */}
+          <div
+            className="flex-shrink-0 flex items-center gap-2 flex-wrap border-b"
+            style={{ padding: "10px 16px", background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}
+          >
+            {/* layer toggles */}
+            {LAYER_TOGGLES.map((l) => (
+              <button
+                key={l}
+                onClick={() => toggleLayer(l)}
+                className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
+                style={{
+                  background: layers[l] ? "var(--color-surface-3)" : "transparent",
+                  color: layers[l] ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  border: layers[l] ? "1px solid var(--color-border)" : "1px solid transparent",
+                }}
+              >
+                {l}
+              </button>
             ))}
 
-            {/* transcript lane */}
-            {layers["Transcript"] && (
-              <div className="flex border-b" style={{ height: 40, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Transcript</span>
-                </div>
-                <div className="relative flex items-center gap-0.5 px-1" style={{ width: totalWidth }}>
-                  {/* generate word tokens from speaker turns */}
-                  {MOCK_SPEAKERS.flatMap((sp) => sp.turns).sort((a, b) => a.start - b.start).slice(0, 60).map((turn, i) => {
-                    const words = turn.transcript.split(" ").slice(0, pixelsPerSecond >= 4 * PPS_BASE ? 6 : 2);
-                    return words.map((w, wi) => (
-                      <div
-                        key={`${turn.id}-${wi}`}
-                        className="inline-flex items-center px-1 rounded-sm flex-shrink-0 cursor-pointer hover:bg-[var(--color-surface-3)]"
-                        style={{
-                          height: 18,
-                          background: "var(--color-surface-2)",
-                          position: "absolute",
-                          left: (turn.start + wi * 1.2) * pps,
-                        }}
-                        onClick={() => selectTurn(turn, MOCK_SPEAKERS.find(s => s.id === turn.speaker)?.name || "Unknown")}
-                      >
-                        <span className="font-mono text-[9px] truncate" style={{ color: "var(--color-text-muted)" }}>{w}</span>
-                      </div>
-                    ));
-                  })}
-                </div>
-              </div>
-            )}
+            <div className="flex-1" />
 
-            {/* emotion lane */}
-            {layers["Emotion"] && (
-              <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Emotion</span>
-                </div>
-                <div className="relative flex" style={{ width: totalWidth }}>
-                  {MOCK_EMOTIONS.map((emo, i) => (
-                    <TT key={i} tip={`${emo.label} · ${fmtTime(emo.start)} → ${fmtTime(emo.end)}`}>
-                      <div
-                        className="h-7 flex items-center px-1"
-                        style={{
-                          width: (emo.end - emo.start) * pps,
-                          background: EMOTION_COLORS[emo.label] || "var(--color-surface-2)",
-                        }}
-                      >
-                        {(emo.end - emo.start) * pps > 50 && (
-                          <span className="font-mono text-[9px]" style={{ color: "var(--color-text-muted)" }}>{emo.label}</span>
-                        )}
-                      </div>
-                    </TT>
-                  ))}
-                </div>
+            {/* zoom controls */}
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setStorePps(PPS_BASE)}
+                  className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
+                  style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
+                >
+                  Fit
+                </button>
+                {([1, 2, 4] as const).map((z) => {
+                  const targetPps = PPS_BASE * z;
+                  const isActive = Math.round(pps / PPS_BASE) === z;
+                  return (
+                    <button
+                      key={z}
+                      onClick={() => setStorePps(targetPps)}
+                      className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
+                      style={{
+                        background: isActive ? "var(--color-surface-3)" : "transparent",
+                        color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                        border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
+                      }}
+                    >
+                      {z}×
+                    </button>
+                  );
+                })}
               </div>
-            )}
+              <span className="font-mono text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                Space · J/K/L · ←/→ · +/−
+              </span>
+            </div>
+          </div>
 
-            {/* audio events lane */}
-            {layers["Audio Events"] && (
-              <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
-                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Audio</span>
-                </div>
-                <div className="relative" style={{ width: totalWidth, height: 32 }}>
-                  {MOCK_AUDIO_EVENTS.map((ev, i) => (
-                    <TT key={i} tip={`${ev.label} · ${(ev.confidence * 100).toFixed(0)}% · ${fmtTime(ev.start)}`}>
-                      <div
-                        className="absolute top-0 flex flex-col items-center"
-                        style={{ left: ev.start * pps, height: 32 }}
-                      >
-                        <div className="w-[2px] h-full rounded-sm" style={{ background: "var(--color-amber)" }} />
-                        <span className="absolute bottom-0.5 left-1 font-mono text-[9px] whitespace-nowrap" style={{ color: "var(--color-amber)" }}>
-                          {ev.label}
-                        </span>
-                      </div>
-                    </TT>
-                  ))}
-                </div>
+          {/* TimeRuler row — outside the scroll container so it doesn't scroll vertically.
+               The two wrapper divs recreate the parentElement → parentElement chain that
+               TimeRuler's getTimeFromEvent traverses for click-to-seek hit-testing. */}
+          <div
+            className="flex flex-shrink-0 border-b"
+            style={{ height: 32, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}
+          >
+            {/* label column spacer */}
+            <div
+              className="flex-shrink-0 border-r"
+              style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}
+            />
+            {/* parentElement.parentElement of TimeRuler's rulerRef */}
+            <div className="flex-1 overflow-hidden relative">
+              {/* parentElement of TimeRuler's rulerRef */}
+              <div>
+                <TimeRuler
+                  duration={VIDEO_DURATION}
+                  pixelsPerSecond={pps}
+                  scrollX={scrollX}
+                  viewportWidth={rulerViewportWidth}
+                  onSeek={seekTo}
+                />
               </div>
-            )}
+              {/* playhead line in ruler */}
+              <div
+                className="absolute top-0 bottom-0 w-px z-20 pointer-events-none"
+                style={{ left: playheadPosition * pps - scrollX, background: "var(--color-violet)" }}
+              />
+            </div>
+          </div>
+
+          {/* lanes scroll area */}
+          <div
+            className="flex-1 overflow-x-auto overflow-y-auto"
+            ref={scrollRef}
+            onScroll={handleScroll}
+          >
+            <div style={{ width: LABEL_W + totalWidth, minHeight: "100%" }}>
+
+              {/* shots lane */}
+              {layers["Shots"] && (
+                <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Shots</span>
+                  </div>
+                  <div className="relative flex" style={{ width: totalWidth }}>
+                    {MOCK_SHOTS.map((shot, i) => (
+                      <TT key={shot.id} tip={`Shot ${shot.id}: ${fmtTime(shot.start)} → ${fmtTime(shot.end)}`}>
+                        <div
+                          className="h-8 flex items-center px-1 border-r"
+                          style={{
+                            width: (shot.end - shot.start) * pps,
+                            background: i % 2 === 0 ? "var(--color-surface-2)" : "var(--color-surface-3)",
+                            borderColor: "var(--color-border)",
+                          }}
+                        >
+                          {(shot.end - shot.start) * pps > 40 && (
+                            <span className="font-mono text-[10px] truncate" style={{ color: "var(--color-text-muted)" }}>Shot {shot.id}</span>
+                          )}
+                        </div>
+                      </TT>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* tracklets lane */}
+              {layers["Tracklets"] && (
+                <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Tracklets</span>
+                  </div>
+                  <div className="relative" style={{ width: totalWidth, height: 28 }}>
+                    {MOCK_TRACKLETS.map((t) => (
+                      <TT key={t.id} tip={`${t.id} · Shot ${t.shotId} · ${fmtTime(t.start)} → ${fmtTime(t.end)}`}>
+                        <div
+                          className="absolute top-1 flex items-center justify-center rounded-sm border"
+                          style={{
+                            left: t.start * pps,
+                            width: Math.max((t.end - t.start) * pps, 8),
+                            height: 20,
+                            background: "var(--color-surface-3)",
+                            borderColor: "var(--color-border)",
+                          }}
+                        >
+                          <span className="font-mono text-[10px]" style={{ color: "var(--color-text-primary)" }}>{t.letter}</span>
+                        </div>
+                      </TT>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* speaker lanes — virtualized: only visible turns are rendered */}
+              {layers["Speakers"] && MOCK_SPEAKERS.map((speaker) => (
+                <div key={speaker.id} className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
+                  </div>
+                  <SpeakerLane
+                    speaker={speaker}
+                    pixelsPerSecond={pps}
+                    scrollX={scrollX}
+                    viewportWidth={containerWidth}
+                    totalWidth={totalWidth}
+                    onSelectTurn={selectTurn}
+                  />
+                </div>
+              ))}
+
+              {/* transcript lane */}
+              {layers["Transcript"] && (
+                <div className="flex border-b" style={{ height: 40, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Transcript</span>
+                  </div>
+                  <div className="relative flex items-center gap-0.5 px-1" style={{ width: totalWidth }}>
+                    {MOCK_SPEAKERS.flatMap((sp) => sp.turns).sort((a, b) => a.start - b.start).slice(0, 60).map((turn) => {
+                      const words = turn.transcript.split(" ").slice(0, pixelsPerSecond >= 4 * PPS_BASE ? 6 : 2);
+                      return words.map((w, wi) => (
+                        <div
+                          key={`${turn.id}-${wi}`}
+                          className="inline-flex items-center px-1 rounded-sm flex-shrink-0 cursor-pointer hover:bg-[var(--color-surface-3)]"
+                          style={{
+                            height: 18,
+                            background: "var(--color-surface-2)",
+                            position: "absolute",
+                            left: (turn.start + wi * 1.2) * pps,
+                          }}
+                          onClick={() => selectTurn(turn, MOCK_SPEAKERS.find(s => s.id === turn.speaker)?.name || "Unknown")}
+                        >
+                          <span className="font-mono text-[9px] truncate" style={{ color: "var(--color-text-muted)" }}>{w}</span>
+                        </div>
+                      ));
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* emotion lane */}
+              {layers["Emotion"] && (
+                <div className="flex border-b" style={{ height: 28, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Emotion</span>
+                  </div>
+                  <div className="relative flex" style={{ width: totalWidth }}>
+                    {MOCK_EMOTIONS.map((emo, i) => (
+                      <TT key={i} tip={`${emo.label} · ${fmtTime(emo.start)} → ${fmtTime(emo.end)}`}>
+                        <div
+                          className="h-7 flex items-center px-1"
+                          style={{
+                            width: (emo.end - emo.start) * pps,
+                            background: EMOTION_COLORS[emo.label] || "var(--color-surface-2)",
+                          }}
+                        >
+                          {(emo.end - emo.start) * pps > 50 && (
+                            <span className="font-mono text-[9px]" style={{ color: "var(--color-text-muted)" }}>{emo.label}</span>
+                          )}
+                        </div>
+                      </TT>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* audio events lane */}
+              {layers["Audio Events"] && (
+                <div className="flex border-b" style={{ height: 32, borderColor: "var(--color-border-subtle)" }}>
+                  <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                    <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Audio</span>
+                  </div>
+                  <div className="relative" style={{ width: totalWidth, height: 32 }}>
+                    {MOCK_AUDIO_EVENTS.map((ev, i) => (
+                      <TT key={i} tip={`${ev.label} · ${(ev.confidence * 100).toFixed(0)}% · ${fmtTime(ev.start)}`}>
+                        <div
+                          className="absolute top-0 flex flex-col items-center"
+                          style={{ left: ev.start * pps, height: 32 }}
+                        >
+                          <div className="w-[2px] h-full rounded-sm" style={{ background: "var(--color-amber)" }} />
+                          <span className="absolute bottom-0.5 left-1 font-mono text-[9px] whitespace-nowrap" style={{ color: "var(--color-amber)" }}>
+                            {ev.label}
+                          </span>
+                        </div>
+                      </TT>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* right info panel */}
-        {panelOpen && (
-          <div className="flex-shrink-0 border-l overflow-y-auto" style={{ width: 320, background: "var(--color-surface-1)", borderColor: "var(--color-border)" }}>
-            <InfoPanel selection={selection} onClose={() => { setPanelOpen(false); setSelection(null); }} />
-          </div>
-        )}
       </div>
     </div>
   );
