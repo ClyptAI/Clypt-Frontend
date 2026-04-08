@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Play, Pencil, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ClyptIcon from "@/components/app/ClyptIcon";
+import { useRunList } from "@/hooks/api/useRuns";
+import type { RunListItem } from "@/types/clypt";
 
 type RunStatus = "analyzing" | "complete" | "grounding" | "failed";
 
@@ -55,6 +58,40 @@ const mockClips = Array.from({ length: 6 }, (_, i) => ({
   ][i],
   duration: ["0:35", "0:42", "0:28", "1:12", "0:31", "0:55"][i],
 }));
+
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function adaptRunListItem(r: RunListItem): RunCard {
+  const statusMap: Record<string, RunStatus> = {
+    running: "analyzing",
+    completed: "complete",
+    needs_action: "grounding",
+    failed: "failed",
+    pending: "analyzing",
+  };
+  return {
+    id: r.run_id,
+    title: r.display_name ?? r.source_url ?? "Untitled run",
+    url: r.source_url ?? "",
+    status: statusMap[r.latest_status] ?? "analyzing",
+    clipCount: undefined,
+    time: formatRelativeTime(r.created_at),
+    phases: Array.from({ length: 6 }, (_, i) => {
+      const phaseNum = i + 1;
+      if (phaseNum < r.latest_phase) return "done" as const;
+      if (phaseNum === r.latest_phase)
+        return r.latest_status === "failed" ? "failed" as const : "active" as const;
+      return "pending" as const;
+    }),
+  };
+}
 
 function PhaseDots({ phases }: { phases: RunCard["phases"] }) {
   return (
@@ -125,11 +162,40 @@ function ActionLink({ status }: { status: RunStatus }) {
   );
 }
 
-function RunsTab() {
+function RunsTab({
+  runs,
+  isLoading,
+  isError,
+  apiRuns,
+}: {
+  runs: RunCard[];
+  isLoading: boolean;
+  isError: boolean;
+  apiRuns: RunListItem[] | undefined;
+}) {
   return (
     <div className="p-[32px]">
+      {/* Error banner */}
+      {isError && (
+        <div
+          className="mb-[16px] rounded-[6px] px-[14px] py-[10px] font-sans text-[13px]"
+          style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-rose)", border: "1px solid rgba(239,68,68,0.25)" }}
+        >
+          Failed to load runs. Showing cached data.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-[16px]">
-        {mockRuns.map((run) => (
+        {/* Skeleton cards while loading with no data yet */}
+        {isLoading && !apiRuns && Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="animate-pulse rounded-[8px] p-4"
+            style={{ background: "var(--color-surface-1)", border: "1px solid var(--color-border)", height: 100 }}
+          />
+        ))}
+
+        {runs.map((run) => (
           <div
             key={run.id}
             className="group rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-col"
@@ -172,6 +238,15 @@ function RunsTab() {
           </div>
         ))}
       </div>
+
+      {/* Empty state */}
+      {!isLoading && apiRuns?.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <span className="font-body text-[15px]" style={{ color: "var(--color-text-muted)" }}>
+            No runs yet — submit a YouTube URL to get started.
+          </span>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-center gap-[16px] mt-[32px]">
@@ -234,6 +309,9 @@ function ClipsTab() {
 
 export default function Library() {
   const [tab, setTab] = useState<"runs" | "clips">("runs");
+  const navigate = useNavigate();
+  const { data: apiRuns, isLoading, isError } = useRunList();
+  const runs = apiRuns ? apiRuns.map(adaptRunListItem) : mockRuns;
 
   return (
     <div>
@@ -242,7 +320,11 @@ export default function Library() {
         <h1 className="font-heading font-bold text-[24px] text-[var(--color-text-primary)]">
           Your Runs
         </h1>
-        <Button variant="default" className="px-[16px] py-[8px] h-auto gap-[8px]">
+        <Button
+          variant="default"
+          className="px-[16px] py-[8px] h-auto gap-[8px]"
+          onClick={() => navigate("/runs/new")}
+        >
           <Plus size={16} />
           <span className="font-heading font-semibold text-[14px]">New Run</span>
         </Button>
@@ -265,7 +347,11 @@ export default function Library() {
         ))}
       </div>
 
-      {tab === "runs" ? <RunsTab /> : <ClipsTab />}
+      {tab === "runs" ? (
+        <RunsTab runs={runs} isLoading={isLoading} isError={isError} apiRuns={apiRuns} />
+      ) : (
+        <ClipsTab />
+      )}
     </div>
   );
 }

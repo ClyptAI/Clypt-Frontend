@@ -25,6 +25,7 @@ import SettingsLayout from "./components/settings/SettingsLayout.tsx";
 import SettingsProfile from "./pages/SettingsProfile.tsx";
 import SettingsVoiceprints from "./pages/SettingsVoiceprints.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { ErrorBoundary } from "./components/app/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -45,17 +46,17 @@ const App = () => (
           <Route path="/onboard/voiceprints" element={<OnboardVoiceprints />} />
           <Route path="/onboard/ready" element={<OnboardReady />} />
           {/* App shell routes */}
-          <Route element={<AppShell />}>
-            <Route path="/library" element={<Library />} />
-            <Route path="/library/clips" element={<Library />} />
+          <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
+            <Route path="/library" element={<ErrorBoundary><Library /></ErrorBoundary>} />
+            <Route path="/library/clips" element={<ErrorBoundary><Library /></ErrorBoundary>} />
             <Route path="/runs/new" element={<NewRun />} />
-            <Route path="/runs/:id" element={<RunOverview />} />
-            <Route path="/runs/:id/timeline" element={<RunTimeline />} />
-            <Route path="/runs/:id/graph" element={<RunGraph />} />
-            <Route path="/runs/:id/clips" element={<RunClips />} />
-            <Route path="/runs/:id/grounding/:clipId" element={<RunGrounding />} />
-            <Route path="/runs/:id/grounding" element={<RunGrounding />} />
-            <Route path="/runs/:id/render" element={<RunRender />} />
+            <Route path="/runs/:id" element={<ErrorBoundary><RunOverview /></ErrorBoundary>} />
+            <Route path="/runs/:id/timeline" element={<ErrorBoundary><RunTimeline /></ErrorBoundary>} />
+            <Route path="/runs/:id/graph" element={<ErrorBoundary><RunGraph /></ErrorBoundary>} />
+            <Route path="/runs/:id/clips" element={<ErrorBoundary><RunClips /></ErrorBoundary>} />
+            <Route path="/runs/:id/grounding/:clipId" element={<ErrorBoundary><RunGrounding /></ErrorBoundary>} />
+            <Route path="/runs/:id/grounding" element={<ErrorBoundary><RunGrounding /></ErrorBoundary>} />
+            <Route path="/runs/:id/render" element={<ErrorBoundary><RunRender /></ErrorBoundary>} />
             <Route path="/settings" element={<SettingsLayout />}>
               <Route index element={<SettingsProfile />} />
               <Route path="voiceprints" element={<SettingsVoiceprints />} />

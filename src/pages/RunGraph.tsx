@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -26,6 +26,8 @@ import GraphToolbar from "@/components/graph/GraphToolbar";
 import GraphLegend from "@/components/graph/GraphLegend";
 import InspectPanel from "@/components/graph/InspectPanel";
 import TimelineStrip from "@/components/graph/TimelineStrip";
+import { useNodeList } from "@/hooks/api/useNodes";
+import type { SemanticGraphNode } from "@/types/clypt";
 
 const nodeTypes = { semantic: SemanticNode };
 const edgeTypes = {
@@ -80,6 +82,29 @@ const NODE_W = 200;
 const NODE_H = 100;
 const ALL_TYPES = new Set(["claim", "explanation", "example", "anecdote", "reaction_beat", "qa_exchange", "challenge_exchange", "setup_payoff", "reveal", "transition"]);
 
+function formatMsAsTime(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function adaptApiNode(n: SemanticGraphNode): Node {
+  return {
+    id: n.node_id,
+    type: "semantic",
+    position: { x: 0, y: 0 },
+    data: {
+      node_type: n.node_type,
+      timeStart: formatMsAsTime(n.start_ms),
+      timeEnd: formatMsAsTime(n.end_ms),
+      summary: n.summary,
+      flags: n.node_flags,
+      signalTags: [],
+    },
+  };
+}
+
 function layoutGraph(nodes: Node[], edges: Edge[]): Node[] {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: "LR", ranksep: 200, nodesep: 90, edgesep: 50 });
@@ -96,9 +121,20 @@ function GraphInner() {
   const { id } = useParams();
   const rf = useReactFlow();
 
-  const layoutNodes = useMemo(() => layoutGraph(RAW_NODES, RAW_EDGES), []);
+  const { data: apiNodes, isLoading } = useNodeList(id ?? "");
+
+  const sourceNodes = useMemo<Node[]>(
+    () => (apiNodes && apiNodes.length > 0 ? apiNodes.map(adaptApiNode) : RAW_NODES),
+    [apiNodes],
+  );
+
+  const layoutNodes = useMemo(() => layoutGraph(sourceNodes, RAW_EDGES), [sourceNodes]);
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
   const [edges, , onEdgesChange] = useEdgesState(RAW_EDGES);
+
+  useEffect(() => {
+    setNodes(layoutNodes);
+  }, [layoutNodes, setNodes]);
 
   // Toolbar state
   const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set(ALL_TYPES));
@@ -140,9 +176,9 @@ function GraphInner() {
   // Compute type counts
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    RAW_NODES.forEach((n) => { const t = (n.data as any).node_type; counts[t] = (counts[t] ?? 0) + 1; });
+    sourceNodes.forEach((n) => { const t = (n.data as any).node_type; counts[t] = (counts[t] ?? 0) + 1; });
     return counts;
-  }, []);
+  }, [sourceNodes]);
 
   // Any signal filter active?
   const anySignalActive = signalFilters.trend || signalFilters.comment || signalFilters.retention;
@@ -209,6 +245,23 @@ function GraphInner() {
 
       <div className="relative flex-1" style={{ overflow: "hidden" }}>
         <EdgeMarkers />
+        {isLoading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 10,
+            }}
+          >
+            <span style={{ color: "rgba(244,241,238,0.55)", fontSize: "13px", letterSpacing: "0.02em" }}>
+              Loading graph…
+            </span>
+          </div>
+        )}
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
