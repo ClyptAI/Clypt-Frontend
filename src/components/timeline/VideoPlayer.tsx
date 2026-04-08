@@ -118,7 +118,7 @@ function NativeVideoPlayer({ videoUrl, className }: VideoPlayerProps) {
       ref={videoRef}
       src={videoUrl}
       className={className}
-      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+      style={{ display: 'block', background: '#000' }}
       preload="metadata"
     />
   )
