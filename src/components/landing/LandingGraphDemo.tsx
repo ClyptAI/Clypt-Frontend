@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   ReactFlow,
   type Node,
@@ -157,6 +157,27 @@ const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reacti
 export default function LandingGraphDemo() {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Delay-mount ReactFlow until the container is in the viewport.
+  // This guarantees the same initialization conditions as AuthLayout
+  // (where the graph is above the fold and visible on first paint).
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setMounted(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const connectedNodeIds = useMemo(() => {
     if (!hoveredNodeId) return new Set<string>();
@@ -205,7 +226,7 @@ export default function LandingGraphDemo() {
 
   return (
     <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto">
-      <div style={{ maxWidth: 1100 }}>
+      <div ref={sentinelRef} style={{ maxWidth: 1100 }}>
         <div
           style={{
             height: 420,
@@ -214,31 +235,30 @@ export default function LandingGraphDemo() {
             backgroundSize: "24px 24px",
           }}
         >
-          <ReactFlow
-            nodes={displayNodes}
-            edges={displayEdges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            zoomOnScroll={false}
-            panOnScroll={false}
-            preventScrolling={false}
-            proOptions={{ hideAttribution: true }}
-            onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
-            onNodeMouseLeave={() => setHoveredNodeId(null)}
-            onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
-            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
-            fitView
-            fitViewOptions={{ padding: 0.1 }}
-            onInit={(rf) => {
-              // Framer Motion animates y:32→0 over ~850ms. Re-fit after it settles
-              // so React Flow's coordinate system reflects the final container position.
-              setTimeout(() => rf.fitView({ padding: 0.1, duration: 0 }), 950);
-            }}
-            style={{ background: "transparent" }}
-          />
+          {mounted && (
+            <div style={{ position: "absolute", inset: 0 }}>
+              <ReactFlow
+                nodes={displayNodes}
+                edges={displayEdges}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={false}
+                zoomOnScroll={false}
+                panOnScroll={false}
+                preventScrolling={false}
+                proOptions={{ hideAttribution: true }}
+                onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
+                onNodeMouseLeave={() => setHoveredNodeId(null)}
+                onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
+                onEdgeMouseLeave={() => setHoveredEdgeId(null)}
+                fitView
+                fitViewOptions={{ padding: 0.25 }}
+                style={{ background: "transparent" }}
+              />
+            </div>
+          )}
         </div>
         {/* Legend */}
         <div

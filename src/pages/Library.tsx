@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Pencil, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -173,6 +172,7 @@ function RunsTab({
   isError: boolean;
   apiRuns: RunListItem[] | undefined;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="p-[32px]">
       {/* Error banner */}
@@ -198,7 +198,8 @@ function RunsTab({
         {runs.map((run) => (
           <div
             key={run.id}
-            className="group rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-col"
+            onClick={() => navigate("/runs/demo")}
+            className="group rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-col cursor-pointer hover:border-[var(--color-violet)] transition-colors"
           >
             {/* Thumbnail */}
             <div className="aspect-video bg-[var(--color-surface-2)] flex items-center justify-center">
@@ -308,49 +309,34 @@ function ClipsTab() {
 }
 
 export default function Library() {
-  const [tab, setTab] = useState<"runs" | "clips">("runs");
   const navigate = useNavigate();
   const { data: apiRuns, isLoading, isError } = useRunList();
   const runs = apiRuns ? apiRuns.map(adaptRunListItem) : mockRuns;
+  const isClips = location.pathname === "/library/clips";
 
   return (
     <div>
       {/* Page header */}
       <div className="flex items-center justify-between px-[32px] py-[32px] pb-[24px] border-b border-[var(--color-border-subtle)]">
         <h1 className="font-heading font-bold text-[24px] text-[var(--color-text-primary)]">
-          Your Runs
+          {isClips ? "Your Clips" : "Your Runs"}
         </h1>
-        <Button
-          variant="default"
-          className="px-[16px] py-[8px] h-auto gap-[8px]"
-          onClick={() => navigate("/runs/new")}
-        >
-          <Plus size={16} />
-          <span className="font-heading font-semibold text-[14px]">New Run</span>
-        </Button>
-      </div>
-
-      {/* Tab bar */}
-      <div className="flex gap-[24px] px-[32px] border-b border-[var(--color-border-subtle)]">
-        {(["runs", "clips"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`pb-[12px] font-heading text-[14px] transition-colors border-b-2 ${
-              tab === t
-                ? "font-semibold text-[var(--color-text-primary)] border-[var(--color-violet)]"
-                : "font-medium text-[var(--color-text-muted)] border-transparent hover:text-[var(--color-text-secondary)]"
-            }`}
+        {!isClips && (
+          <Button
+            variant="default"
+            className="px-[16px] py-[8px] h-auto gap-[8px]"
+            onClick={() => navigate("/runs/new")}
           >
-            {t === "runs" ? "Runs" : "Clips"}
-          </button>
-        ))}
+            <Plus size={16} />
+            <span className="font-heading font-semibold text-[14px]">New Run</span>
+          </Button>
+        )}
       </div>
 
-      {tab === "runs" ? (
-        <RunsTab runs={runs} isLoading={isLoading} isError={isError} apiRuns={apiRuns} />
-      ) : (
+      {isClips ? (
         <ClipsTab />
+      ) : (
+        <RunsTab runs={runs} isLoading={isLoading} isError={isError} apiRuns={apiRuns} />
       )}
     </div>
   );

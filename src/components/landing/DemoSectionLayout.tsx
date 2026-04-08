@@ -21,15 +21,9 @@ export default function DemoSectionLayout({ layout, copy, ui }: DemoSectionLayou
         >
           {copy}
         </motion.div>
-        <motion.div
-          style={{ marginTop: 56 }}
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, delay: 0.15, ease }}
-        >
+        <div style={{ marginTop: 56 }}>
           {ui}
-        </motion.div>
+        </div>
       </section>
     );
   }
