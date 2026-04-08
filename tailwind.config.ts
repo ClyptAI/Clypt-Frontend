@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         display: ["'DM Serif Display'", "serif"],
         heading: ["'Bricolage Grotesque'", "sans-serif"],
+        body: ["'Plus Jakarta Sans'", "sans-serif"],
         sans: ["'Plus Jakarta Sans'", "sans-serif"],
         mono: ["'Geist Mono'", "monospace"],
       },
@@ -63,8 +64,28 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Custom Clypt palette
+        // Clypt index.css tokens → utilities (e.g. text-text-muted, bg-surface-1).
+        // Note: `border` stays hsl(var(--border)) above for shadcn; use border-clypt-border for --color-border.
         "clypt-bg": "var(--color-bg)",
+        "surface-1": "var(--color-surface-1)",
+        "surface-2": "var(--color-surface-2)",
+        "surface-3": "var(--color-surface-3)",
+        "border-subtle": "var(--color-border-subtle)",
+        "text-primary": "var(--color-text-primary)",
+        "text-secondary": "var(--color-text-secondary)",
+        "text-muted": "var(--color-text-muted)",
+        violet: "var(--color-violet)",
+        "violet-dim": "var(--color-violet-dim)",
+        "violet-muted": "var(--color-violet-muted)",
+        amber: "var(--color-amber)",
+        "amber-muted": "var(--color-amber-muted)",
+        cyan: "var(--color-cyan)",
+        "cyan-muted": "var(--color-cyan-muted)",
+        green: "var(--color-green)",
+        "green-muted": "var(--color-green-muted)",
+        rose: "var(--color-rose)",
+        "rose-muted": "var(--color-rose-muted)",
+        // Custom Clypt palette (prefixed utilities)
         "clypt-surface-1": "var(--color-surface-1)",
         "clypt-surface-2": "var(--color-surface-2)",
         "clypt-surface-3": "var(--color-surface-3)",
