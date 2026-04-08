@@ -25,5 +25,6 @@ export function useCreateRun() {
     mutationFn: ({ sourceUrl, displayName }: { sourceUrl: string; displayName?: string }) =>
       runsApi.create(sourceUrl, displayName),
     onSuccess: () => qc.invalidateQueries({ queryKey: runKeys.lists() }),
+    onError: (err) => console.error('[useCreateRun]', err),
   })
 }

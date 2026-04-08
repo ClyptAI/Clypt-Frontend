@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import RunContextBar from "@/components/app/RunContextBar";
-import { Bookmark, X, ChevronRight, RotateCcw } from "lucide-react";
+import { Bookmark, X, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
 import { useClipList, useApproveClip, useRejectClip } from "@/hooks/api/useClips";
 import { useClipStore } from "@/stores/clip-store";
 import type { ClipCandidate } from "@/types/clypt";
@@ -179,7 +179,7 @@ function ClipCard({ clip, selected, onSelect, onPin, onReject }: { clip: ClipDat
 }
 
 /* ── Detail Panel ── */
-function ClipDetail({ clip, onPin, onReject }: { clip: ClipData; onPin: () => void; onReject: () => void }) {
+function ClipDetail({ clip, onPin, onReject, onApprove, approving }: { clip: ClipData; onPin: () => void; onReject: () => void; onApprove: () => void; approving: boolean }) {
   const [start, setStart] = useState(clip.timeStart);
   const [end, setEnd] = useState(clip.timeEnd);
 
@@ -300,8 +300,12 @@ function ClipDetail({ clip, onPin, onReject }: { clip: ClipData; onPin: () => vo
 
       {/* Sticky CTA */}
       <div style={{ padding: "20px 32px", borderTop: "1px solid var(--color-border-subtle)", background: "var(--color-bg)", flexShrink: 0 }}>
-        <button style={{ width: "100%", height: 44, background: "var(--color-violet)", color: "#0A0909", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 15, border: "none", borderRadius: 6, cursor: "pointer" }}>
-          Add to grounding queue →
+        <button
+          disabled={approving}
+          onClick={onApprove}
+          style={{ width: "100%", height: 44, background: "var(--color-violet)", color: "#0A0909", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 15, border: "none", borderRadius: 6, cursor: approving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: approving ? 0.7 : 1 }}
+        >
+          {approving ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Adding…</> : "Add to grounding queue →"}
         </button>
       </div>
     </div>
@@ -355,7 +359,13 @@ export default function RunClips() {
     setActiveClipId(cid);
   };
 
-  void approveMutation;
+  const handleApprove = (cid: string) => {
+    approveClip(cid);
+    approveMutation.mutate(cid, {
+      onSuccess: () => toast.success('Added to grounding queue'),
+      onError: () => toast.error('Failed to approve clip'),
+    });
+  };
 
   return (
     <div className="flex flex-col" style={{ height: "100vh" }}>
@@ -427,7 +437,7 @@ export default function RunClips() {
 
         {/* Right panel */}
         <div style={{ flex: 1, overflowY: "hidden", background: "var(--color-bg)", display: "flex", flexDirection: "column" }}>
-          {selected && <ClipDetail clip={selected} onPin={() => togglePin(selected.id)} onReject={() => reject(selected.id)} />}
+          {selected && <ClipDetail clip={selected} onPin={() => togglePin(selected.id)} onReject={() => reject(selected.id)} onApprove={() => handleApprove(selected.id)} approving={approveMutation.isPending} />}
         </div>
       </div>
     </div>

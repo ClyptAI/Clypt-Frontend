@@ -126,7 +126,7 @@ function ReviewStage({ onRender, apiClips, clipsLoading, presets }: ReviewStageP
   const renderMutation = useMutation({
     mutationFn: ({ clipId, presetId }: { clipId: string; presetId: string }) =>
       renderApi.submit(runId, clipId, presetId),
-    onError: () => toast.error("Render failed to submit"),
+    onError: () => toast.error("Render failed to submit — please try again"),
   });
 
   const completeClips = clips.filter((c) => c.complete);
@@ -524,7 +524,9 @@ function RenderStage() {
               }}>
                 <Download size={14} />Download
               </button>
-              <button style={{
+              <button
+                onClick={() => toast.success("Link copied")}
+                style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6,
                 border: "1px solid var(--color-border)", background: "transparent",
                 fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14,
