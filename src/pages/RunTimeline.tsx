@@ -331,72 +331,7 @@ export default function RunTimeline() {
         completedPhases={completedPhases}
       />
 
-      {/* ── TOOLBAR ── */}
-      <div style={{
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "8px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        background: "var(--color-surface-1)",
-        flexWrap: "wrap",
-      }}>
-        {/* layer toggles */}
-        {LAYER_TOGGLES.map((l) => (
-          <button
-            key={l}
-            onClick={() => toggleLayer(l)}
-            className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-            style={{
-              background: layers[l] ? "var(--color-surface-3)" : "transparent",
-              color: layers[l] ? "var(--color-text-primary)" : "var(--color-text-muted)",
-              border: layers[l] ? "1px solid var(--color-border)" : "1px solid transparent",
-            }}
-          >
-            {l}
-          </button>
-        ))}
-
-        {/* spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* zoom controls */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button
-              onClick={() => setStorePps(PPS_BASE)}
-              className="font-heading font-medium text-[12px] px-2.5 py-1 rounded"
-              style={{ background: "transparent", color: "var(--color-text-muted)", border: "1px solid transparent" }}
-            >
-              Fit
-            </button>
-            {([1, 2, 4] as const).map((z) => {
-              const targetPps = PPS_BASE * z;
-              const isActive = Math.round(pps / PPS_BASE) === z;
-              return (
-                <button
-                  key={z}
-                  onClick={() => setStorePps(targetPps)}
-                  className="font-heading font-medium text-[12px] px-2.5 py-1 rounded transition-colors"
-                  style={{
-                    background: isActive ? "var(--color-surface-3)" : "transparent",
-                    color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                    border: isActive ? "1px solid var(--color-border)" : "1px solid transparent",
-                  }}
-                >
-                  {z}×
-                </button>
-              );
-            })}
-          </div>
-          <span className="font-mono text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-            Space · J/K/L · ←/→ · +/−
-          </span>
-        </div>
-      </div>
-
-      {/* ── VIDEO AREA — fills remaining space but never pushes timeline off-screen ── */}
+      {/* ── VIDEO AREA — controls float in the black bars on either side ── */}
       <div style={{
         flex: 1,
         minHeight: 0,
@@ -406,12 +341,87 @@ export default function RunTimeline() {
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+        position: "relative",
       }}>
         {videoUrl ? (
           <VideoPlayer videoUrl={videoUrl} className="h-full w-auto max-w-full" />
         ) : (
           <span className="font-mono text-[12px]" style={{ color: "rgba(255,255,255,0.3)" }}>No video</span>
         )}
+
+        {/* Layer toggles — left black bar */}
+        <div style={{
+          position: "absolute",
+          left: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}>
+          {LAYER_TOGGLES.map((l) => (
+            <button
+              key={l}
+              onClick={() => toggleLayer(l)}
+              className="font-heading font-medium text-[11px] px-2 py-0.5 rounded transition-colors"
+              style={{
+                background: layers[l] ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.5)",
+                color: layers[l] ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                border: layers[l] ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.06)",
+                backdropFilter: "blur(4px)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Zoom + keyboard hint — right black bar */}
+        <div style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 4,
+        }}>
+          <button
+            onClick={() => setStorePps(PPS_BASE)}
+            className="font-heading font-medium text-[11px] px-2 py-0.5 rounded"
+            style={{
+              background: "rgba(0,0,0,0.5)",
+              color: "var(--color-text-muted)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            Fit
+          </button>
+          {([1, 2, 4] as const).map((z) => {
+            const isActive = Math.round(pps / PPS_BASE) === z;
+            return (
+              <button
+                key={z}
+                onClick={() => setStorePps(PPS_BASE * z)}
+                className="font-heading font-medium text-[11px] px-2 py-0.5 rounded transition-colors"
+                style={{
+                  background: isActive ? "rgba(167,139,250,0.25)" : "rgba(0,0,0,0.5)",
+                  color: isActive ? "var(--color-violet)" : "var(--color-text-muted)",
+                  border: isActive ? "1px solid rgba(167,139,250,0.4)" : "1px solid rgba(255,255,255,0.06)",
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                {z}×
+              </button>
+            );
+          })}
+          <span className="font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.25)", marginTop: 8, writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.05em" }}>
+            Space · J/K/L · ←/→ · +/−
+          </span>
+        </div>
       </div>
 
       {/* ── TRANSPORT BAR ── */}
