@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { ChevronUp, ChevronDown, X, Pencil } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
-import { TimeRuler } from "@/components/timeline";
+import { TimeRuler, VideoPlayer } from "@/components/timeline";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
@@ -422,7 +422,11 @@ export default function RunTimeline() {
       >
         <div className="flex flex-col h-full">
           <div className="flex-1 flex items-center justify-center">
-            <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>Video Player</span>
+            {runDetail?.source_url ? (
+              <VideoPlayer videoUrl={runDetail.source_url} className="w-full h-full" />
+            ) : (
+              <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>Video Player</span>
+            )}
           </div>
           {/* scrubber */}
           <div className="px-4 pb-2 flex items-center gap-3">
