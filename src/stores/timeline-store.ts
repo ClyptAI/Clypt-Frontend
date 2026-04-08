@@ -91,8 +91,9 @@ export interface TimelineState {
   isTrackExpanded: (trackId: string) => boolean
 }
 
-const TRACK_HEIGHT_MIN = 40
-const TRACK_HEIGHT_MAX = 200
+export const ZOOM_TO_FIT_PADDING = 100 // px reserved for track headers / UI chrome
+export const TRACK_HEIGHT_MIN = 40  // px
+export const TRACK_HEIGHT_MAX = 200 // px
 const ZOOM_STEP = 1.5
 
 function clamp(value: number, min: number, max: number): number {
@@ -194,7 +195,7 @@ export const useTimelineStore = create<TimelineState>()(
     zoomToFit: (duration: number) => {
       const { viewportWidth } = get()
       if (duration <= 0) return
-      const fittedPps = (viewportWidth - 100) / duration
+      const fittedPps = (viewportWidth - ZOOM_TO_FIT_PADDING) / duration
       set({
         pixelsPerSecond: clamp(fittedPps, ZOOM_PRESETS.MIN, ZOOM_PRESETS.MAX),
         scrollX: 0,
