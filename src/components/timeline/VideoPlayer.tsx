@@ -10,12 +10,12 @@ declare global {
 }
 
 export interface VideoPlayerProps {
-  /** Full YouTube URL, e.g. https://www.youtube.com/watch?v=abc */
+  /** YouTube URL or a local/CDN path e.g. /videos/clip.mp4 */
   videoUrl: string
   className?: string
 }
 
-function extractVideoId(url: string): string | null {
+function extractYouTubeId(url: string): string | null {
   const match =
     url.match(/[?&]v=([^&]+)/) ??
     url.match(/youtu\.be\/([^?]+)/) ??
@@ -23,7 +23,16 @@ function extractVideoId(url: string): string | null {
   return match?.[1] ?? null
 }
 
-// ─── YT API singleton loader ───────────────────────────────────────────────
+function isLocalOrDirectVideo(url: string): boolean {
+  return (
+    url.startsWith('/') ||
+    url.startsWith('./') ||
+    url.startsWith('blob:') ||
+    /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)
+  )
+}
+
+// ─── YT API singleton loader ────────────────────────────────────────────────
 
 let ytApiLoaded = false
 let ytApiReady = false
@@ -44,9 +53,80 @@ function loadYTApi(onReady: () => void) {
   }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────
+// ─── Native <video> player ───────────────────────────────────────────────────
 
-export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
+function NativeVideoPlayer({ videoUrl, className }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const lastSeekRef = useRef<number>(0)
+  const suppressStoreSeekRef = useRef(false)
+
+  const playheadPosition = useTimelineStore(s => s.playheadPosition)
+  const playbackState = useTimelineStore(s => s.playbackState)
+  const seekTo = useTimelineStore(s => s.seekTo)
+  const play = useTimelineStore(s => s.play)
+  const pause = useTimelineStore(s => s.pause)
+
+  // Player events → store
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+
+    const onPlay = () => play()
+    const onPause = () => pause()
+    const onTimeUpdate = () => {
+      const t = v.currentTime
+      lastSeekRef.current = t
+      suppressStoreSeekRef.current = true
+      seekTo(t)
+      // Allow store seek → player after a brief tick
+      setTimeout(() => { suppressStoreSeekRef.current = false }, 50)
+    }
+
+    v.addEventListener('play', onPlay)
+    v.addEventListener('pause', onPause)
+    v.addEventListener('ended', onPause)
+    v.addEventListener('timeupdate', onTimeUpdate)
+    return () => {
+      v.removeEventListener('play', onPlay)
+      v.removeEventListener('pause', onPause)
+      v.removeEventListener('ended', onPause)
+      v.removeEventListener('timeupdate', onTimeUpdate)
+    }
+  }, [play, pause, seekTo])
+
+  // Store playback state → player
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (playbackState === 'playing') v.play().catch(() => {})
+    else v.pause()
+  }, [playbackState])
+
+  // Store seek → player (only explicit seeks, not timeupdate echoes)
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v || suppressStoreSeekRef.current) return
+    const delta = Math.abs(playheadPosition - lastSeekRef.current)
+    if (delta > 1.0) {
+      v.currentTime = playheadPosition
+      lastSeekRef.current = playheadPosition
+    }
+  }, [playheadPosition])
+
+  return (
+    <video
+      ref={videoRef}
+      src={videoUrl}
+      className={className}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+      preload="metadata"
+    />
+  )
+}
+
+// ─── YouTube iframe player ───────────────────────────────────────────────────
+
+function YouTubePlayer({ videoUrl, className }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YT.Player | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -59,7 +139,7 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
   const play = useTimelineStore(s => s.play)
   const pause = useTimelineStore(s => s.pause)
 
-  const videoId = extractVideoId(videoUrl)
+  const videoId = extractYouTubeId(videoUrl)
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
@@ -78,7 +158,6 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
     }, 250)
   }, [seekTo, stopPoll])
 
-  // Init player
   useEffect(() => {
     if (!videoId || !containerRef.current) return
     loadYTApi(() => {
@@ -90,14 +169,12 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
           onReady: () => { isPlayerReady.current = true },
           onStateChange: (event: YT.OnStateChangeEvent) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
-              play()
-              startPoll()
+              play(); startPoll()
             } else if (
               event.data === window.YT.PlayerState.PAUSED ||
               event.data === window.YT.PlayerState.ENDED
             ) {
-              pause()
-              stopPoll()
+              pause(); stopPoll()
             }
           },
         },
@@ -111,19 +188,12 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
     }
   }, [videoId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Store playback state → player
   useEffect(() => {
     if (!isPlayerReady.current || !playerRef.current) return
-    if (playbackState === 'playing') {
-      playerRef.current.playVideo?.()
-      startPoll()
-    } else {
-      playerRef.current.pauseVideo?.()
-      stopPoll()
-    }
+    if (playbackState === 'playing') { playerRef.current.playVideo?.(); startPoll() }
+    else { playerRef.current.pauseVideo?.(); stopPoll() }
   }, [playbackState, startPoll, stopPoll])
 
-  // Store seek → player (only on explicit seeks, not polling ticks)
   useEffect(() => {
     if (!isPlayerReady.current || !playerRef.current) return
     const delta = Math.abs(playheadPosition - lastSeekRef.current)
@@ -133,18 +203,28 @@ export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
     }
   }, [playheadPosition])
 
-  if (!videoId) {
+  return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }} />
+}
+
+// ─── Public component — auto-detects URL type ────────────────────────────────
+
+export function VideoPlayer({ videoUrl, className }: VideoPlayerProps) {
+  if (!videoUrl) {
     return (
       <div
         className={className}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}
       >
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-          Video Player
+          No video
         </span>
       </div>
     )
   }
 
-  return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }} />
+  if (isLocalOrDirectVideo(videoUrl)) {
+    return <NativeVideoPlayer videoUrl={videoUrl} className={className} />
+  }
+
+  return <YouTubePlayer videoUrl={videoUrl} className={className} />
 }

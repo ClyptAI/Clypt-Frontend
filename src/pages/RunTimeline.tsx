@@ -253,6 +253,9 @@ export default function RunTimeline() {
   const { id } = useParams();
   const runId = id || "demo";
 
+  // Demo video — used when no real run is loaded
+  const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
+
   // ── Timeline store ──────────────────────────────────────────────────────────
   const playheadPosition = useTimelineStore(s => s.playheadPosition);
   const seekTo           = useTimelineStore(s => s.seekTo);
@@ -330,7 +333,7 @@ export default function RunTimeline() {
       <RunContextBar
         runId={runId}
         runName={runDetail?.display_name ?? "Loading…"}
-        videoUrl={runDetail?.source_url ?? ""}
+        videoUrl={runDetail?.source_url ?? (runId === "demo" ? "Joe Rogan × Flagrant (demo)" : "")}
         currentPhase={currentPhase}
         completedPhases={completedPhases}
       />
@@ -339,7 +342,7 @@ export default function RunTimeline() {
       <div className="flex items-center gap-4 px-5 flex-shrink-0 border-b" style={{ height: 48, background: "var(--color-surface-1)", borderColor: "var(--color-border)" }}>
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-heading font-semibold text-[14px] truncate" style={{ color: "var(--color-text-primary)", maxWidth: 240 }}>
-            {runDetail?.display_name ?? "Loading…"}
+            {runDetail?.display_name ?? (runId === "demo" ? "Joe Rogan × Flagrant" : "Loading…")}
           </span>
           <span className="font-mono text-[13px] flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>24:31</span>
         </div>
@@ -422,8 +425,8 @@ export default function RunTimeline() {
       >
         <div className="flex flex-col h-full">
           <div className="flex-1 flex items-center justify-center">
-            {runDetail?.source_url ? (
-              <VideoPlayer videoUrl={runDetail.source_url} className="w-full h-full" />
+            {(runDetail?.source_url || runId === "demo") ? (
+              <VideoPlayer videoUrl={runDetail?.source_url ?? DEMO_VIDEO_URL} className="w-full h-full" />
             ) : (
               <span className="font-mono text-[12px]" style={{ color: "var(--color-text-muted)" }}>Video Player</span>
             )}
