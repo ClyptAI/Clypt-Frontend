@@ -1,3 +1,13 @@
+/*
+ * TODO — Grounding page known issues (to fix later):
+ *  1. Internal colored bars (speaker turn segments) do not scale proportionally
+ *     with their outer lane height when dragging the divider.
+ *  2. Clip 008 can still get cut off when dragging the divider up — MIN_VIDEO_H
+ *     does not perfectly match the queue panel's rendered height on all viewports.
+ *  3. Camera intent: only the header row scales with laneH. The content row
+ *     (intent buttons + Follow/Reaction/Split/Wide selectors) does not resize
+ *     proportionally — buttons and selects stay fixed-size.
+ */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
