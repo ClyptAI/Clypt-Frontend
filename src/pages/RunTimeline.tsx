@@ -561,7 +561,7 @@ export default function RunTimeline() {
                 <div className="relative flex items-center gap-0.5 px-1" style={{ width: totalWidth }}>
                   {/* generate word tokens from speaker turns */}
                   {MOCK_SPEAKERS.flatMap((sp) => sp.turns).sort((a, b) => a.start - b.start).slice(0, 60).map((turn, i) => {
-                    const words = turn.transcript.split(" ").slice(0, zoom >= 4 ? 6 : 2);
+                    const words = turn.transcript.split(" ").slice(0, pixelsPerSecond >= 4 * PPS_BASE ? 6 : 2);
                     return words.map((w, wi) => (
                       <div
                         key={`${turn.id}-${wi}`}
