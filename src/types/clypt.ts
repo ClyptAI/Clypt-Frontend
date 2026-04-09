@@ -238,6 +238,7 @@ export interface RunDetail extends RunMeta {
 export interface RunListItem extends RunMeta {
   latest_phase: PhaseNumber
   latest_status: PhaseStatus
+  clip_count: number | null
 }
 
 export interface RenderPreset {

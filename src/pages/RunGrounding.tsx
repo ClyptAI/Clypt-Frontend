@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { TimeRuler } from "@/components/timeline/TimeRuler";
 import { toast } from "sonner";
+import { useClipList } from "@/hooks/api/useClips";
+import { useClipStore } from "@/stores/clip-store";
 
 /* ═══════════════════════════════════════════════════════════
    Types
@@ -72,19 +74,8 @@ interface ShotIntent {
 interface CropPosition { x_percent: number; y_percent: number; height_percent: number }
 
 /* ═══════════════════════════════════════════════════════════
-   Mock data
+   Mock data — per-shot grounding detail (static; no API source)
    ═══════════════════════════════════════════════════════════ */
-
-const QUEUE: QueueClip[] = [
-  { id: "001", label: "Clip 001", timeStart: "0:42", timeEnd: "1:18", duration: "35s", status: "partial", speakers: "3/4", camera: "4/4" },
-  { id: "002", label: "Clip 002", timeStart: "3:22", timeEnd: "4:05", duration: "43s", status: "not_started" },
-  { id: "003", label: "Clip 003", timeStart: "1:50", timeEnd: "2:31", duration: "41s", status: "not_started" },
-  { id: "004", label: "Clip 004", timeStart: "6:10", timeEnd: "6:48", duration: "38s", status: "not_started" },
-  { id: "005", label: "Clip 005", timeStart: "8:05", timeEnd: "8:44", duration: "39s", status: "not_started" },
-  { id: "006", label: "Clip 006", timeStart: "11:22", timeEnd: "12:00", duration: "38s", status: "locked" },
-  { id: "007", label: "Clip 007", timeStart: "14:33", timeEnd: "15:10", duration: "37s", status: "locked" },
-  { id: "008", label: "Clip 008", timeStart: "17:02", timeEnd: "17:38", duration: "36s", status: "locked" },
-];
 
 const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
 const SPEAKER_NAMES: Record<number, string> = { 0: "Speaker_00", 1: "Speaker_01", 2: "Speaker_02" };
@@ -150,6 +141,14 @@ function msToTimestamp(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = (totalSeconds % 60).toFixed(1);
   return `${minutes}:${seconds.padStart(4, "0")}`;
+}
+
+/** Short m:ss formatter used by the queue panel timestamps. */
+function fmtShort(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function computeGroundingProgress(bindings: Record<number, Binding[]>): { grounded: number; total: number } {
@@ -688,9 +687,50 @@ function ActiveShotWorkspace({
 
 export default function RunGrounding() {
   const { id, clipId } = useParams();
-  const [activeClip, setActiveClip] = useState(clipId ?? "001");
+  const runId = id ?? "";
+
+  // Queue is derived from the run's clip candidates, filtered through the
+  // clip-store approval state — only clips the user marked "approved" on the
+  // Clips page flow into grounding. Until the mock list lands we render an
+  // empty panel; the rest of the layout can still boot because `current`
+  // falls back to a stub clip below.
+  const { data: apiClips } = useClipList(runId);
+  const approvalOverrides = useClipStore((s) => s.approvalOverrides);
+
+  const queue = useMemo<QueueClip[]>(() => {
+    if (!apiClips) return [];
+    const approved = apiClips.filter((c) => {
+      if (!c.clip_id) return false;
+      // Default to approved so mock runs show something even before the user
+      // explicitly approves on the Clips page. Once the user rejects a clip
+      // it disappears from grounding; approvals are a no-op.
+      return (approvalOverrides[c.clip_id] ?? "approved") !== "rejected";
+    });
+    return approved.map((c, idx): QueueClip => {
+      const durSec = Math.max(0, Math.round((c.end_ms - c.start_ms) / 1000));
+      return {
+        id: c.clip_id ?? `clip-${idx}`,
+        label: `Clip ${String(idx + 1).padStart(3, "0")}`,
+        timeStart: fmtShort(c.start_ms),
+        timeEnd: fmtShort(c.end_ms),
+        duration: `${durSec}s`,
+        status: "not_started",
+      };
+    });
+  }, [apiClips, approvalOverrides]);
+
+  const [activeClip, setActiveClip] = useState<string>(clipId ?? "");
   const [activeShotIdx, setActiveShotIdx] = useState(1);
   const [cameraOpen, setCameraOpen] = useState(true);
+
+  // Self-heal: if the active clip isn't in the (possibly empty) queue yet,
+  // snap to the first queue entry once it's loaded.
+  useEffect(() => {
+    if (queue.length === 0) return;
+    if (!queue.some((c) => c.id === activeClip)) {
+      setActiveClip(queue[0].id);
+    }
+  }, [queue, activeClip]);
 
   /* Bindings */
   const [bindings, setBindings] = useState<Record<number, Binding[]>>(getInitialBindings);
@@ -724,7 +764,10 @@ export default function RunGrounding() {
   const completedIntents = SHOTS.reduce((a, _, i) => a + (intents[i] && isShotIntentComplete(intents[i]) ? 1 : 0), 0);
   const clipStatus: QueueClip["status"] = progress.grounded === progress.total ? "complete" : progress.grounded > 0 ? "partial" : "not_started";
   const isComplete = clipStatus === "complete";
-  const current = QUEUE.find((c) => c.id === activeClip) ?? QUEUE[0];
+  // Fallback stub keeps the rest of the layout renderable while apiClips is
+  // still loading or the user hasn't approved anything yet.
+  const FALLBACK_CURRENT: QueueClip = { id: "—", label: "Clip —", timeStart: "0:00", timeEnd: "0:00", duration: "0s", status: "not_started" };
+  const current = queue.find((c) => c.id === activeClip) ?? queue[0] ?? FALLBACK_CURRENT;
   const activeShot = SHOTS.find((s) => s.idx === activeShotIdx) ?? SHOTS[0];
   const activeShotIntentIdx = SHOTS.findIndex((s) => s.idx === activeShotIdx);
   const activeShotIntent = intents[activeShotIntentIdx] ?? { intent: "Follow" as IntentType };
@@ -805,8 +848,9 @@ export default function RunGrounding() {
   }, [getPctFromClientX, seekToPct]);
 
   /* Drag divider — same pattern as Timeline: inline window listeners, no useEffect */
-  // Queue needs: header(32) + items(QUEUE.length * 34) + insets(16)
-  const MIN_VIDEO_H = 32 + QUEUE.length * 34 + 16;
+  // Queue needs: header(32) + items(queue.length * 34) + insets(16). Floor to
+  // a sane minimum so the panel has room even when the queue is empty.
+  const MIN_VIDEO_H = 32 + Math.max(1, queue.length) * 34 + 16;
   // Lane counting: tracklet(1) + speakers(activeShot.speakers.length) + transcript(1) + camera header(1) + camera content(1 if open)
   const numLanes = 1 + activeShot.speakers.length + 1 + 1 + (cameraOpen ? 1 : 0);
   const LANE_MIN_H = 24;
@@ -912,11 +956,16 @@ export default function RunGrounding() {
               {/* Header */}
               <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                 <span className="label-caps" style={{ fontSize: 9, color: "var(--color-text-muted)" }}>Queue</span>
-                <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)" }}>{QUEUE.length}</span>
+                <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)" }}>{queue.length}</span>
               </div>
               {/* Items */}
               <div style={{ flex: 1, overflowY: "auto" }}>
-                {QUEUE.map((clip) => {
+                {queue.length === 0 && (
+                  <div style={{ padding: "12px 10px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, color: "var(--color-text-muted)", textAlign: "center" }}>
+                    No approved clips.
+                  </div>
+                )}
+                {queue.map((clip) => {
                   const isActive = clip.id === activeClip;
                   const isLocked = clip.status === "locked";
                   const dStatus: QueueClip["status"] = isActive ? clipStatus : clip.status;

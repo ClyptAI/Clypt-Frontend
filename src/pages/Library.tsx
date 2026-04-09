@@ -17,34 +17,6 @@ interface RunCard {
   phases: ("done" | "active" | "pending" | "failed")[];
 }
 
-const mockRuns: RunCard[] = [
-  {
-    id: "1",
-    title: "Why I Quit My $300K Job to Build a Startup",
-    url: "youtube.com/watch?v=xK3j2...",
-    status: "analyzing",
-    time: "12m ago",
-    phases: ["done", "done", "done", "active", "pending", "pending"],
-  },
-  {
-    id: "2",
-    title: "The Psychology of Viral Thumbnails — Full Breakdown",
-    url: "youtube.com/watch?v=7fRq4...",
-    status: "complete",
-    clipCount: 4,
-    time: "2h ago",
-    phases: ["done", "done", "done", "done", "done", "done"],
-  },
-  {
-    id: "3",
-    title: "How MrBeast Engineers Retention (and What You Can Steal)",
-    url: "youtube.com/watch?v=aB3nQ...",
-    status: "grounding",
-    time: "5h ago",
-    phases: ["done", "done", "done", "done", "done", "pending"],
-  },
-];
-
 const mockClips = Array.from({ length: 6 }, (_, i) => ({
   id: String(i + 1),
   title: [
@@ -75,15 +47,17 @@ function adaptRunListItem(r: RunListItem): RunCard {
     failed: "failed",
     pending: "analyzing",
   };
+  const isComplete = r.latest_status === "completed" && r.latest_phase >= 6;
   return {
     id: r.run_id,
     title: r.display_name ?? r.source_url ?? "Untitled run",
     url: r.source_url ?? "",
     status: statusMap[r.latest_status] ?? "analyzing",
-    clipCount: undefined,
+    clipCount: r.clip_count ?? undefined,
     time: formatRelativeTime(r.created_at),
     phases: Array.from({ length: 6 }, (_, i) => {
       const phaseNum = i + 1;
+      if (isComplete) return "done" as const;
       if (phaseNum < r.latest_phase) return "done" as const;
       if (phaseNum === r.latest_phase)
         return r.latest_status === "failed" ? "failed" as const : "active" as const;
@@ -198,7 +172,7 @@ function RunsTab({
         {runs.map((run) => (
           <div
             key={run.id}
-            onClick={() => navigate("/runs/demo")}
+            onClick={() => navigate(`/runs/${run.id}`)}
             className="group rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-col cursor-pointer hover:border-[var(--color-violet)] transition-colors"
           >
             {/* Thumbnail */}
@@ -311,7 +285,7 @@ function ClipsTab() {
 export default function Library() {
   const navigate = useNavigate();
   const { data: apiRuns, isLoading, isError } = useRunList();
-  const runs = apiRuns ? apiRuns.map(adaptRunListItem) : mockRuns;
+  const runs = apiRuns?.map(adaptRunListItem) ?? [];
   const isClips = location.pathname === "/library/clips";
 
   return (

@@ -21,12 +21,34 @@ const lineContainer = (delay: number) => ({
   visible: { transition: { staggerChildren: 0.06, delayChildren: delay } },
 });
 
+/* ── Node type → color + short display label ── */
+const nodeColors: Record<string, string> = {
+  claim: "#A78BFA",
+  qa_exchange: "#38BDF8",
+  setup_payoff: "#E879F9",
+  anecdote: "#F0A64A",
+  reaction_beat: "#4ADE80",
+  explanation: "#7DD3FC",
+  example: "#FBBF24",
+};
+
+const nodeDisplay: Record<string, string> = {
+  claim: "claim",
+  qa_exchange: "Q&A",
+  setup_payoff: "payoff",
+  anecdote: "anecdote",
+  reaction_beat: "reaction",
+  explanation: "explain",
+  example: "example",
+};
+
 /* ── Floating clip cards data ── */
+/* Each card is a CLIP composed of multiple semantic nodes.
+   `nodes` lists the node types that make up the clip. */
 const clipCards = [
   {
     gradient: "linear-gradient(160deg, #1a1035 0%, #0d0d14 40%, #1a1520 100%)",
-    dotColor: "#E879F9",
-    label: "setup_payoff",
+    nodes: ["setup_payoff", "reaction_beat"],
     title: "The moment before the pivot",
     time: "1:24",
     position: { left: "12%", top: "10%" } as React.CSSProperties,
@@ -40,8 +62,7 @@ const clipCards = [
   },
   {
     gradient: "linear-gradient(160deg, #0a1a1a 0%, #0d1410 40%, #0a0909 100%)",
-    dotColor: "#4ADE80",
-    label: "reaction_beat",
+    nodes: ["reaction_beat", "qa_exchange"],
     title: "The audience didn't see it coming",
     time: "0:38",
     position: { left: "11%", top: "57%" } as React.CSSProperties,
@@ -55,8 +76,7 @@ const clipCards = [
   },
   {
     gradient: "linear-gradient(160deg, #1a1008 0%, #1a0d0d 40%, #100a14 100%)",
-    dotColor: "#A78BFA",
-    label: "claim",
+    nodes: ["claim", "explanation"],
     title: "Why this always works",
     time: "8:42",
     position: { right: "12%", top: "9%" } as React.CSSProperties,
@@ -70,8 +90,7 @@ const clipCards = [
   },
   {
     gradient: "linear-gradient(160deg, #0a1a1a 0%, #091018 40%, #080c12 100%)",
-    dotColor: "#38BDF8",
-    label: "qa_exchange",
+    nodes: ["qa_exchange", "anecdote"],
     title: "The follow-up no one asked",
     time: "2:05",
     position: { right: "11%", top: "54%" } as React.CSSProperties,
@@ -88,6 +107,7 @@ const clipCards = [
 function FloatingCard({ card }: { card: typeof clipCards[0] }) {
   const [entered, setEntered] = useState(false);
   const springX = useSpring(0, { stiffness: 60, damping: 20 });
+  const accentColor = nodeColors[card.nodes[0]] ?? "#A78BFA";
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -130,7 +150,7 @@ function FloatingCard({ card }: { card: typeof clipCards[0] }) {
       onAnimationComplete={() => {
         if (!entered) setEntered(true);
       }}
-      whileHover={{ scale: 1.04, borderColor: `${card.dotColor}80` }}
+      whileHover={{ scale: 1.04, borderColor: `${accentColor}80` }}
     >
       {/* Timestamp */}
       <div
@@ -162,21 +182,34 @@ function FloatingCard({ card }: { card: typeof clipCards[0] }) {
         }}
       />
 
-      {/* Node chip */}
+      {/* Node chips — the nodes that compose this clip */}
       <div
         style={{
           position: "absolute",
           left: 8,
+          right: 8,
           bottom: 36,
           display: "flex",
           alignItems: "center",
-          gap: 4,
+          flexWrap: "wrap",
+          gap: 6,
         }}
       >
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: card.dotColor }} />
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.6)" }}>
-          {card.label}
-        </span>
+        {card.nodes.map((n, ni) => (
+          <div key={ni} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: nodeColors[n] ?? "#A78BFA",
+              }}
+            />
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 8, color: "rgba(255,255,255,0.6)" }}>
+              {nodeDisplay[n] ?? n}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Caption */}

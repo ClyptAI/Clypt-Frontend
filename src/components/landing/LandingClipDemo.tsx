@@ -38,7 +38,7 @@ export default function LandingClipDemo() {
               gap: 14,
             }}
           >
-            {/* Chip 1 — type label */}
+            {/* Chip 1 — clip composition (multiple nodes → one clip) */}
             <div
               style={{
                 fontFamily: "'Geist Mono', monospace",
@@ -51,7 +51,7 @@ export default function LandingClipDemo() {
                 whiteSpace: "nowrap",
               }}
             >
-              CLAIM · node_042
+              CLIP · 3 nodes
             </div>
 
             {/* Chip 2 — speaker */}
@@ -272,22 +272,50 @@ export default function LandingClipDemo() {
               </span>
             </div>
 
-            {/* Type chip */}
+            {/* Node chips — the semantic nodes that compose this clip */}
             <div
               style={{
                 position: "absolute",
                 left: 10,
+                right: 10,
                 bottom: 68,
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 9,
-                background: "rgba(167,139,250,0.2)",
-                border: "1px solid rgba(167,139,250,0.4)",
-                color: "#C4B5FD",
-                padding: "2px 6px",
-                borderRadius: 3,
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 4,
               }}
             >
-              claim
+              {[
+                { label: "claim", color: "#A78BFA" },
+                { label: "explain", color: "#7DD3FC" },
+                { label: "example", color: "#4ADE80" },
+              ].map((n, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: 8,
+                    color: "rgba(255,255,255,0.75)",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    padding: "2px 5px",
+                    borderRadius: 3,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      background: n.color,
+                    }}
+                  />
+                  {n.label}
+                </div>
+              ))}
             </div>
 
             {/* Title */}

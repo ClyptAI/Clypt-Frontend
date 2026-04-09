@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import RunContextBar from "@/components/app/RunContextBar";
 import { Bookmark, X, ChevronRight, RotateCcw, Loader2 } from "lucide-react";
 import { useClipList, useApproveClip, useRejectClip } from "@/hooks/api/useClips";
+import { useNodeList } from "@/hooks/api/useNodes";
+import { useRunDetail } from "@/hooks/api/useRuns";
 import { useClipStore } from "@/stores/clip-store";
-import type { ClipCandidate } from "@/types/clypt";
+import { ClipBoundaryEditor } from "@/components/app/ClipBoundaryEditor";
+import type { ClipCandidate, NodeType } from "@/types/clypt";
 
 /* ── Colors ── */
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -14,11 +17,15 @@ const NODE_TYPE_COLORS: Record<string, string> = {
   setup_payoff: "#E879F9", reveal: "#FACC15", transition: "#71717A",
 };
 
-/* ── Mock data ── */
+/* ── View model shape ── */
+// Internal shape the list/detail components consume. We adapt ClipCandidate ->
+// ClipData in one spot so the UI doesn't have to know about the wire format.
 interface ClipData {
   id: string;
   rank: number;
   score: number;
+  startMs: number;
+  endMs: number;
   timeStart: string;
   timeEnd: string;
   duration: string;
@@ -33,17 +40,6 @@ interface ClipData {
   subgraphNodes: number;
 }
 
-const CLIPS: ClipData[] = [
-  { id: "001", rank: 1, score: 8.4, timeStart: "0:42", timeEnd: "1:18", duration: "35s", nodeTypes: ["setup_payoff", "reaction_beat"], source: "meta_prompt_1", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 8.7 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 7.9 }, { label: "Editorial usability", value: 8.1 }, { label: "Confidence", value: 8.3 }], rationale: "Strong hook-to-payoff arc with audience laughter at the peak.", seedNode: "node_007", subgraph: "sg_014", subgraphNodes: 10 },
-  { id: "002", rank: 2, score: 8.1, timeStart: "3:22", timeEnd: "4:05", duration: "43s", nodeTypes: ["qa_exchange", "reveal"], source: "comment_cluster", queryAligned: true, pinned: false, scores: [{ label: "Overall clip quality", value: 8.0 }, { label: "Query alignment", value: 8.5 }, { label: "Novelty within run", value: 7.6 }, { label: "Editorial usability", value: 8.2 }, { label: "Confidence", value: 7.9 }], rationale: "Direct answer to query with a surprising reveal that creates a natural clip boundary.", seedNode: "node_012", subgraph: "sg_018", subgraphNodes: 8 },
-  { id: "003", rank: 3, score: 7.9, timeStart: "1:50", timeEnd: "2:31", duration: "41s", nodeTypes: ["challenge_exchange", "claim"], source: "meta_prompt_2", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 8.2 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 7.5 }, { label: "Editorial usability", value: 7.8 }, { label: "Confidence", value: 8.0 }], rationale: "High-tension pushback moment with clear rhetorical structure.", seedNode: "node_004", subgraph: "sg_009", subgraphNodes: 7 },
-  { id: "004", rank: 4, score: 7.6, timeStart: "6:10", timeEnd: "6:48", duration: "38s", nodeTypes: ["anecdote", "reaction_beat"], source: "retention_cluster", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 7.4 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 7.8 }, { label: "Editorial usability", value: 7.5 }, { label: "Confidence", value: 7.7 }], rationale: "Personal story lands with genuine emotional reaction from the host.", seedNode: "node_021", subgraph: "sg_025", subgraphNodes: 6 },
-  { id: "005", rank: 5, score: 7.3, timeStart: "8:05", timeEnd: "8:44", duration: "39s", nodeTypes: ["setup_payoff", "explanation"], source: "meta_prompt_3", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 7.5 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 7.0 }, { label: "Editorial usability", value: 7.2 }, { label: "Confidence", value: 7.4 }], rationale: "Clean setup with a technical explanation payoff — good educational clip.", seedNode: "node_028", subgraph: "sg_031", subgraphNodes: 9 },
-  { id: "006", rank: 6, score: 7.0, timeStart: "11:22", timeEnd: "12:00", duration: "38s", nodeTypes: ["reveal", "claim"], source: "meta_prompt_1", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 7.1 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 6.8 }, { label: "Editorial usability", value: 7.0 }, { label: "Confidence", value: 7.2 }], rationale: "Surprise reveal followed by a bold claim — strong standalone moment.", seedNode: "node_035", subgraph: "sg_038", subgraphNodes: 5 },
-  { id: "007", rank: 7, score: 6.8, timeStart: "14:33", timeEnd: "15:10", duration: "37s", nodeTypes: ["qa_exchange", "example"], source: "comment_cluster", queryAligned: true, pinned: false, scores: [{ label: "Overall clip quality", value: 6.9 }, { label: "Query alignment", value: 7.2 }, { label: "Novelty within run", value: 6.5 }, { label: "Editorial usability", value: 6.7 }, { label: "Confidence", value: 6.8 }], rationale: "Addresses the query with a concrete example — slightly lower energy than top clips.", seedNode: "node_042", subgraph: "sg_045", subgraphNodes: 6 },
-  { id: "008", rank: 8, score: 6.5, timeStart: "17:02", timeEnd: "17:38", duration: "36s", nodeTypes: ["transition", "explanation"], source: "meta_prompt_4", queryAligned: false, pinned: false, scores: [{ label: "Overall clip quality", value: 6.6 }, { label: "Query alignment", value: 0 }, { label: "Novelty within run", value: 6.3 }, { label: "Editorial usability", value: 6.4 }, { label: "Confidence", value: 6.5 }], rationale: "Solid transition into a new topic with useful context — works as a segment opener.", seedNode: "node_050", subgraph: "sg_052", subgraphNodes: 4 },
-];
-
 /* ── Helpers ── */
 function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -51,18 +47,35 @@ function fmtTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function adaptApiClip(c: ClipCandidate, idx: number): ClipData {
+function adaptApiClip(
+  c: ClipCandidate,
+  idx: number,
+  nodeTypeByNodeId: Record<string, NodeType>,
+): ClipData {
   const startSec = c.start_ms / 1000;
   const endSec = c.end_ms / 1000;
   const durationSec = Math.round(endSec - startSec);
+  // Derive chip labels from the actual nodes the clip spans. Dedupe while
+  // preserving order so the first-seen type shows up leftmost.
+  const seen = new Set<string>();
+  const nodeTypes: string[] = [];
+  for (const nodeId of c.node_ids) {
+    const t = nodeTypeByNodeId[nodeId];
+    if (t && !seen.has(t)) {
+      seen.add(t);
+      nodeTypes.push(t);
+    }
+  }
   return {
     id: c.clip_id ?? `clip-${idx}`,
     rank: c.pool_rank ?? idx + 1,
     score: c.score,
+    startMs: c.start_ms,
+    endMs: c.end_ms,
     timeStart: fmtTime(startSec),
     timeEnd: fmtTime(endSec),
     duration: `${durationSec}s`,
-    nodeTypes: [],
+    nodeTypes,
     source: c.source_prompt_ids[0] ?? "unknown",
     queryAligned: c.query_aligned ?? false,
     pinned: false,
@@ -179,10 +192,7 @@ function ClipCard({ clip, selected, onSelect, onPin, onReject }: { clip: ClipDat
 }
 
 /* ── Detail Panel ── */
-function ClipDetail({ clip, onPin, onReject, onApprove, approving }: { clip: ClipData; onPin: () => void; onReject: () => void; onApprove: () => void; approving: boolean }) {
-  const [start, setStart] = useState(clip.timeStart);
-  const [end, setEnd] = useState(clip.timeEnd);
-
+function ClipDetail({ clip, onPin, onReject, onApprove, approving, onBoundaryChange }: { clip: ClipData; onPin: () => void; onReject: () => void; onApprove: () => void; approving: boolean; onBoundaryChange: (clipId: string, startMs: number, endMs: number) => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -260,26 +270,16 @@ function ClipDetail({ clip, onPin, onReject, onApprove, approving }: { clip: Cli
           </span>
         </div>
 
-        {/* Clip boundaries */}
+        {/* Clip boundaries — basic editor with video preview + drag handles */}
         <div>
           <span className="label-caps" style={{ display: "block", marginBottom: 8 }}>Clip boundaries</span>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 16 }}>
-            {[{ label: "Start", value: start, set: setStart }, { label: "End", value: end, set: setEnd }].map((f) => (
-              <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-muted)" }}>{f.label}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <button style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, padding: "2px 6px", borderRadius: 3, border: "none", background: "transparent", color: "var(--color-text-muted)", cursor: "pointer" }}>−1s</button>
-                  <input
-                    value={f.value}
-                    onChange={(e) => f.set(e.target.value)}
-                    style={{ width: 90, fontFamily: "'Geist Mono', monospace", fontSize: 14, color: "var(--color-text-primary)", background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: 4, padding: "6px 10px" }}
-                  />
-                  <button style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, padding: "2px 6px", borderRadius: 3, border: "none", background: "transparent", color: "var(--color-text-muted)", cursor: "pointer" }}>+1s</button>
-                </div>
-              </div>
-            ))}
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, color: "var(--color-text-muted)", paddingBottom: 8 }}>{clip.duration}</span>
-          </div>
+          <ClipBoundaryEditor
+            // key forces a fresh editor per clip selection so internal seed state resets
+            key={clip.id}
+            initialStartMs={clip.startMs}
+            initialEndMs={clip.endMs}
+            onBoundaryChange={(s, e) => onBoundaryChange(clip.id, s, e)}
+          />
         </div>
 
         {/* Similar clips */}
@@ -318,19 +318,59 @@ export default function RunClips() {
   const runId = id ?? "demo";
 
   const { data: apiClips, isLoading } = useClipList(runId);
+  const { data: runDetail } = useRunDetail(runId);
+  const { data: apiNodes } = useNodeList(runId);
   const { approveClip, rejectClip, resetApproval, setActiveClipId } = useClipStore();
   const approveMutation = useApproveClip(runId);
   const rejectMutation = useRejectClip(runId);
 
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState<string>(CLIPS[0].id);
+  const [selectedId, setSelectedId] = useState<string>("");
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   const [rejectedOpen, setRejectedOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"score" | "duration" | "earliest">("score");
   const [sortOpen, setSortOpen] = useState(false);
+  // User-edited clip boundaries keyed by clip id. An empty map means "use the
+  // values from the wire response" — we only write here when the user has
+  // actually dragged something in the ClipBoundaryEditor.
+  const [boundaryOverrides, setBoundaryOverrides] = useState<
+    Record<string, { startMs: number; endMs: number }>
+  >({});
 
-  const baseClips = apiClips ? apiClips.map(adaptApiClip) : CLIPS;
-  const clips = baseClips.map((c) => ({ ...c, pinned: pinnedIds.has(c.id) }));
+  // Lookup table so adaptApiClip can turn node_ids into chip labels.
+  const nodeTypeByNodeId: Record<string, NodeType> = {};
+  for (const n of apiNodes ?? []) nodeTypeByNodeId[n.node_id] = n.node_type;
+
+  const baseClips = (apiClips ?? []).map((c, i) => adaptApiClip(c, i, nodeTypeByNodeId));
+  const clips = baseClips.map((c) => {
+    const override = boundaryOverrides[c.id];
+    if (!override) return { ...c, pinned: pinnedIds.has(c.id) };
+    // Re-derive the human-readable timecodes and duration from the user's
+    // edited range so the list + detail panel stay consistent.
+    const startSec = override.startMs / 1000;
+    const endSec = override.endMs / 1000;
+    return {
+      ...c,
+      pinned: pinnedIds.has(c.id),
+      startMs: override.startMs,
+      endMs: override.endMs,
+      timeStart: fmtTime(startSec),
+      timeEnd: fmtTime(endSec),
+      duration: `${Math.max(0, Math.round(endSec - startSec))}s`,
+    };
+  });
+
+  // Once clips load, lock selection to the first non-rejected clip. Also
+  // self-heal if the currently-selected clip disappears (e.g. after a refetch
+  // removed it) — fall back to the first available.
+  useEffect(() => {
+    if (clips.length === 0) return;
+    const stillValid = clips.some((c) => c.id === selectedId && !rejectedIds.has(c.id));
+    if (!stillValid) {
+      const firstActive = clips.find((c) => !rejectedIds.has(c.id));
+      if (firstActive) setSelectedId(firstActive.id);
+    }
+  }, [clips, rejectedIds, selectedId]);
 
   const activeClips = clips.filter((c) => !rejectedIds.has(c.id));
   const rejectedClips = clips.filter((c) => rejectedIds.has(c.id));
@@ -367,14 +407,26 @@ export default function RunClips() {
     });
   };
 
+  const handleBoundaryChange = (cid: string, startMs: number, endMs: number) => {
+    setBoundaryOverrides((prev) => ({ ...prev, [cid]: { startMs, endMs } }));
+  };
+
+  // Find the live phase for the header — prefer running, then first pending,
+  // fall back to the last phase so a completed run shows "Complete".
+  const runningPhase = runDetail?.phases.find((p) => p.status === "running");
+  const pendingPhase = runDetail?.phases.find((p) => p.status === "pending");
+  const lastPhase = runDetail?.phases[runDetail.phases.length - 1];
+  const headerPhase = runningPhase ?? pendingPhase ?? lastPhase;
+  const completedCount = runDetail?.phases.filter((p) => p.status === "completed").length ?? 0;
+
   return (
     <div className="flex flex-col" style={{ height: "100vh" }}>
       <RunContextBar
         runId={runId}
-        runName="Lex ep. 412 — Sam Altman"
-        videoUrl="youtube.com/watch?v=abc123"
-        currentPhase={5}
-        completedPhases={4}
+        runName={runDetail?.display_name ?? runDetail?.source_url ?? "Run"}
+        videoUrl={runDetail?.source_url ?? ""}
+        currentPhase={headerPhase?.phase ?? 6}
+        completedPhases={completedCount}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -437,7 +489,16 @@ export default function RunClips() {
 
         {/* Right panel */}
         <div style={{ flex: 1, overflowY: "hidden", background: "var(--color-bg)", display: "flex", flexDirection: "column" }}>
-          {selected && <ClipDetail clip={selected} onPin={() => togglePin(selected.id)} onReject={() => reject(selected.id)} onApprove={() => handleApprove(selected.id)} approving={approveMutation.isPending} />}
+          {selected && (
+            <ClipDetail
+              clip={selected}
+              onPin={() => togglePin(selected.id)}
+              onReject={() => reject(selected.id)}
+              onApprove={() => handleApprove(selected.id)}
+              approving={approveMutation.isPending}
+              onBoundaryChange={handleBoundaryChange}
+            />
+          )}
         </div>
       </div>
     </div>
