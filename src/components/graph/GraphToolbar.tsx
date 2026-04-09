@@ -118,6 +118,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 20,
+        pointerEvents: "auto",
         background: "var(--color-surface-1)",
         border: "1px solid var(--color-border)",
         borderRadius: 8,
@@ -126,7 +127,6 @@ export default function GraphToolbar(props: GraphToolbarProps) {
         flexWrap: "nowrap",
         alignItems: "center",
         gap: 6,
-        overflowX: "auto",
       }}
     >
       {/* G1 — Node type filter */}
@@ -141,7 +141,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
             style={{
               position: "absolute",
               top: "calc(100% + 6px)",
-              left: 0,
+              left: -10,
               background: "var(--color-surface-2)",
               border: "1px solid var(--color-border)",
               borderRadius: 8,
@@ -172,7 +172,7 @@ export default function GraphToolbar(props: GraphToolbarProps) {
                   <span style={{ width: 10, height: 10, borderRadius: "50%", background: t.color, flexShrink: 0 }} />
                   <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 13, color: "var(--color-text-primary)" }}>{t.label}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)" }}>{props.typeCounts[t.key] ?? 0}</span>
                   <Checkbox
                     checked={props.activeTypes.has(t.key)}

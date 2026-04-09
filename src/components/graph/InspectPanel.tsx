@@ -332,6 +332,7 @@ export default function InspectPanel(props: InspectPanelProps) {
         bottom: 0,
         width: 360,
         zIndex: 30,
+        pointerEvents: "auto",
         background: "var(--color-surface-1)",
         borderLeft: "1px solid var(--color-border)",
         overflowY: "auto",
