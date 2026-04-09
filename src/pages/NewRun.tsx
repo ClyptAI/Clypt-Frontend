@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,19 @@ const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be
 
 type Quality = "fast" | "balanced" | "high";
 
+interface NewRunLocationState {
+  url?: string;
+}
+
 export default function NewRun() {
   const navigate = useNavigate();
+  const location = useLocation();
   const createRun = useCreateRun();
 
-  const [url, setUrl] = useState("");
+  // Let callers (e.g., the onboarding "Analyze" step) prefill the URL via
+  // router state so the first run kicks off without retyping.
+  const prefilledUrl = (location.state as NewRunLocationState | null)?.url ?? "";
+  const [url, setUrl] = useState(prefilledUrl);
   const [urlTouched, setUrlTouched] = useState(false);
   const [runName, setRunName] = useState("");
   const [runNameTouched, setRunNameTouched] = useState(false);
@@ -55,6 +63,16 @@ export default function NewRun() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, runNameTouched]);
+
+  // If the URL came in via router state, treat it as already "touched" so the
+  // preview/validation renders immediately without waiting for a blur event.
+  useEffect(() => {
+    if (prefilledUrl && YOUTUBE_REGEX.test(prefilledUrl.trim())) {
+      setUrlTouched(true);
+      fetchVideoMeta(prefilledUrl.trim());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledUrl]);
 
   const handleSubmit = () => {
     if (!isValid || createRun.isPending) return;

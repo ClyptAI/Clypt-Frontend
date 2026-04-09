@@ -5,33 +5,51 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const signalColors: Record<string, string> = {
   claim: "#A78BFA",
-  "q&a": "#60A5FA",
   qa_exchange: "#60A5FA",
-  setup: "#FBB249",
   setup_payoff: "#FBB249",
-  anecdote: "#FBB249",
-  challenge: "#F87171",
-  challenge_exchange: "#F87171",
+  anecdote: "#F0A64A",
+  reaction_beat: "#F87171",
+  explanation: "#7DD3FC",
+  example: "#4ADE80",
 };
 
-const cards = [
+const nodeDisplay: Record<string, string> = {
+  claim: "claim",
+  qa_exchange: "Q&A",
+  setup_payoff: "payoff",
+  anecdote: "anecdote",
+  reaction_beat: "reaction",
+  explanation: "explain",
+  example: "example",
+};
+
+type Card = {
+  gradient: string;
+  nodes: string[];
+  time: string;
+  title: string;
+  duration: string;
+  featured?: boolean;
+};
+
+const cards: Card[] = [
   {
     gradient: "linear-gradient(170deg, #12091f 0%, #0a0a14 50%, #14090c 100%)",
-    nodeLabel: "claim",
+    nodes: ["claim", "explanation"],
     time: "0:18",
     title: "Why most editing tools get this wrong",
     duration: "22s",
   },
   {
     gradient: "linear-gradient(170deg, #0f1a10 0%, #090f0a 50%, #0c0c0a 100%)",
-    nodeLabel: "q&a",
+    nodes: ["qa_exchange", "reaction_beat"],
     time: "1:42",
     title: "The audience question that changed everything",
     duration: "18s",
   },
   {
     gradient: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
-    nodeLabel: "setup",
+    nodes: ["setup_payoff", "reaction_beat"],
     time: "3:05",
     title: "Building tension before the reveal moment",
     duration: "31s",
@@ -39,14 +57,14 @@ const cards = [
   },
   {
     gradient: "linear-gradient(170deg, #1a1000 0%, #0f0c00 50%, #0a0908 100%)",
-    nodeLabel: "anecdote",
+    nodes: ["anecdote", "claim"],
     time: "4:28",
     title: "The story behind the original concept",
     duration: "26s",
   },
   {
     gradient: "linear-gradient(170deg, #1a0a00 0%, #100800 50%, #0c0806 100%)",
-    nodeLabel: "challenge",
+    nodes: ["claim", "example"],
     time: "5:51",
     title: "Pushing back on conventional wisdom",
     duration: "14s",
@@ -136,21 +154,21 @@ const ClipShowcase = () => {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease }}
         >
-          Clips that{" "}
+          Clips{" "}
           <span style={{ color: "#A78BFA", filter: "drop-shadow(0 0 20px rgba(167,139,250,0.5))" }}>
-            stand
+            composed
           </span>{" "}
-          alone.
+          from meaning.
         </motion.h2>
         <motion.p
           className="font-sans mx-auto"
-          style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", maxWidth: 480, marginTop: 12 }}
+          style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", maxWidth: 520, marginTop: 12 }}
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease, delay: 0.1 }}
         >
-          Every output is fully grounded — speaker-assigned, framed, and render-planned.
+          Every clip is stitched together from the semantic nodes that carry its meaning — grounded, framed, and render-planned.
         </motion.p>
       </div>
 
@@ -166,7 +184,6 @@ const ClipShowcase = () => {
           const isHovered = hoveredCard === i;
           const someHovered = hoveredCard !== null;
           const orderIdx = staggerOrder.indexOf(i);
-          const dotColor = signalColors[card.nodeLabel] || "#A78BFA";
 
           return (
             <motion.div
@@ -233,9 +250,9 @@ const ClipShowcase = () => {
                 style={{ height: "50%", background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)" }}
               />
 
-              {/* Signal tag */}
+              {/* Composition tag — node chips + clip title */}
               <div
-                className="absolute bottom-2 left-2 right-2 flex flex-col gap-1"
+                className="absolute bottom-2 left-2 right-2 flex flex-col gap-1.5"
                 style={{
                   background: "rgba(0,0,0,0.7)",
                   backdropFilter: "blur(4px)",
@@ -244,13 +261,24 @@ const ClipShowcase = () => {
                   padding: "6px 10px",
                 }}
               >
-                <div className="flex items-center gap-1.5">
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor }} />
-                  <span className="font-mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>
-                    {card.nodeLabel}
-                  </span>
+                <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                  {card.nodes.map((n, ni) => (
+                    <div key={ni} className="flex items-center gap-1">
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: signalColors[n] || "#A78BFA",
+                        }}
+                      />
+                      <span className="font-mono" style={{ fontSize: 9, color: "rgba(255,255,255,0.7)" }}>
+                        {nodeDisplay[n] ?? n}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <span className="font-sans font-medium" style={{ fontSize: 12, color: "#fff" }}>
+                <span className="font-sans font-medium" style={{ fontSize: 12, color: "#fff", lineHeight: 1.25 }}>
                   {card.title}
                 </span>
               </div>

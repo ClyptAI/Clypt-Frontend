@@ -1,25 +1,23 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingLayout from "@/components/onboarding/OnboardingLayout";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { useOnboardingStore, type Framing, type Quality } from "@/stores/onboarding-store";
 
 const platforms = ["TikTok", "Reels", "Shorts", "LinkedIn"];
-const framingOptions = ["Single presenter follow", "Shared frame (2-shot)", "Mixed (decide per shot)"];
-const qualityOptions = ["Fast draft", "Balanced", "High quality"];
+const framingOptions: Framing[] = ["Single presenter follow", "Shared frame (2-shot)", "Mixed (decide per shot)"];
+const qualityOptions: Quality[] = ["Fast draft", "Balanced", "High quality"];
 
 const OnboardPreferences = () => {
   const navigate = useNavigate();
-  const [duration, setDuration] = useState([30, 90]);
-  const [activePlatforms, setActivePlatforms] = useState<string[]>(["TikTok", "Shorts"]);
-  const [framing, setFraming] = useState("Single presenter follow");
-  const [quality, setQuality] = useState("Balanced");
-
-  const togglePlatform = (p: string) => {
-    setActivePlatforms((prev) =>
-      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
-    );
-  };
+  const duration = useOnboardingStore((s) => s.durationRange);
+  const activePlatforms = useOnboardingStore((s) => s.platforms);
+  const framing = useOnboardingStore((s) => s.framing);
+  const quality = useOnboardingStore((s) => s.quality);
+  const setDurationRange = useOnboardingStore((s) => s.setDurationRange);
+  const togglePlatform = useOnboardingStore((s) => s.togglePlatform);
+  const setFraming = useOnboardingStore((s) => s.setFraming);
+  const setQuality = useOnboardingStore((s) => s.setQuality);
 
   return (
     <OnboardingLayout currentStep={4}>
@@ -41,7 +39,7 @@ const OnboardPreferences = () => {
             max={180}
             step={5}
             value={duration}
-            onValueChange={setDuration}
+            onValueChange={(v) => setDurationRange([v[0], v[1]] as [number, number])}
             className="mt-1"
           />
           <div className="flex justify-between">

@@ -1,15 +1,18 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingLayout from "@/components/onboarding/OnboardingLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const OnboardChannel = () => {
   const navigate = useNavigate();
-  const [channelUrl, setChannelUrl] = useState("");
-  const [singleVideo, setSingleVideo] = useState(false);
-  const [videoUrl, setVideoUrl] = useState("");
+  const channelUrl = useOnboardingStore((s) => s.channelUrl);
+  const singleVideo = useOnboardingStore((s) => s.singleVideoMode);
+  const videoUrl = useOnboardingStore((s) => s.videoUrl);
+  const setChannelUrl = useOnboardingStore((s) => s.setChannelUrl);
+  const setSingleVideo = useOnboardingStore((s) => s.setSingleVideoMode);
+  const setVideoUrl = useOnboardingStore((s) => s.setVideoUrl);
 
   const isEmpty = singleVideo ? !videoUrl.trim() : !channelUrl.trim();
 

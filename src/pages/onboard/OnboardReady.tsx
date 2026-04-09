@@ -1,8 +1,29 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import OnboardingLayout from "@/components/onboarding/OnboardingLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const OnboardReady = () => {
+  const navigate = useNavigate();
+  const prefilled = useOnboardingStore((s) =>
+    s.singleVideoMode ? s.videoUrl : s.channelUrl,
+  );
+  const markComplete = useOnboardingStore((s) => s.markComplete);
+
+  const [url, setUrl] = useState(prefilled);
+
+  const handleAnalyze = () => {
+    markComplete();
+    navigate("/runs/new", { state: { url: url.trim() } });
+  };
+
+  const handleBrowse = () => {
+    markComplete();
+    navigate("/library");
+  };
+
   return (
     <OnboardingLayout currentStep={6}>
       <div className="flex flex-col items-center text-center">
@@ -25,14 +46,25 @@ const OnboardReady = () => {
         <Input
           className="h-[52px] text-[15px] flex-1"
           placeholder="youtube.com/watch?v=..."
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && url.trim()) handleAnalyze();
+          }}
         />
-        <Button className="h-[52px] px-7 flex-shrink-0">
+        <Button
+          className="h-[52px] px-7 flex-shrink-0"
+          onClick={handleAnalyze}
+          disabled={!url.trim()}
+          style={{ opacity: url.trim() ? 1 : 0.4, cursor: url.trim() ? "pointer" : "not-allowed" }}
+        >
           Analyze →
         </Button>
       </div>
 
       <p className="text-center">
         <button
+          onClick={handleBrowse}
           className="font-sans text-[var(--color-text-muted)] hover:underline bg-transparent border-none cursor-pointer"
           style={{ fontSize: 14 }}
         >
