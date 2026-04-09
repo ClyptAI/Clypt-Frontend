@@ -17,6 +17,7 @@ const RUN_TABS = [
   { label: "Overview",        path: ""           },
   { label: "Timeline",        path: "/timeline"  },
   { label: "Cortex Graph",    path: "/graph"     },
+  { label: "Embeds",          path: "/embeds"    },
   { label: "Clip Candidates", path: "/clips"     },
   { label: "Grounding",       path: "/grounding" },
   { label: "Render",          path: "/render"    },

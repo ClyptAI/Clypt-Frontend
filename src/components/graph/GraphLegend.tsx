@@ -26,9 +26,10 @@ export default function GraphLegend({ typeCounts }: GraphLegendProps) {
     <div
       style={{
         position: "absolute",
-        bottom: 72,
-        left: 16,
+        bottom: 100,
+        left: 12,
         zIndex: 20,
+        pointerEvents: "auto",
         background: "var(--color-surface-1)",
         border: "1px solid var(--color-border)",
         borderRadius: 8,

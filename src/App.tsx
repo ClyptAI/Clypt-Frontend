@@ -20,6 +20,7 @@ import RunTimeline from "./pages/RunTimeline.tsx";
 import RunGraph from "./pages/RunGraph.tsx";
 import RunClips from "./pages/RunClips.tsx";
 import RunGrounding from "./pages/RunGrounding.tsx";
+import RunEmbeds from "./pages/RunEmbeds.tsx";
 import RunRender from "./pages/RunRender.tsx";
 import SettingsLayout from "./components/settings/SettingsLayout.tsx";
 import SettingsProfile from "./pages/SettingsProfile.tsx";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/runs/:id" element={<ErrorBoundary><RunOverview /></ErrorBoundary>} />
             <Route path="/runs/:id/timeline" element={<ErrorBoundary><RunTimeline /></ErrorBoundary>} />
             <Route path="/runs/:id/graph" element={<ErrorBoundary><RunGraph /></ErrorBoundary>} />
+            <Route path="/runs/:id/embeds" element={<ErrorBoundary><RunEmbeds /></ErrorBoundary>} />
             <Route path="/runs/:id/clips" element={<ErrorBoundary><RunClips /></ErrorBoundary>} />
             <Route path="/runs/:id/grounding/:clipId" element={<ErrorBoundary><RunGrounding /></ErrorBoundary>} />
             <Route path="/runs/:id/grounding" element={<ErrorBoundary><RunGrounding /></ErrorBoundary>} />

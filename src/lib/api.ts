@@ -7,6 +7,8 @@ import type {
   RenderJobStatus,
   RenderPreset,
 } from '../types/clypt'
+import type { EmbeddingsData } from '../hooks/api/useEmbeddings'
+import { MOCK_EMBEDDINGS } from '../hooks/api/useEmbeddings'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
@@ -66,6 +68,16 @@ export const clipsApi = {
   },
   reject(runId: string, clipId: string): Promise<ClipCandidate> {
     return apiFetch(`/v1/runs/${runId}/clips/${clipId}/reject`, { method: 'POST' })
+  },
+}
+
+export const embeddingsApi = {
+  async get(runId: string): Promise<EmbeddingsData> {
+    try {
+      return await apiFetch<EmbeddingsData>(`/v1/runs/${runId}/embeddings`)
+    } catch {
+      return MOCK_EMBEDDINGS
+    }
   },
 }
 

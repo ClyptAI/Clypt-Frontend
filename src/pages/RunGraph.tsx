@@ -182,9 +182,16 @@ function GraphInner() {
   // Any signal filter active?
   const anySignalActive = signalFilters.trend || signalFilters.comment || signalFilters.retention;
 
-  // Build display nodes with hover + signal flags
+  // Nodes whose type is currently active — used to hide orphaned edges
+  const visibleNodeIds = useMemo(
+    () => new Set(nodes.filter((n) => activeTypes.has((n.data as any).node_type ?? "")).map((n) => n.id)),
+    [nodes, activeTypes],
+  );
+
+  // Build display nodes — use `hidden` so React Flow never removes them from state
   const displayNodes = useMemo(() => {
     return nodes.map((n) => {
+      const typeHidden = !activeTypes.has((n.data as any).node_type ?? "");
       const tags: string[] = (n.data as any).signalTags ?? [];
       const signalDimmed = anySignalActive && !(
         (signalFilters.trend && tags.includes("trend")) ||
@@ -193,6 +200,7 @@ function GraphInner() {
       );
       return {
         ...n,
+        hidden: typeHidden,
         data: {
           ...n.data,
           dimmed: signalDimmed,
@@ -202,12 +210,13 @@ function GraphInner() {
         },
       };
     });
-  }, [nodes, anySignalActive, signalFilters, hoveredNodeId, connectedNodeIds]);
+  }, [nodes, activeTypes, anySignalActive, signalFilters, hoveredNodeId, connectedNodeIds]);
 
-  // Build display edges with hover flags
+  // Build display edges — hide edges whose endpoints are hidden
   const displayEdges = useMemo(() => {
     return edges.map((e) => ({
       ...e,
+      hidden: !visibleNodeIds.has(e.source) || !visibleNodeIds.has(e.target),
       data: {
         ...e.data,
         _isHoverHighlighted: hoveredNodeId ? connectedEdgeIds.has(e.id) : false,
@@ -215,7 +224,7 @@ function GraphInner() {
         _hasHover: !!hoveredNodeId || !!hoveredEdgeId,
       },
     }));
-  }, [edges, hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
+  }, [edges, visibleNodeIds, hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
 
   const handleNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNode(node);
@@ -286,35 +295,42 @@ function GraphInner() {
           <Background variant={BackgroundVariant.Dots} color="rgba(244,241,238,0.04)" size={1.5} gap={24} />
         </ReactFlow>
 
-        <GraphToolbar
-          typeCounts={typeCounts}
-          activeTypes={activeTypes}
-          onToggleType={(t) => setActiveTypes((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; })}
-          onSelectAllTypes={() => setActiveTypes(new Set(ALL_TYPES))}
-          onClearTypes={() => setActiveTypes(new Set())}
-          confidence={confidence}
-          onConfidenceChange={setConfidence}
-          clipWorthy={clipWorthy}
-          onClipWorthyToggle={() => setClipWorthy((v) => !v)}
-          signalFilters={signalFilters}
-          onSignalToggle={(s) => setSignalFilters((f) => ({ ...f, [s]: !f[s] }))}
-          onZoomIn={() => rf.zoomIn()}
-          onZoomOut={() => rf.zoomOut()}
-          onFitView={() => rf.fitView()}
-          subgraph={subgraph}
-          onSubgraphToggle={() => setSubgraph((v) => !v)}
-        />
+        {/* Overlay layer: pointer-events:none so React Flow panning still works,
+            but each child restores pointer-events:auto for its own hit area. */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 50, pointerEvents: "none" }}>
+          <GraphToolbar
+            typeCounts={typeCounts}
+            activeTypes={activeTypes}
+            onToggleType={(t) => setActiveTypes((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; })}
+            onSelectAllTypes={() => setActiveTypes(new Set(ALL_TYPES))}
+            onClearTypes={() => setActiveTypes(new Set())}
+            confidence={confidence}
+            onConfidenceChange={setConfidence}
+            clipWorthy={clipWorthy}
+            onClipWorthyToggle={() => setClipWorthy((v) => !v)}
+            signalFilters={signalFilters}
+            onSignalToggle={(s) => setSignalFilters((f) => ({ ...f, [s]: !f[s] }))}
+            onZoomIn={() => rf.zoomIn()}
+            onZoomOut={() => rf.zoomOut()}
+            onFitView={() => rf.fitView()}
+            subgraph={subgraph}
+            onSubgraphToggle={() => setSubgraph((v) => !v)}
+          />
 
-        <GraphLegend typeCounts={typeCounts} />
+          <GraphLegend typeCounts={typeCounts} />
 
-        <InspectPanel
-          selectedNode={selectedNode}
-          selectedEdge={selectedEdge}
-          allEdges={edges}
-          onClose={() => { setSelectedNode(null); setSelectedEdge(null); }}
-        />
+          <InspectPanel
+            selectedNode={selectedNode}
+            selectedEdge={selectedEdge}
+            allEdges={edges}
+            onClose={() => { setSelectedNode(null); setSelectedEdge(null); }}
+          />
 
-        <TimelineStrip nodes={nodes} />
+          <TimelineStrip
+            nodes={nodes}
+            onSelectNode={(node) => { setSelectedNode(node); setSelectedEdge(null); }}
+          />
+        </div>
       </div>
     </div>
   );
