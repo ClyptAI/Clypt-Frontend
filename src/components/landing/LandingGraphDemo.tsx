@@ -1,128 +1,18 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import {
-  ReactFlow,
-  type Node,
-  type Edge,
-  type NodeProps,
-  Handle,
-  Position,
-} from "@xyflow/react";
+import { ReactFlow, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import DemoCardShell from "./DemoCardShell";
 import { ClyptEdge } from "@/components/graph/ClyptEdge";
+import { ClyptNode } from "@/components/graph/ClyptNode";
 
-const TYPE_STYLES: Record<string, { border: string; pillBg: string; pillText: string }> = {
-  claim: { border: "#A78BFA", pillBg: "rgba(167,139,250,0.15)", pillText: "#C4B5FD" },
-  explanation: { border: "#60A5FA", pillBg: "rgba(96,165,250,0.15)", pillText: "#93C5FD" },
-  anecdote: { border: "#FBB249", pillBg: "rgba(251,178,73,0.15)", pillText: "#FCD34D" },
-  reaction_beat: { border: "#4ADE80", pillBg: "rgba(74,222,128,0.15)", pillText: "#86EFAC" },
-  setup_payoff: { border: "#FB923C", pillBg: "rgba(251,146,60,0.15)", pillText: "#FDBA74" },
-  qa_exchange: { border: "#38BDF8", pillBg: "rgba(56,189,248,0.15)", pillText: "#7DD3FC" },
+const TYPE_STYLES: Record<string, { pillBg: string; pillText: string }> = {
+  claim:             { pillBg: "rgba(167,139,250,0.15)", pillText: "#C4B5FD" },
+  explanation:       { pillBg: "rgba(96,165,250,0.15)",  pillText: "#93C5FD" },
+  anecdote:          { pillBg: "rgba(251,178,73,0.15)",  pillText: "#FCD34D" },
+  reaction_beat:     { pillBg: "rgba(74,222,128,0.15)",  pillText: "#86EFAC" },
+  setup_payoff:      { pillBg: "rgba(251,146,60,0.15)",  pillText: "#FDBA74" },
+  qa_exchange:       { pillBg: "rgba(56,189,248,0.15)",  pillText: "#7DD3FC" },
 };
-
-const SIGNAL_COLORS: Record<string, string> = {
-  trend: "#FB923C",
-  comment: "#60A5FA",
-  retention: "#4ADE80",
-};
-
-const NODE_GLOW_BASE: Record<string, string> = {
-  claim: "rgba(167,139,250,",
-  explanation: "rgba(96,165,250,",
-  anecdote: "rgba(251,178,73,",
-  setup_payoff: "rgba(251,146,60,",
-  reaction_beat: "rgba(74,222,128,",
-  qa_exchange: "rgba(56,189,248,",
-};
-
-function ClyptNode({ data }: NodeProps) {
-  const d = data as {
-    label: string;
-    type: string;
-    signals: string[];
-    _isHoverTarget?: boolean;
-    _isHoverConnected?: boolean;
-    _hasHover?: boolean;
-  };
-  const s = TYPE_STYLES[d.type] || TYPE_STYLES.claim;
-  const base = NODE_GLOW_BASE[d.type] ?? "rgba(167,139,250,";
-
-  const isTarget = !!d._isHoverTarget;
-  const isConnected = !!d._isHoverConnected;
-  const hasHover = !!d._hasHover;
-  const isDimmed = hasHover && !isTarget && !isConnected;
-
-  const boxShadow = isTarget
-    ? `0 0 22px ${base}0.55), 0 0 8px ${base}0.4)`
-    : isConnected
-    ? `0 0 16px ${base}0.30)`
-    : "none";
-
-  return (
-    <div
-      style={{
-        width: 160,
-        background: "rgba(10,9,9,0.85)",
-        borderRadius: 10,
-        padding: "10px 12px",
-        border: `1.5px solid ${s.border}`,
-        boxShadow,
-        opacity: isDimmed ? 0.2 : 1,
-        transition: "box-shadow 150ms ease, opacity 150ms ease",
-      }}
-    >
-      <Handle type="target" position={Position.Left} style={{ visibility: "hidden" }} />
-      <Handle type="source" position={Position.Right} style={{ visibility: "hidden" }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: 9,
-            letterSpacing: "0.05em",
-            background: s.pillBg,
-            borderRadius: 4,
-            padding: "2px 6px",
-            color: s.pillText,
-          }}
-        >
-          {d.type}
-        </span>
-        {d.signals.length > 0 && (
-          <div style={{ display: "flex" }}>
-            {d.signals.map((sig, i) => (
-              <div
-                key={sig}
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  background: SIGNAL_COLORS[sig] ?? "#A78BFA",
-                  marginLeft: i > 0 ? -4 : 0,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: 11,
-          color: "rgba(255,255,255,0.85)",
-          fontWeight: 500,
-          lineHeight: 1.4,
-          marginTop: 4,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-        }}
-      >
-        {d.label}
-      </div>
-    </div>
-  );
-}
 
 const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
@@ -244,9 +134,9 @@ export default function LandingGraphDemo() {
                 edgeTypes={edgeTypes}
                 nodesDraggable={false}
                 nodesConnectable={false}
-                elementsSelectable={false}
                 zoomOnScroll={false}
                 panOnScroll={false}
+                panOnDrag={false}
                 preventScrolling={false}
                 proOptions={{ hideAttribution: true }}
                 onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}

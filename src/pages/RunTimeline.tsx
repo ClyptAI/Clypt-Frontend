@@ -2,11 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { X, Pencil, Play, Pause } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
-import { TimeRuler, VideoPlayer } from "@/components/timeline";
+import { TimeRuler, VideoPlayer, WaveformLane } from "@/components/timeline";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
-import { useVisibleSegments } from "@/hooks";
 import { formatTimecode } from "@/lib/timeline-utils";
 
 /* ─── constants ─── */
@@ -223,49 +222,6 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
   );
 }
 
-/* ─── virtualized speaker lane ─── */
-interface SpeakerLaneProps {
-  speaker: typeof MOCK_SPEAKERS[0]
-  pixelsPerSecond: number
-  scrollX: number
-  viewportWidth: number
-  totalWidth: number
-  onSelectTurn: (turn: typeof MOCK_SPEAKERS[0]["turns"][0], speakerName: string) => void
-  laneH: number
-  color?: string
-}
-
-function SpeakerLane({ speaker, pixelsPerSecond, scrollX, viewportWidth, totalWidth, onSelectTurn, laneH, color: colorProp }: SpeakerLaneProps) {
-  const segments = speaker.turns.map(t => ({
-    ...t,
-    startTime: t.start,
-    endTime: t.end,
-  }))
-
-  const { visibleSegments } = useVisibleSegments(segments, pixelsPerSecond, scrollX, viewportWidth)
-  const color = colorProp ?? SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length]
-
-  return (
-    <div className="relative" style={{ width: totalWidth, height: laneH }}>
-      {visibleSegments.map((turn) => (
-        <TT key={turn.id} tip={`${turn.id} · ${fmtTime(turn.start)} → ${fmtTime(turn.end)} · "${turn.transcript.slice(0, 40)}…"`}>
-          <div
-            className="absolute rounded-sm border cursor-pointer hover:brightness-125"
-            style={{
-              left: turn.start * pixelsPerSecond,
-              width: Math.max((turn.end - turn.start) * pixelsPerSecond, 4),
-              top: Math.round(laneH * 0.15),
-              height: Math.round(laneH * 0.70),
-              background: `${color}66`,
-              borderColor: `${color}cc`,
-            }}
-            onClick={() => onSelectTurn(turn, speaker.name)}
-          />
-        </TT>
-      ))}
-    </div>
-  )
-}
 
 /* ─── page ─── */
 export default function RunTimeline() {
@@ -815,37 +771,48 @@ export default function RunTimeline() {
             </div>
           )}
 
-          {/* speaker lanes — virtualized: only visible turns are rendered */}
-          {layers["Speakers"] && primarySpeakers.map((speaker) => (
-            <div key={speaker.id} className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
-              <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
-                <span className="font-heading font-medium text-[12px] uppercase tracking-wide whitespace-nowrap" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
+          {/* speaker lanes — canvas waveform: gray in silence, colored in speech */}
+          {layers["Speakers"] && primarySpeakers.map((speaker) => {
+            const spColor = SPEAKER_COLORS[speaker.id % SPEAKER_COLORS.length];
+            return (
+              <div key={speaker.id} className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
+                <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
+                  <span className="font-heading font-medium text-[12px] uppercase tracking-wide whitespace-nowrap" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
+                </div>
+                <WaveformLane
+                  turns={speaker.turns}
+                  color={spColor}
+                  speakerId={speaker.id}
+                  totalDuration={videoDuration}
+                  pixelsPerSecond={pps}
+                  scrollX={scrollX}
+                  viewportWidth={viewportWidth}
+                  totalWidth={totalWidth}
+                  laneH={laneH}
+                  onClickTurn={(turn) => selectTurn(turn as typeof MOCK_SPEAKERS[0]["turns"][0], speaker.name)}
+                />
               </div>
-              <SpeakerLane
-                speaker={speaker}
-                pixelsPerSecond={pps}
-                scrollX={scrollX}
-                viewportWidth={viewportWidth}
-                totalWidth={totalWidth}
-                onSelectTurn={selectTurn}
-                laneH={laneH}
-              />
-            </div>
-          ))}
+            );
+          })}
           {layers["Speakers"] && hasMinorSpeakers && (
             <div className="flex border-b" style={{ height: laneH, borderColor: "var(--color-border-subtle)" }}>
               <div className="flex-shrink-0 sticky left-0 z-[5] flex items-center px-3 border-r" style={{ width: LABEL_W, background: "var(--color-surface-1)", borderColor: "var(--color-border-subtle)" }}>
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Minor Speakers</span>
               </div>
-              <SpeakerLane
-                speaker={minorSpeakerObj}
+              <WaveformLane
+                turns={minorSpeakerObj.turns}
+                color="#71717A"
+                speakerId={99}
+                totalDuration={videoDuration}
                 pixelsPerSecond={pps}
                 scrollX={scrollX}
                 viewportWidth={viewportWidth}
                 totalWidth={totalWidth}
-                onSelectTurn={selectTurn}
                 laneH={laneH}
-                color="#71717A"
+                onClickTurn={(turn) => {
+                  const sp = minorSpeakers.find(s => s.turns.some(t => t.id === turn.id));
+                  selectTurn(turn as typeof MOCK_SPEAKERS[0]["turns"][0], sp?.name ?? "Minor Speakers");
+                }}
               />
             </div>
           )}

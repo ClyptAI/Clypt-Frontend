@@ -2,15 +2,15 @@ import { memo, useState } from "react";
 import {
   BaseEdge,
   getBezierPath,
-  getStraightPath,
   type EdgeProps,
 } from "@xyflow/react";
 
 /* ── Structural edge ── */
 export const StructuralEdge = memo(function StructuralEdge(props: EdgeProps) {
-  const [path] = getStraightPath({
-    sourceX: props.sourceX, sourceY: props.sourceY,
-    targetX: props.targetX, targetY: props.targetY,
+  const [path] = getBezierPath({
+    sourceX: props.sourceX, sourceY: props.sourceY, sourcePosition: props.sourcePosition,
+    targetX: props.targetX, targetY: props.targetY, targetPosition: props.targetPosition,
+    curvature: 0.2,
   });
 
   const hasHover      = !!(props.data as any)?._hasHover;
@@ -25,7 +25,6 @@ export const StructuralEdge = memo(function StructuralEdge(props: EdgeProps) {
         {...props}
         path={path}
         style={{ stroke: "#302D35", strokeWidth: showGlow ? 1.5 : 1 }}
-        markerEnd="url(#arrow-structural)"
       />
     </g>
   );
@@ -36,22 +35,20 @@ function RhetoricalEdgeInner({
   props,
   color,
   opacity: baseOpacity,
-  markerEnd,
   dash,
   wide,
 }: {
   props: EdgeProps;
   color: string;
   opacity: number;
-  markerEnd: string;
   dash?: string;
   wide?: boolean;
 }) {
   const [localHovered, setLocalHovered] = useState(false);
 
   const [path, labelX, labelY] = getBezierPath({
-    sourceX: props.sourceX, sourceY: props.sourceY,
-    targetX: props.targetX, targetY: props.targetY,
+    sourceX: props.sourceX, sourceY: props.sourceY, sourcePosition: props.sourcePosition,
+    targetX: props.targetX, targetY: props.targetY, targetPosition: props.targetPosition,
     curvature: wide ? 0.6 : 0.25,
   });
 
@@ -97,7 +94,6 @@ function RhetoricalEdgeInner({
           strokeDasharray: dash,
           transition: "stroke-width 0.15s",
         }}
-        markerEnd={markerEnd}
       />
 
       {/*
@@ -150,13 +146,13 @@ function RhetoricalEdgeInner({
 }
 
 export const StrongRhetoricalEdge = memo(function StrongRhetoricalEdge(props: EdgeProps) {
-  return <RhetoricalEdgeInner props={props} color="#A78BFA" opacity={0.8} markerEnd="url(#arrow-violet)" />;
+  return <RhetoricalEdgeInner props={props} color="#A78BFA" opacity={0.8} />;
 });
 
 export const ModerateRhetoricalEdge = memo(function ModerateRhetoricalEdge(props: EdgeProps) {
-  return <RhetoricalEdgeInner props={props} color="#60A5FA" opacity={0.7} markerEnd="url(#arrow-blue)" />;
+  return <RhetoricalEdgeInner props={props} color="#60A5FA" opacity={0.7} />;
 });
 
 export const LongRangeEdge = memo(function LongRangeEdge(props: EdgeProps) {
-  return <RhetoricalEdgeInner props={props} color="#FBB249" opacity={0.75} markerEnd="url(#arrow-amber)" dash="6 4" wide />;
+  return <RhetoricalEdgeInner props={props} color="#FBB249" opacity={0.75} dash="6 4" wide />;
 });

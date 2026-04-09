@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -85,8 +85,15 @@ export interface SemanticNodeData {
   [key: string]: unknown;
 }
 
+/** Converts a 6-digit hex color to rgba() string. */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function SemanticNode({ data, selected }: NodeProps) {
-  const [hovered, setHovered] = useState(false);
   const d = data as unknown as SemanticNodeData;
   const color = NODE_TYPE_COLORS[d.node_type] ?? "#71717A";
   const pill = PILL_STYLES[d.node_type] ?? { pillBg: "rgba(113,113,122,0.15)", pillText: "#A1A1AA" };
@@ -99,12 +106,18 @@ function SemanticNode({ data, selected }: NodeProps) {
 
   const base = GLOW_BASE[d.node_type] ?? "rgba(167,139,250,";
   const boxShadow = isHoverTarget
-    ? `0 0 22px ${base}0.6), 0 0 8px ${base}0.4)`
+    ? `0 0 28px ${base}0.7), 0 0 10px ${base}0.45)`
     : isHoverConnected
-    ? `0 0 16px ${base}0.35)`
+    ? `0 0 20px ${base}0.5), 0 0 6px ${base}0.3)`
     : selected
-    ? `inset 0 0 0 1px ${color}26`
+    ? `0 0 18px ${base}0.45), 0 0 6px ${base}0.25)`
     : "none";
+
+  // Match reference: bg-type/10 + backdrop-blur creates the frosted glass node body.
+  // Edges behind show as blurred smears through the translucent background — that IS the intended effect.
+  const nodeBg = `linear-gradient(135deg, ${hexToRgba(color, 0.18)}, ${hexToRgba(color, 0.06)} 60%), rgba(10,9,9,0.45)`;
+  // Border at 65% opacity at rest, full on active states
+  const borderColor = (isHoverTarget || isHoverConnected || selected) ? color : `${color}A8`;
 
   // Build signal badges
   const signals: { key: string; color: string }[] = [];
@@ -117,15 +130,15 @@ function SemanticNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         minWidth: 180,
         maxWidth: 220,
         borderRadius: 10,
         opacity: isDimmed ? 0.2 : 1,
-        background: "rgba(10,9,9,0.85)",
-        border: selected ? `1.5px solid ${color}` : `1.5px solid ${color}`,
+        background: nodeBg,
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        border: `1.5px solid ${borderColor}`,
         padding: "10px 12px 10px 12px",
         boxShadow,
         transition: "opacity 150ms ease, box-shadow 150ms ease, background 100ms ease",
@@ -234,28 +247,24 @@ function SemanticNode({ data, selected }: NodeProps) {
 
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         style={{
           width: 8,
           height: 8,
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.1)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 100ms",
+          background: color,
+          border: "none",
         }}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         style={{
           width: 8,
           height: 8,
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.1)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 100ms",
+          background: color,
+          border: "none",
         }}
       />
     </div>
