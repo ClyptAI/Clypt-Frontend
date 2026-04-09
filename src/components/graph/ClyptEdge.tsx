@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { BaseEdge, getBezierPath, type EdgeProps } from "@xyflow/react";
 
 const edgeColorMap: Record<string, string> = {
@@ -31,14 +31,22 @@ function ClyptEdgeInner({
     || edgeLabel === "callback_to"
     || edgeLabel === "topic_recurrence";
 
+  const [localHovered, setLocalHovered] = useState(false);
+
   const isHighlighted = !!(data as any)?._isHoverHighlighted;
-  const isEdgeHovered = !!(data as any)?._isEdgeHovered;
-  const hasHover      = !!(data as any)?._hasHover;
+  const isEdgeHovered = !!(data as any)?._isEdgeHovered || localHovered;
+  const hasHover      = !!(data as any)?._hasHover || localHovered;
   const showGlow      = isHighlighted || isEdgeHovered;
   const isDimmed      = hasHover && !showGlow;
 
   return (
-    <>
+    <g
+      onMouseEnter={() => setLocalHovered(true)}
+      onMouseLeave={() => setLocalHovered(false)}
+    >
+      {/* Wide invisible hit area so thin edges are easy to hover */}
+      <path d={edgePath} fill="none" stroke="transparent" strokeWidth={12} />
+
       {/* Glow halo — conditionally mounted, no looping animation to restart */}
       {showGlow && (
         <BaseEdge
@@ -49,6 +57,7 @@ function ClyptEdgeInner({
             strokeWidth: isEdgeHovered ? 8 : 6,
             opacity: isEdgeHovered ? 0.4 : 0.28,
             filter: `drop-shadow(0 0 ${isEdgeHovered ? "6px" : "4px"} ${color})`,
+            pointerEvents: "none",
           }}
         />
       )}
@@ -63,6 +72,7 @@ function ClyptEdgeInner({
           strokeDasharray: isDashed ? "6 4" : undefined,
           opacity: isDimmed ? 0.08 : showGlow ? 1 : 0.55,
           transition: "opacity 0.15s, stroke-width 0.15s",
+          pointerEvents: "none",
         }}
       />
 
@@ -112,7 +122,7 @@ function ClyptEdgeInner({
           </div>
         </foreignObject>
       )}
-    </>
+    </g>
   );
 }
 

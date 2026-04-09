@@ -21,7 +21,6 @@ import {
   ModerateRhetoricalEdge,
   LongRangeEdge,
 } from "@/components/graph/edges";
-import EdgeMarkers from "@/components/graph/EdgeMarkers";
 import GraphToolbar from "@/components/graph/GraphToolbar";
 import GraphLegend from "@/components/graph/GraphLegend";
 import InspectPanel from "@/components/graph/InspectPanel";
@@ -244,7 +243,6 @@ function GraphInner() {
       />
 
       <div className="relative flex-1" style={{ overflow: "hidden" }}>
-        <EdgeMarkers />
         {isLoading && (
           <div
             style={{
