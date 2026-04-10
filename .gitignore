@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .worktrees/
 .gstack/
+
+# Local demo video binaries — see public/videos/README.md.
+# Each dev drops their own copy here; we never commit the actual files.
+public/videos/*.mp4
+!public/videos/.gitkeep
