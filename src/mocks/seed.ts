@@ -437,4 +437,6 @@ export function seedMockDB(db: MockDB): void {
   }
 
   db.presets = RENDER_PRESETS
+  // Grounding state is created lazily on first PUT — start empty.
+  db.grounding = {}
 }

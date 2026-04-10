@@ -145,7 +145,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 - **Route:** `/runs/:id/grounding`, `/runs/:id/grounding/:clipId`
 - **Features:** Video player with timeline, speaker lane bindings, shot/intent assignments. Queue of clips to process. Speaker identification interface. **Manual bounding box editor** (floating top-right toolbar): toggle `[Edit boxes]` to enable per-shot drag/resize/delete on the tracker output, `[+ Add box]` to add a new tracklet (auto-incremented letter past A/B/C). Coexists with the `ManualCropModal` — independent state.
 - **Mock data:** `QUEUE` (clip queue), `SHOTS`, speaker bindings, intents. `DEMO_VIDEO_URL`
-- **State:** Heavy local state for bindings, active clip, playback. Plus per-shot box editor state: `trackletBoxes` (rect overrides), `userTracklets` (added boxes), `hiddenIdsByShot` (removed originals), `boxEditMode`, `selectedBoxKey`. Deleting a tracklet clears its speaker bindings for that shot.
+- **State:** Heavy local state for bindings, active clip, playback. Box editor state is **persisted server-side** via `useGroundingState`/`useUpdateGrounding` (rect overrides, user-added tracklets, hidden originals — keyed by `runId + clipId`, payload is `GroundingClipState`). Pure UI bits stay local: `boxEditMode` toggle and `selectedBoxKey`. Deleting a tracklet clears its speaker bindings for that shot.
 
 ### Render — `RunRender.tsx`
 - **Route:** `/runs/:id/render`

@@ -17,7 +17,9 @@ import {
 import { TimeRuler } from "@/components/timeline/TimeRuler";
 import { toast } from "sonner";
 import { useClipList } from "@/hooks/api/useClips";
+import { useGroundingState, useUpdateGrounding } from "@/hooks/api/useGrounding";
 import { useClipStore } from "@/stores/clip-store";
+import type { GroundingClipState, GroundingShotState, GroundingTracklet } from "@/types/clypt";
 
 /* ═══════════════════════════════════════════════════════════
    Types
@@ -988,23 +990,64 @@ export default function RunGrounding() {
   const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({ ...SPEAKER_NAMES });
 
   /* Manual bounding box editor (per shot)
-     - trackletBoxes: shotIdx -> trackletId -> rect (overrides + new boxes)
-     - userTracklets: shotIdx -> tracklets the user added on top of originals
-     - hiddenIdsByShot: shotIdx -> originals the user removed
-     - boxEditMode: global toggle (the floating toolbar's [Edit boxes] button)
-     - selectedBoxKey: "shotIdx:trackletId" — single selection across all shots */
-  const [trackletBoxes, setTrackletBoxes] = useState<Record<number, Record<string, BoxRect>>>({});
-  const [userTracklets, setUserTracklets] = useState<Record<number, Tracklet[]>>({});
-  const [hiddenIdsByShot, setHiddenIdsByShot] = useState<Record<number, string[]>>({});
+     The persisted state (rects, user-added tracklets, hidden originals) lives
+     server-side via the grounding API; we read it through useGroundingState
+     and write it through useUpdateGrounding. The mutation hook does optimistic
+     cache updates so the editor stays snappy across drag/resize.
+
+     Pure UI state (toolbar toggle + current selection) stays local because it
+     should not survive a navigation. */
+  const groundingClipKey = activeClip || clipId || "";
+  const { data: groundingState } = useGroundingState(runId, groundingClipKey);
+  const updateGrounding = useUpdateGrounding(runId, groundingClipKey);
+
   const [boxEditMode, setBoxEditMode] = useState(false);
   const [selectedBoxKey, setSelectedBoxKey] = useState<string | null>(null);
 
-  const handleUpdateRect = useCallback((shotIdx: number, trackletId: string, rect: BoxRect) => {
-    setTrackletBoxes((prev) => ({
-      ...prev,
-      [shotIdx]: { ...(prev[shotIdx] ?? {}), [trackletId]: rect },
-    }));
+  // Empty placeholder so the rest of the page can render before the first
+  // GET resolves (the mock layer returns instantly, but real-mode might not).
+  const safeGrounding: GroundingClipState = useMemo(
+    () => groundingState ?? {
+      run_id: runId,
+      clip_id: groundingClipKey,
+      shots: [],
+      updated_at: new Date(0).toISOString(),
+    },
+    [groundingState, runId, groundingClipKey],
+  );
+
+  /** Read the saved state for one shot (returns an empty stub if untouched). */
+  const getShotState = useCallback((state: GroundingClipState, shotIdx: number): GroundingShotState => {
+    return state.shots.find((s) => s.shot_idx === shotIdx) ?? {
+      shot_idx: shotIdx,
+      rects: {},
+      user_tracklets: [],
+      hidden_tracklet_ids: [],
+    };
   }, []);
+
+  /** Immutable upsert of one shot inside the GroundingClipState. */
+  const replaceShot = useCallback((state: GroundingClipState, shotIdx: number, fn: (shot: GroundingShotState) => GroundingShotState): GroundingClipState => {
+    const existing = state.shots.find((s) => s.shot_idx === shotIdx);
+    const updated = fn(existing ?? {
+      shot_idx: shotIdx,
+      rects: {},
+      user_tracklets: [],
+      hidden_tracklet_ids: [],
+    });
+    const nextShots = existing
+      ? state.shots.map((s) => (s.shot_idx === shotIdx ? updated : s))
+      : [...state.shots, updated];
+    return { ...state, shots: nextShots };
+  }, []);
+
+  const handleUpdateRect = useCallback((shotIdx: number, trackletId: string, rect: BoxRect) => {
+    const next = replaceShot(safeGrounding, shotIdx, (shot) => ({
+      ...shot,
+      rects: { ...shot.rects, [trackletId]: rect },
+    }));
+    updateGrounding.mutate(next);
+  }, [safeGrounding, replaceShot, updateGrounding]);
 
   const handleSelectBox = useCallback((shotIdx: number, trackletId: string | null) => {
     setSelectedBoxKey(trackletId ? `${shotIdx}:${trackletId}` : null);
@@ -1014,54 +1057,51 @@ export default function RunGrounding() {
     // Originals (from SHOTS) get hidden so they can in principle come back later;
     // user-added tracklets get fully removed.
     const isOriginal = SHOTS.find((s) => s.idx === shotIdx)?.tracklets.some((t) => t.id === trackletId) ?? false;
-    if (isOriginal) {
-      setHiddenIdsByShot((prev) => ({
-        ...prev,
-        [shotIdx]: [...(prev[shotIdx] ?? []), trackletId],
-      }));
-    } else {
-      setUserTracklets((prev) => ({
-        ...prev,
-        [shotIdx]: (prev[shotIdx] ?? []).filter((t) => t.id !== trackletId),
-      }));
-    }
-    setTrackletBoxes((prev) => {
-      const next = { ...(prev[shotIdx] ?? {}) };
-      delete next[trackletId];
-      return { ...prev, [shotIdx]: next };
+    const next = replaceShot(safeGrounding, shotIdx, (shot) => {
+      const { [trackletId]: _removed, ...remainingRects } = shot.rects;
+      return {
+        ...shot,
+        rects: remainingRects,
+        user_tracklets: isOriginal
+          ? shot.user_tracklets
+          : shot.user_tracklets.filter((t) => t.id !== trackletId),
+        hidden_tracklet_ids: isOriginal
+          ? [...shot.hidden_tracklet_ids, trackletId]
+          : shot.hidden_tracklet_ids,
+      };
     });
+    updateGrounding.mutate(next);
     setSelectedBoxKey((prev) => (prev === `${shotIdx}:${trackletId}` ? null : prev));
-    // Clean up bindings that referenced this tracklet for the shot.
+    // Bindings live in local state and aren't persisted yet — clean them up
+    // alongside the box deletion so a stale speaker badge doesn't linger.
     setBindings((prev) => ({
       ...prev,
       [shotIdx]: (prev[shotIdx] ?? []).filter((b) => b.tracklet_id !== trackletId),
     }));
-  }, []);
+  }, [safeGrounding, replaceShot, updateGrounding]);
 
   const handleAddBox = useCallback((shotIdx: number) => {
-    // Pick the next free letter past the originals + extras already in use.
     const shot = SHOTS.find((s) => s.idx === shotIdx);
     const existingLetters = new Set<string>();
     shot?.tracklets.forEach((t) => existingLetters.add(t.letter));
-    (userTracklets[shotIdx] ?? []).forEach((t) => existingLetters.add(t.letter));
+    const currentShotState = getShotState(safeGrounding, shotIdx);
+    currentShotState.user_tracklets.forEach((t) => existingLetters.add(t.letter));
     let nextCode = "A".charCodeAt(0);
     while (existingLetters.has(String.fromCharCode(nextCode)) && nextCode < "Z".charCodeAt(0)) {
       nextCode++;
     }
     const letter = String.fromCharCode(nextCode);
     const newId = `tracklet_user_${shotIdx}_${Date.now()}`;
-    const newTracklet: Tracklet = { id: newId, letter, durationPct: 100 };
-    setUserTracklets((prev) => ({
-      ...prev,
-      [shotIdx]: [...(prev[shotIdx] ?? []), newTracklet],
+    const newTracklet: GroundingTracklet = { id: newId, letter, duration_pct: 100 };
+    const next = replaceShot(safeGrounding, shotIdx, (s) => ({
+      ...s,
+      user_tracklets: [...s.user_tracklets, newTracklet],
+      rects: { ...s.rects, [newId]: DEFAULT_NEW_BOX },
     }));
-    setTrackletBoxes((prev) => ({
-      ...prev,
-      [shotIdx]: { ...(prev[shotIdx] ?? {}), [newId]: DEFAULT_NEW_BOX },
-    }));
+    updateGrounding.mutate(next);
     setSelectedBoxKey(`${shotIdx}:${newId}`);
     setBoxEditMode(true);
-  }, [userTracklets]);
+  }, [safeGrounding, getShotState, replaceShot, updateGrounding]);
 
   /* Progress */
   const progress = computeGroundingProgress(bindings);
@@ -1242,23 +1282,33 @@ export default function RunGrounding() {
             <video ref={videoRef} src={`${DEMO_VIDEO_URL}#t=${activeShot.startMs / 1000}`} preload="metadata"
               style={{ height: "100%", width: "auto", maxWidth: "100%", objectFit: "contain" }}
             />
-            <BoundingBoxOverlay
-              shot={activeShot}
-              bindings={bindings[activeShot.idx] || []}
-              speakerNames={speakerNames}
-              userTracklets={userTracklets[activeShot.idx] ?? []}
-              hiddenIds={hiddenIdsByShot[activeShot.idx] ?? []}
-              rects={trackletBoxes[activeShot.idx] ?? {}}
-              editMode={boxEditMode}
-              selectedTrackletId={
-                selectedBoxKey?.startsWith(`${activeShot.idx}:`)
-                  ? selectedBoxKey.split(":").slice(1).join(":")
-                  : null
-              }
-              onUpdateRect={(id, rect) => handleUpdateRect(activeShot.idx, id, rect)}
-              onSelect={(id) => handleSelectBox(activeShot.idx, id)}
-              onDelete={(id) => handleDeleteBox(activeShot.idx, id)}
-            />
+            {(() => {
+              const activeShotState = getShotState(safeGrounding, activeShot.idx);
+              const overlayUserTracklets: Tracklet[] = activeShotState.user_tracklets.map((t) => ({
+                id: t.id,
+                letter: t.letter,
+                durationPct: t.duration_pct,
+              }));
+              return (
+                <BoundingBoxOverlay
+                  shot={activeShot}
+                  bindings={bindings[activeShot.idx] || []}
+                  speakerNames={speakerNames}
+                  userTracklets={overlayUserTracklets}
+                  hiddenIds={activeShotState.hidden_tracklet_ids}
+                  rects={activeShotState.rects}
+                  editMode={boxEditMode}
+                  selectedTrackletId={
+                    selectedBoxKey?.startsWith(`${activeShot.idx}:`)
+                      ? selectedBoxKey.split(":").slice(1).join(":")
+                      : null
+                  }
+                  onUpdateRect={(id, rect) => handleUpdateRect(activeShot.idx, id, rect)}
+                  onSelect={(id) => handleSelectBox(activeShot.idx, id)}
+                  onDelete={(id) => handleDeleteBox(activeShot.idx, id)}
+                />
+              );
+            })()}
 
             {/* Floating box-editor toolbar — top-right of the video container,
                 mirrors the queue panel's glass styling on the left. */}

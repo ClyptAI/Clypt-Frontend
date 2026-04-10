@@ -259,3 +259,39 @@ export interface RenderJobStatus {
   output_url: string | null
   error: string | null
 }
+
+// ─── Grounding (manual bounding box editor) ──────────────────────────────────
+//
+// Persists the user's edits to the per-shot tracker output on the Grounding
+// page: rect overrides, user-added tracklets, and removed originals. Stored
+// per (run_id, clip_id) — multiple shots are nested inside `shots`.
+
+export interface BoundingBoxRect {
+  x: number      // 0..1, left edge as fraction of container width
+  y: number      // 0..1, top edge as fraction of container height
+  w: number      // 0..1, width as fraction of container width
+  h: number      // 0..1, height as fraction of container height
+}
+
+export interface GroundingTracklet {
+  id: string
+  letter: string
+  duration_pct: number
+}
+
+export interface GroundingShotState {
+  shot_idx: number
+  /** Tracklet id -> rect override (covers both originals the user moved and user-added boxes). */
+  rects: Record<string, BoundingBoxRect>
+  /** Boxes the user added on top of the original tracker output. */
+  user_tracklets: GroundingTracklet[]
+  /** Original tracklet ids the user removed via the editor. */
+  hidden_tracklet_ids: string[]
+}
+
+export interface GroundingClipState {
+  run_id: string
+  clip_id: string
+  shots: GroundingShotState[]
+  updated_at: string  // ISO 8601
+}

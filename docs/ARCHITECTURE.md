@@ -47,7 +47,7 @@ src/
 │   └── use-mobile.tsx       # Responsive breakpoint hook
 │
 ├── lib/
-│   ├── api.ts               # Typed fetch wrappers (apiFetch, runsApi, nodesApi, edgesApi, clipsApi, embeddingsApi, renderApi)
+│   ├── api.ts               # Typed fetch wrappers (apiFetch, runsApi, nodesApi, edgesApi, clipsApi, embeddingsApi, renderApi, groundingApi)
 │   ├── timeline-utils.ts    # formatTimecode, snap helpers, waveform path gen
 │   └── utils.ts             # cn() — clsx + tailwind-merge
 │
@@ -169,6 +169,7 @@ Query keys follow a hierarchical pattern:
 - `['embeddings', runId]` → embeddings for a run
 - `['render', 'presets']` → render presets
 - `['render', 'status', runId, clipId]` → render job status
+- `['grounding', 'detail', runId, clipId]` → persisted Grounding-page edits (rect overrides, user-added tracklets, hidden originals)
 
 ### Client State (Zustand)
 
@@ -207,6 +208,8 @@ All calls go through `src/lib/api.ts` via typed API objects. Internal `apiFetch(
 | POST | `/v1/runs/:id/clips/:clipId/approve` | `clipsApi.approve()` | Approve clip |
 | POST | `/v1/runs/:id/clips/:clipId/reject` | `clipsApi.reject()` | Reject clip |
 | GET | `/v1/runs/:id/embeddings` | `embeddingsApi.get()` | Node embeddings (falls back to mock) |
+| GET | `/v1/runs/:id/clips/:clipId/grounding` | `groundingApi.get()` | Persisted Grounding-page state (returns empty stub when nothing saved). |
+| PUT | `/v1/runs/:id/clips/:clipId/grounding` | `groundingApi.put()` | Upsert full Grounding state (no server-side merge). |
 | POST | `/v1/runs/:id/clips/:clipId/render` | `renderApi.submit()` | Submit render job |
 | GET | `/v1/runs/:id/clips/:clipId/render` | `renderApi.status()` | Render job status |
 | GET | `/v1/render/presets` | `renderApi.presets()` | Available render presets |
@@ -256,7 +259,7 @@ This is what the typed API objects in `src/lib/api.ts` delegate to when `VITE_US
 
 | File | Purpose |
 |------|---------|
-| `store.ts` | `MockDB` interface (`runs`, `clips`, `nodes`, `edges`, `renderJobs`, `presets`, `approvals`, `runOrder`) and a singleton instance persisted to `localStorage` under `clypt:mock-db:v1`. Exports `mockDB.get()`, `mockDB.update()`, `mockDB.seedOnce()`. |
+| `store.ts` | `MockDB` interface (`runs`, `clips`, `nodes`, `edges`, `renderJobs`, `presets`, `approvals`, `grounding`, `runOrder`) and a singleton instance persisted to `localStorage` under `clypt:mock-db:v1`. Exports `mockDB.get()`, `mockDB.update()`, `mockDB.seedOnce()`. Forward-compat merges new fields onto stale caches via `{...emptyDB(), ...persisted}`. |
 | `seed.ts` | One-time seed: a 27-node demo run (`run_id: "demo"`) with synthetic `next_turn` edges plus 7 rhetorical edges, 8 hand-written `ClipCandidate`s, two secondary runs, and 4 render presets. Also exports `buildPhaseStatus()` for synthesizing phase arrays. |
 | `api.ts` | `mockRunsApi`, `mockNodesApi`, `mockEdgesApi`, `mockClipsApi`, `mockEmbeddingsApi`, `mockRenderApi` — each mirrors the real API shape with a 180ms simulated latency so loading states render. `isMockApiEnabled()` lives here. |
 | `lifecycle.ts` | `mockRunBus` — a fake phase progression. When `mockRunsApi.create()` runs, `startMockRunLifecycle()` walks the new run through phases 1→6 over a few seconds, emitting `phase_update` / `run_complete` events that `useRunSSE` subscribes to in mock mode. |
