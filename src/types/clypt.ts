@@ -279,6 +279,33 @@ export interface GroundingTracklet {
   duration_pct: number
 }
 
+export interface GroundingBinding {
+  tracklet_id: string
+  speaker_id: number
+  start_ms: number
+  end_ms: number
+  method: 'drag' | 'word' | 'range'
+}
+
+export type GroundingIntentType = 'Follow' | 'Reaction' | 'Split' | 'Wide' | 'Manual'
+
+export interface GroundingIntent {
+  intent: GroundingIntentType
+  follow?: number
+  react_on?: number
+  react_follow?: number
+  split_left?: number
+  split_right?: number
+  wide_includes?: number[]
+  crop_set?: boolean
+}
+
+export interface GroundingCropPosition {
+  x_percent: number
+  y_percent: number
+  height_percent: number
+}
+
 export interface GroundingShotState {
   shot_idx: number
   /** Tracklet id -> rect override (covers both originals the user moved and user-added boxes). */
@@ -287,6 +314,15 @@ export interface GroundingShotState {
   user_tracklets: GroundingTracklet[]
   /** Original tracklet ids the user removed via the editor. */
   hidden_tracklet_ids: string[]
+  /**
+   * Per-shot persisted edits to bindings/intent/manual_crop. **Optional on
+   * purpose** — `undefined` means "the user has not touched this aspect of
+   * this shot, fall back to the seed default". An explicit empty array (or
+   * `null` for the singletons) means "user cleared it".
+   */
+  bindings?: GroundingBinding[]
+  intent?: GroundingIntent
+  manual_crop?: GroundingCropPosition
 }
 
 export interface GroundingClipState {

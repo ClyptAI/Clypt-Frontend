@@ -262,6 +262,36 @@ Re-exported from `src/hooks/api/index.ts`.
 - Existing localStorage carrying the old `clypt:mock-db:v1` shape boots without manual reset (forward-compat merge in `loadDB`).
 - Bindings still live in component-local state (not persisted) — the deletion-cascade cleanup happens alongside the mutation, but bindings themselves are out of scope for this round.
 
+### 10.8 Follow-on: extend `GroundingClipState` to bindings, camera intents, manual crops
+
+Before §10 the persisted blob only carried box-editor state (rects, user tracklets, hidden ids). Everything *else* the user did on the Grounding page — speaker bindings, camera intent selections, manual crop boxes — was still local `useState` and got thrown away on navigation. This sub-section extends the same persistence path to all three.
+
+**Wire types ([src/types/clypt.ts](clypt-frontend/src/types/clypt.ts))** — `GroundingShotState` gains three optional fields:
+
+```ts
+bindings?: GroundingBinding[]
+intent?:   GroundingIntent
+manual_crop?: GroundingCropPosition
+```
+
+`undefined` is meaningful: it means "the user has not touched this aspect of this shot, fall back to the seed default". An explicit empty array (or new value) means "user touched it, persist it as-is". This keeps the wire payload sparse (untouched shots round-trip as empty objects) and lets the seed evolve independently of saved state. New supporting types: `GroundingBinding`, `GroundingIntentType`, `GroundingIntent`, `GroundingCropPosition`. Bindings and crops share the wire shape with the local UI types, so no conversion is needed at the boundary; intents do need a converter because the local UI uses camelCase (`reactOn`, `splitLeft`) and the wire uses snake_case (`react_on`, `split_left`).
+
+**Page wiring ([src/pages/RunGrounding.tsx](clypt-frontend/src/pages/RunGrounding.tsx))**:
+
+- Deleted the `useState` slices for `bindings`, `intents`, `manualCrops`. `cropModal` and `speakerNames` stay local — they're pure UI state.
+- New module-level converters `intentToWire` / `intentFromWire` translate between camelCase `ShotIntent` and snake_case `GroundingIntent`.
+- Three new effective-state memos merge seed defaults with persisted overrides:
+  - `effectiveBindings: Record<number, Binding[]>` — starts from `getInitialBindings()`, overlays per-shot persisted bindings where present.
+  - `effectiveIntents: ShotIntent[]` — per-shot, prefers persisted intent (passed through `intentFromWire`), falls back to seed.
+  - `effectiveCrops: Record<number, CropPosition>` — populated only for shots with a persisted `manual_crop`.
+- Four new persisted handlers replace the old setters: `handleAddBinding`, `handleRemoveBinding`, `updateIntent`, `handleSaveCrop`. Each builds the next `GroundingClipState` via `replaceShot` and calls `updateGrounding.mutate(next)`. `updateIntent` reads the *effective* current value first so a partial patch (e.g. `{ intent: 'Follow' }`) merges with the prior shape instead of clobbering it. `handleSaveCrop` writes both `manual_crop` and `intent: { ...current, cropSet: true }` in the same mutation so the "Set" indicator updates atomically.
+- `handleDeleteBox` cascades binding removal into the same `replaceShot` callback (instead of a second `setBindings` call), reading `shot.bindings ?? SEED_BINDINGS[shotIdx] ?? []`. The cascade is **only** applied when at least one binding is actually removed — otherwise `shot.bindings` stays `undefined` so it keeps falling through to the seed.
+- All read sites updated: progress counters, the active-shot intent display, the camera intent buttons/config, the shot-strip "all bound" check, the overlay mount, and the `ManualCropModal` initial value.
+
+**Result.** Everything the user does on the Grounding page now survives navigation, queue switches, and full page reloads via the same `localStorage`-backed mock store the box editor uses. The page is "done" in the sense that no state is silently dropped.
+
+`npx tsc --noEmit` — clean.
+
 ## 11. Full commit summary (everything shipped today)
 
 | SHA | Type | Description |
@@ -276,4 +306,5 @@ Re-exported from `src/hooks/api/index.ts`.
 | `b0318f1` | chore | Gitignore demo video binaries + README explaining the convention. |
 | `1db1584` | feat | Manual bounding box editor on the Grounding page (§9.3). |
 | `ddc1737` | docs | Log post-merge follow-on work in MERGE_NOTES §9. |
-| (next)    | feat | Persist Grounding box-editor state through the typed API + mock backend (§10). |
+| `fb5e0c9` | feat | Persist Grounding box-editor state through the typed API + mock backend (§10). |
+| (next)    | feat | Extend Grounding persistence to bindings, camera intents, manual crops (§10.8). |
