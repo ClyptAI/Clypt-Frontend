@@ -1,12 +1,9 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
-import { EmbedScatter, EmbedInspectPanel } from "@/components/embeds";
-import SearchBar from "@/components/embeds/SearchBar";
-import SearchResultsPanel, { PANEL_H } from "@/components/embeds/SearchResultsPanel";
-import type { ScoredPoint } from "@/components/embeds/SearchResultsPanel";
-import type { EmbedType } from "@/components/embeds";
+import { EmbedScatter, EmbedInspectPanel, SearchBar, SearchResultsPanel, PANEL_H } from "@/components/embeds";
+import type { EmbedType, ScoredPoint } from "@/components/embeds";
 import { useEmbeddings } from "@/hooks/api/useEmbeddings";
 import type { EmbedPoint } from "@/hooks/api/useEmbeddings";
 import { useRunDetail } from "@/hooks/api/useRuns";

@@ -26,12 +26,12 @@ Complete inventory of all components grouped by domain.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `EmbedScatter` | `EmbedScatter.tsx` | SVG-based 2D scatter plot. Manages pan/zoom via `Transform` state (wheel zoom, mouse drag). Features: background dot grid, type-colored circles, candidate glow rings, selection rings, hover tooltips, `highlightedIds` prop for search dimming. Uses `ResizeObserver` for responsive sizing. |
-| `EmbedToolbar` | `EmbedToolbar.tsx` | Toolbar with semantic/multimodal toggle, zoom controls, fit-to-view. |
-| `EmbedInspectPanel` | `EmbedInspectPanel.tsx` | Slide-in panel (right side, 340px) showing selected node details: ID, type pill, candidate badge, timestamps, summary, transcript excerpt, "View in Cortex Graph" link. Slides via `transform: translateX`. |
+| `EmbedScatter` | `EmbedScatter.tsx` | SVG-based 2D scatter plot. Manages pan/zoom via `Transform` state (wheel zoom, mouse drag). Features: background dot grid, type-colored circles, candidate glow rings, selection rings, hover tooltips. Accepts `highlightedIds` prop: when non-null, matching nodes glow and scale up while non-matches dim to 15% opacity. Uses `ResizeObserver` for responsive sizing. |
+| `EmbedToolbar` | `EmbedToolbar.tsx` | Toolbar with semantic/multimodal toggle, zoom controls, fit-to-view. (Used by the old `RunEmbeds` page; `RunSearch` inlines its own controls.) |
+| `EmbedInspectPanel` | `EmbedInspectPanel.tsx` | Slide-in panel (right side, 340px) showing selected node details: ID, type pill, candidate badge, timestamps, summary, transcript excerpt, "View in Cortex Graph" link. Slides via `transform: translateX`. Sets `pointerEvents: auto` so close button works inside overlay wrappers. |
 | `SearchBar` | `SearchBar.tsx` | Floating search input at top-center. Cmd+K to focus, Enter to submit, Escape to clear. Loading spinner, clear button, violet glow when results are active. |
-| `SearchResultsPanel` | `SearchResultsPanel.tsx` | Slide-up panel (196px) from bottom. Shows result count, query, horizontal scrollable row of `ResultCard` components with rank, type, timestamp, summary, similarity score bar. |
-| barrel | `index.ts` | Re-exports: `EmbedScatter`, `EmbedToolbar`, `EmbedInspectPanel`, `SearchBar`, `SearchResultsPanel`, `EmbedType`, `ScoredPoint`. |
+| `SearchResultsPanel` | `SearchResultsPanel.tsx` | Slide-up panel (196px) from bottom. Shows result count, query text, close button, horizontal scrollable row of `ResultCard` components (inline) with rank badge, type pill, timestamp, summary, similarity score bar. Exports `PANEL_H` constant and `ScoredPoint` type. |
+| barrel | `index.ts` | Re-exports: `EmbedScatter`, `EmbedToolbar`, `EmbedInspectPanel`, `SearchBar`, `SearchResultsPanel`, `PANEL_H`, `EmbedType`, `ScoredPoint`. |
 
 ## `src/components/graph/` — Cortex Graph (React Flow)
 

@@ -38,7 +38,7 @@ npm run lint         # ESLint
 
 ### File Organization
 - **Pages** go in `src/pages/` (one file per route, default export)
-- **Components** go in `src/components/{domain}/` — `app`, `auth`, `embeds`, `graph`, `landing`, `onboarding`, `settings`, `timeline`, `ui`
+- **Components** go in `src/components/{domain}/` — `app`, `auth`, `embeds` (embedding scatter + search UI), `graph`, `landing`, `onboarding`, `settings`, `timeline`, `ui`
 - **Hooks** go in `src/hooks/` — API hooks in `src/hooks/api/`
 - **Stores** go in `src/stores/`
 - **Types** go in `src/types/`
@@ -97,7 +97,7 @@ npm run lint         # ESLint
 ## Routing
 
 Public: `/`, `/login`, `/signup`, `/onboard/*` (6 steps)
-App shell: `/library`, `/runs/new`, `/runs/:id`, `/runs/:id/timeline`, `/runs/:id/graph`, `/runs/:id/embeds`, `/runs/:id/clips`, `/runs/:id/grounding`, `/runs/:id/render`
+App shell: `/library`, `/runs/new`, `/runs/:id`, `/runs/:id/timeline`, `/runs/:id/graph`, `/runs/:id/search`, `/runs/:id/clips`, `/runs/:id/grounding`, `/runs/:id/render`
 Settings: `/settings`, `/settings/voiceprints`
 
 ## Bug Tracking

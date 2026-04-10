@@ -31,7 +31,7 @@ src/
 │   ├── NavLink.tsx           # Wrapper around react-router NavLink with activeClassName
 │   ├── app/                 # Shell, sidebar, context bar, error boundary, logo
 │   ├── auth/                # AuthLayout (login/signup wrapper with embedded graph)
-│   ├── embeds/              # Embedding scatter plot, inspector, search bar/results
+│   ├── embeds/              # Embedding scatter plot, search bar, results panel, inspector
 │   ├── graph/               # React Flow nodes, edges, toolbar, legend, inspector, timeline strip
 │   ├── landing/             # Landing page sections (hero, demos, features, footer)
 │   ├── onboarding/          # OnboardingLayout (step indicator wrapper)
@@ -64,7 +64,7 @@ src/
 │   ├── Login.tsx / Signup.tsx
 │   ├── Library.tsx
 │   ├── NewRun.tsx
-│   ├── RunOverview.tsx / RunTimeline.tsx / RunGraph.tsx / RunEmbeds.tsx
+│   ├── RunOverview.tsx / RunTimeline.tsx / RunGraph.tsx / RunSearch.tsx
 │   ├── RunClips.tsx / RunGrounding.tsx / RunRender.tsx
 │   ├── SettingsProfile.tsx / SettingsVoiceprints.tsx
 │   ├── NotFound.tsx
@@ -99,7 +99,7 @@ Routes are defined in `src/App.tsx`. The app has three route groups:
 /runs/:id                  → RunOverview
 /runs/:id/timeline         → RunTimeline
 /runs/:id/graph            → RunGraph
-/runs/:id/embeds           → RunEmbeds
+/runs/:id/search           → RunSearch
 /runs/:id/clips            → RunClips
 /runs/:id/grounding        → RunGrounding
 /runs/:id/grounding/:clipId → RunGrounding (specific clip)
@@ -228,7 +228,7 @@ At this commit (`3033340`), there is **no centralized mock database** (`src/mock
 - `RunOverview.tsx`: `MOCK_PHASES`
 - `Library.tsx`: `mockRuns`, `mockClips`
 - `useEmbeddings.ts`: `MOCK_EMBEDDINGS` with seeded PRNG clusters
-- `RunEmbeds.tsx`: embedding scatter with inspect panel
+- `RunSearch.tsx`: unified search + embedding scatter with mock search logic, inspect panel
 - `SettingsVoiceprints.tsx`: `MOCK` voiceprints array
 - `SettingsProfile.tsx`: hardcoded name/email
 
@@ -237,5 +237,5 @@ Local video: `public/videos/joeroganflagrant.mp4` (125MB) — used by the demo r
 ## Orphan Files
 
 These files exist on disk but are not imported by any route:
-- `src/pages/RunSearch.tsx` — successor to `RunEmbeds.tsx`, not wired in `App.tsx`
+- `src/pages/RunEmbeds.tsx` — predecessor to `RunSearch.tsx`, no longer routed in `App.tsx`
 - `src/components/graph/EdgeMarkers.tsx` — SVG marker defs, no longer rendered
