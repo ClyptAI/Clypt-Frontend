@@ -6,7 +6,7 @@ Clypt is an AI-powered video analysis and clip generation system. This is the Re
 
 **Stack:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + React Flow
 
-**Canonical commit:** `3033340` — this is the known-good baseline. Do not introduce regressions against it.
+**Canonical commit:** `43475e5` — this is the known-good baseline (the merge of `main` into `feat/functional-dummy-data` on 2026-04-10, which brought in centralized mocks, the unified Search/Embedding page, the Cortex Graph edges fix, and the timeline divider pointer-events fix). Do not introduce regressions against it. Previous baseline was `3033340` (pre-merge).
 
 ## Commands
 
@@ -23,14 +23,15 @@ npm run lint         # ESLint
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `VITE_API_BASE_URL` | `http://localhost:8080` | Backend API base URL |
+| `VITE_API_BASE_URL` | `http://localhost:8080` | Backend API base URL (only used when mock mode is off) |
+| `VITE_USE_MOCK_API` | `true` | When truthy, every `lib/api.ts` call routes through `src/mocks/api.ts` instead of `fetch`. Set to `false` (or any non-truthy string) to talk to a real backend. |
 
 ## Architecture at a Glance
 
 - **Entry:** `src/main.tsx` → `src/App.tsx` (routing, providers)
 - **Layout:** Public routes render standalone; app routes render inside `AppShell` (sidebar + `<Outlet />`)
-- **State:** Zustand stores (`run-store`, `clip-store`, `timeline-store`) for local/cross-component state; TanStack Query for server cache
-- **API:** `src/lib/api.ts` — typed fetch wrappers against `/v1/` REST endpoints; embeddings endpoint falls back to `MOCK_EMBEDDINGS`
+- **State:** Zustand stores (`run-store`, `clip-store`, `timeline-store`, `auth-store`, `onboarding-store`) for local/cross-component state; TanStack Query for server cache
+- **API:** `src/lib/api.ts` — typed fetch wrappers against `/v1/` REST endpoints. Defaults to `VITE_USE_MOCK_API=true`, in which case every call short-circuits through `src/mocks/api.ts` against the in-memory mock DB in `src/mocks/store.ts` (seeded once via `src/mocks/seed.ts`, with simulated phase progression in `src/mocks/lifecycle.ts`).
 - **Types:** `src/types/clypt.ts` — mirrors backend Pydantic models exactly
 - **Styling:** Dark-only theme via CSS custom properties in `src/index.css`; Tailwind maps those vars; no light mode
 
