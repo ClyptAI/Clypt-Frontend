@@ -19,7 +19,10 @@ import { toast } from "sonner";
 import { useClipList } from "@/hooks/api/useClips";
 import { useGroundingState, useUpdateGrounding } from "@/hooks/api/useGrounding";
 import { useClipStore } from "@/stores/clip-store";
-import type { GroundingClipState, GroundingShotState, GroundingTracklet } from "@/types/clypt";
+import type {
+  GroundingClipState, GroundingShotState, GroundingTracklet,
+  GroundingIntent,
+} from "@/types/clypt";
 
 /* ═══════════════════════════════════════════════════════════
    Types
@@ -132,6 +135,35 @@ function getInitialIntents(): ShotIntent[] {
     { intent: "Split", splitLeft: 0, splitRight: 1 },
     { intent: "Wide", wideIncludes: [0, 1] },
   ];
+}
+
+/* Local <-> wire converters for camera intent. The local UI uses camelCase
+   field names (`reactOn`, `splitLeft`, …); the persisted GroundingIntent uses
+   snake_case (`react_on`, `split_left`, …) so it can travel through the
+   grounding API unchanged. Bindings and CropPositions already share the wire
+   shape, so they don't need converters. */
+function intentToWire(local: ShotIntent): GroundingIntent {
+  const wire: GroundingIntent = { intent: local.intent };
+  if (local.follow !== undefined) wire.follow = local.follow;
+  if (local.reactOn !== undefined) wire.react_on = local.reactOn;
+  if (local.reactFollow !== undefined) wire.react_follow = local.reactFollow;
+  if (local.splitLeft !== undefined) wire.split_left = local.splitLeft;
+  if (local.splitRight !== undefined) wire.split_right = local.splitRight;
+  if (local.wideIncludes !== undefined) wire.wide_includes = local.wideIncludes;
+  if (local.cropSet !== undefined) wire.crop_set = local.cropSet;
+  return wire;
+}
+
+function intentFromWire(wire: GroundingIntent): ShotIntent {
+  const local: ShotIntent = { intent: wire.intent };
+  if (wire.follow !== undefined) local.follow = wire.follow;
+  if (wire.react_on !== undefined) local.reactOn = wire.react_on;
+  if (wire.react_follow !== undefined) local.reactFollow = wire.react_follow;
+  if (wire.split_left !== undefined) local.splitLeft = wire.split_left;
+  if (wire.split_right !== undefined) local.splitRight = wire.split_right;
+  if (wire.wide_includes !== undefined) local.wideIncludes = wire.wide_includes;
+  if (wire.crop_set !== undefined) local.cropSet = wire.crop_set;
+  return local;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -962,29 +994,9 @@ export default function RunGrounding() {
     }
   }, [queue, activeClip]);
 
-  /* Bindings */
-  const [bindings, setBindings] = useState<Record<number, Binding[]>>(getInitialBindings);
-  const handleAddBinding = useCallback((shotIdx: number, binding: Binding) => {
-    setBindings((prev) => {
-      const existing = prev[shotIdx] || [];
-      return { ...prev, [shotIdx]: [...existing.filter((b) => !(b.tracklet_id === binding.tracklet_id && b.speaker_id === binding.speaker_id)), binding] };
-    });
-  }, []);
-  const handleRemoveBinding = useCallback((shotIdx: number, trackletId: string, speakerId: number) => {
-    setBindings((prev) => ({ ...prev, [shotIdx]: (prev[shotIdx] || []).filter((b) => !(b.tracklet_id === trackletId && b.speaker_id === speakerId)) }));
-  }, []);
-
-  /* Camera intents */
-  const [intents, setIntents] = useState<ShotIntent[]>(getInitialIntents);
-  const [manualCrops, setManualCrops] = useState<Record<number, CropPosition>>({});
+  /* Crop modal — pure UI state (which modal is open). Persisted crop values
+     themselves live in the grounding state via effectiveCrops below. */
   const [cropModal, setCropModal] = useState<number | null>(null);
-  const updateIntent = (idx: number, patch: Partial<ShotIntent>) => setIntents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  const handleSaveCrop = (shotIdx: number, crop: CropPosition) => {
-    setManualCrops((prev) => ({ ...prev, [shotIdx]: crop }));
-    const i = SHOTS.findIndex((s) => s.idx === shotIdx);
-    if (i >= 0) updateIntent(i, { cropSet: true });
-    setCropModal(null);
-  };
 
   /* Speaker naming */
   const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({ ...SPEAKER_NAMES });
@@ -1055,10 +1067,15 @@ export default function RunGrounding() {
 
   const handleDeleteBox = useCallback((shotIdx: number, trackletId: string) => {
     // Originals (from SHOTS) get hidden so they can in principle come back later;
-    // user-added tracklets get fully removed.
+    // user-added tracklets get fully removed. Bindings against the deleted
+    // tracklet are cascaded out in the same mutation so a stale speaker badge
+    // doesn't linger after the box disappears.
     const isOriginal = SHOTS.find((s) => s.idx === shotIdx)?.tracklets.some((t) => t.id === trackletId) ?? false;
     const next = replaceShot(safeGrounding, shotIdx, (shot) => {
       const { [trackletId]: _removed, ...remainingRects } = shot.rects;
+      const currentBindings = shot.bindings ?? (getInitialBindings()[shotIdx] ?? []);
+      const filteredBindings = currentBindings.filter((b) => b.tracklet_id !== trackletId);
+      const bindingsChanged = filteredBindings.length !== currentBindings.length;
       return {
         ...shot,
         rects: remainingRects,
@@ -1068,16 +1085,14 @@ export default function RunGrounding() {
         hidden_tracklet_ids: isOriginal
           ? [...shot.hidden_tracklet_ids, trackletId]
           : shot.hidden_tracklet_ids,
+        // Only mark bindings as user-touched if we actually removed any —
+        // otherwise leave the field undefined so it keeps falling through
+        // to the seed default.
+        ...(bindingsChanged ? { bindings: filteredBindings } : {}),
       };
     });
     updateGrounding.mutate(next);
     setSelectedBoxKey((prev) => (prev === `${shotIdx}:${trackletId}` ? null : prev));
-    // Bindings live in local state and aren't persisted yet — clean them up
-    // alongside the box deletion so a stale speaker badge doesn't linger.
-    setBindings((prev) => ({
-      ...prev,
-      [shotIdx]: (prev[shotIdx] ?? []).filter((b) => b.tracklet_id !== trackletId),
-    }));
   }, [safeGrounding, replaceShot, updateGrounding]);
 
   const handleAddBox = useCallback((shotIdx: number) => {
@@ -1103,9 +1118,88 @@ export default function RunGrounding() {
     setBoxEditMode(true);
   }, [safeGrounding, getShotState, replaceShot, updateGrounding]);
 
+  /* ─── Effective bindings / intents / crops ──────────────────────────
+     The persisted GroundingShotState records *only* what the user touched —
+     anything they haven't edited falls back to a per-shot seed (the same
+     mock data that lived in useState before this turned into a server-
+     persisted thing). The three memos below merge seed defaults with any
+     persisted overrides so the rest of the page can read a single source
+     of truth without caring whether a value came from the seed or the API. */
+  const SEED_BINDINGS = useMemo(() => getInitialBindings(), []);
+  const SEED_INTENTS = useMemo(() => getInitialIntents(), []);
+
+  const effectiveBindings: Record<number, Binding[]> = useMemo(() => {
+    const result: Record<number, Binding[]> = { ...SEED_BINDINGS };
+    for (const shot of safeGrounding.shots) {
+      if (shot.bindings !== undefined) result[shot.shot_idx] = shot.bindings;
+    }
+    return result;
+  }, [safeGrounding, SEED_BINDINGS]);
+
+  const effectiveIntents: ShotIntent[] = useMemo(() => {
+    return SHOTS.map((s, i) => {
+      const persisted = safeGrounding.shots.find((p) => p.shot_idx === s.idx);
+      if (persisted?.intent) return intentFromWire(persisted.intent);
+      return SEED_INTENTS[i];
+    });
+  }, [safeGrounding, SEED_INTENTS]);
+
+  const effectiveCrops: Record<number, CropPosition> = useMemo(() => {
+    const result: Record<number, CropPosition> = {};
+    for (const shot of safeGrounding.shots) {
+      if (shot.manual_crop) result[shot.shot_idx] = shot.manual_crop;
+    }
+    return result;
+  }, [safeGrounding]);
+
+  const handleAddBinding = useCallback((shotIdx: number, binding: Binding) => {
+    const next = replaceShot(safeGrounding, shotIdx, (shot) => {
+      const current = shot.bindings ?? (SEED_BINDINGS[shotIdx] ?? []);
+      return { ...shot, bindings: [...current, binding] };
+    });
+    updateGrounding.mutate(next);
+  }, [safeGrounding, replaceShot, updateGrounding, SEED_BINDINGS]);
+
+  const handleRemoveBinding = useCallback((shotIdx: number, trackletId: string, speakerId: number) => {
+    const next = replaceShot(safeGrounding, shotIdx, (shot) => {
+      const current = shot.bindings ?? (SEED_BINDINGS[shotIdx] ?? []);
+      return {
+        ...shot,
+        bindings: current.filter((b) => !(b.tracklet_id === trackletId && b.speaker_id === speakerId)),
+      };
+    });
+    updateGrounding.mutate(next);
+  }, [safeGrounding, replaceShot, updateGrounding, SEED_BINDINGS]);
+
+  const updateIntent = useCallback((arrayIdx: number, patch: Partial<ShotIntent>) => {
+    const shot = SHOTS[arrayIdx];
+    if (!shot) return;
+    const current = effectiveIntents[arrayIdx] ?? SEED_INTENTS[arrayIdx] ?? { intent: "Follow" as IntentType };
+    const merged: ShotIntent = { ...current, ...patch };
+    const next = replaceShot(safeGrounding, shot.idx, (s) => ({
+      ...s,
+      intent: intentToWire(merged),
+    }));
+    updateGrounding.mutate(next);
+  }, [safeGrounding, replaceShot, updateGrounding, effectiveIntents, SEED_INTENTS]);
+
+  const handleSaveCrop = useCallback((shotIdx: number, crop: CropPosition) => {
+    const arrayIdx = SHOTS.findIndex((s) => s.idx === shotIdx);
+    const currentIntent = arrayIdx >= 0
+      ? (effectiveIntents[arrayIdx] ?? SEED_INTENTS[arrayIdx] ?? { intent: "Manual" as IntentType })
+      : { intent: "Manual" as IntentType };
+    const next = replaceShot(safeGrounding, shotIdx, (shot) => ({
+      ...shot,
+      manual_crop: crop,
+      intent: intentToWire({ ...currentIntent, cropSet: true }),
+    }));
+    updateGrounding.mutate(next);
+    setCropModal(null);
+  }, [safeGrounding, replaceShot, updateGrounding, effectiveIntents, SEED_INTENTS]);
+
   /* Progress */
-  const progress = computeGroundingProgress(bindings);
-  const completedIntents = SHOTS.reduce((a, _, i) => a + (intents[i] && isShotIntentComplete(intents[i]) ? 1 : 0), 0);
+  const progress = computeGroundingProgress(effectiveBindings);
+  const completedIntents = SHOTS.reduce((a, _, i) => a + (effectiveIntents[i] && isShotIntentComplete(effectiveIntents[i]) ? 1 : 0), 0);
   const clipStatus: QueueClip["status"] = progress.grounded === progress.total ? "complete" : progress.grounded > 0 ? "partial" : "not_started";
   const isComplete = clipStatus === "complete";
   // Fallback stub keeps the rest of the layout renderable while apiClips is
@@ -1114,7 +1208,7 @@ export default function RunGrounding() {
   const current = queue.find((c) => c.id === activeClip) ?? queue[0] ?? FALLBACK_CURRENT;
   const activeShot = SHOTS.find((s) => s.idx === activeShotIdx) ?? SHOTS[0];
   const activeShotIntentIdx = SHOTS.findIndex((s) => s.idx === activeShotIdx);
-  const activeShotIntent = intents[activeShotIntentIdx] ?? { intent: "Follow" as IntentType };
+  const activeShotIntent = effectiveIntents[activeShotIntentIdx] ?? { intent: "Follow" as IntentType };
 
   /* Video player */
   const videoRef    = useRef<HTMLVideoElement>(null);
@@ -1292,7 +1386,7 @@ export default function RunGrounding() {
               return (
                 <BoundingBoxOverlay
                   shot={activeShot}
-                  bindings={bindings[activeShot.idx] || []}
+                  bindings={effectiveBindings[activeShot.idx] || []}
                   speakerNames={speakerNames}
                   userTracklets={overlayUserTracklets}
                   hiddenIds={activeShotState.hidden_tracklet_ids}
@@ -1526,8 +1620,8 @@ export default function RunGrounding() {
               <span className="label-caps" style={{ fontSize: 9, marginRight: 4, flexShrink: 0 }}>SHOTS</span>
               {SHOTS.map((s) => {
                 const isActive = s.idx === activeShotIdx;
-                const shotBound = (bindings[s.idx] || []).length > 0;
-                const allBound = s.tracklets.every((t) => (bindings[s.idx] || []).some((b) => b.tracklet_id === t.id));
+                const shotBound = (effectiveBindings[s.idx] || []).length > 0;
+                const allBound = s.tracklets.every((t) => (effectiveBindings[s.idx] || []).some((b) => b.tracklet_id === t.id));
                 return (
                   <button key={s.idx} onClick={() => setActiveShotIdx(s.idx)}
                     style={{
@@ -1552,7 +1646,7 @@ export default function RunGrounding() {
             <div ref={workspaceContainerRef} style={{ flex: 1, overflow: "hidden" }}>
                   <ActiveShotWorkspace
                     shot={activeShot}
-                    shotBindings={bindings[activeShot.idx] || []}
+                    shotBindings={effectiveBindings[activeShot.idx] || []}
                     onAddBinding={handleAddBinding}
                     onRemoveBinding={handleRemoveBinding}
                     speakerNames={speakerNames}
@@ -1599,7 +1693,7 @@ export default function RunGrounding() {
       </div>
 
       {cropModal !== null && (
-        <ManualCropModal shotIdx={cropModal} initial={manualCrops[cropModal]} onSave={handleSaveCrop} onClose={() => setCropModal(null)} />
+        <ManualCropModal shotIdx={cropModal} initial={effectiveCrops[cropModal]} onSave={handleSaveCrop} onClose={() => setCropModal(null)} />
       )}
 
       {/* ── Scrub preview — fixed so no parent overflow clips it ── */}
