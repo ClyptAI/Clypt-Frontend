@@ -53,7 +53,7 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `Navbar` | `Navbar.tsx` | Top nav with logo, links, login/signup buttons. |
-| `Hero` | `Hero.tsx` | Hero section with headline, "See a demo" link, waveform animation. |
+| `Hero` | `Hero.tsx` | Hero section with headline, "See a demo" Link (React Router → `/runs/demo/timeline`), waveform animation. |
 | `HowItWorks` | `HowItWorks.tsx` | Step-by-step pipeline explanation. |
 | `PipelineDemos` | `PipelineDemos.tsx` | Orchestrator for the six demo cards. |
 | `LandingTimelineDemo` | `LandingTimelineDemo.tsx` | Animated timeline mockup. |

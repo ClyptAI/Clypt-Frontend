@@ -114,9 +114,9 @@ The docs that landed via `9e79b24` were written against `main`'s state, not `fea
 - **Test suite repair.** Apply the `VITE_USE_MOCK_API = 'false'` fix in `test/setup.ts` to bring `api.test.ts` and `useRunSSE.test.ts` back to green. Pre-existing, but worth fixing in a small follow-up.
 - **`src/pages/RunEmbeds.tsx`.** Officially orphan as of `4c4c1f4`. Already documented under **Orphan Files** in `ARCHITECTURE.md`. Safe to delete in a small cleanup PR — left in place for now in case anything is still cherry-picking from it.
 - **`src/components/graph/EdgeMarkers.tsx`.** Same status — orphan, already documented. Same recommendation.
-- **Push and PR.** Local `feat/functional-dummy-data` is 6 ahead of `origin/feat/functional-dummy-data`. Not pushed yet — waiting on user sign-off before publishing or opening the merge PR back to main.
+- ~~**Push and PR.** Local `feat/functional-dummy-data` is 6 ahead of `origin/feat/functional-dummy-data`. Not pushed yet — waiting on user sign-off before publishing or opening the merge PR back to main.~~ **Done in §9.4** — branch is now pushed (`origin/feat/functional-dummy-data` at `1db1584`). PR back to `main` still pending.
 
-## 8. Commit summary
+## 8. Commit summary (merge + reconciliation)
 
 | SHA | Author | Type | Description |
 |------|--------|------|-------------|
@@ -124,4 +124,81 @@ The docs that landed via `9e79b24` were written against `main`'s state, not `fea
 | `8f1a6fe` | Codex (reviewed/merged) | fix | Pointer-events timeline divider drag. |
 | `95fa226` | me | docs | Drop stale Lovable preview URL from README. |
 | `43475e5` | me | merge | Merge `origin/main` into `feat/functional-dummy-data`. No conflicts. |
-| (next) | me | docs | Doc reconciliation + ERROR_LOG entry + this merge notes file. |
+| `8b4e334` | me | docs | Reconcile AGENTS/ARCHITECTURE/COMPONENTS with merged feat state + log edges bug. |
+| `29b7e3b` | me | docs | Add this `MERGE_NOTES_2026-04-10` file. |
+
+---
+
+## 9. Post-merge follow-on work (same day)
+
+After the merge + doc reconciliation landed, three more pieces of frontend work shipped on the same branch in the same session. These are independent of the merge — they're tracked here because they happened the same day and finish out the spec the user wanted ("finish the frontend today").
+
+### 9.1 `746e7fa` — `feat(landing): route "See a demo" CTA into the seeded /runs/demo/timeline editor`
+
+The Hero CTA was a dead in-page anchor (`href="#demo"` with no matching `id="demo"`). Replaced with a React Router `<Link to="/runs/demo/timeline">` that drops the user straight into the seeded demo run's editor.
+
+**Black-video bug surfaced and fixed in the same commit.** The seeded demo run carries `source_url: 'https://youtube.com/watch?v=demo412'` (a fake YouTube URL kept around for the context-bar label). The old precedence in `RunTimeline.tsx` was `runDetail?.source_url ?? DEMO_VIDEO_URL`, so the truthy fake URL was winning and feeding the player a YouTube ID that doesn't exist → black iframe. Inverted the precedence for `runId === "demo"` so the local mp4 always wins for playback, and surfaced a friendly `"Joe Rogan × Flagrant (demo)"` label in the context bar instead of the fake URL.
+
+Files: `src/components/landing/Hero.tsx`, `src/pages/RunTimeline.tsx`, plus untracking the broken `public/videos/joeroganflagrant.mp4` blob (see §9.2).
+
+### 9.2 `b0318f1` — `chore(videos): gitignore demo video binaries; add README`
+
+Even after §9.1's precedence fix the video was still black on Windows. Root cause was deeper: `public/videos/joeroganflagrant.mp4` had been committed as a git **symlink** (mode `120000`) pointing at the absolute macOS path `/Users/rithvik/Clypt-V3/videos/joeroganflagrant.mp4`. On Rithvik's Mac the symlink resolved to a real file. On Windows — where symlinks need admin privileges — git materialized it as a 51-byte text blob containing the path string, which `<video>` happily served as a black frame.
+
+Resolution:
+- `git rm --cached public/videos/joeroganflagrant.mp4` to drop the symlink blob.
+- Added `public/videos/*.mp4` + `!public/videos/.gitkeep` to `.gitignore`.
+- Added `public/videos/.gitkeep` so the empty folder still ships.
+- Added `public/videos/README.md` documenting the convention, the fresh-checkout setup, and the symlink history (so nobody re-commits one).
+- Locally: copied the real ~125 MB mp4 from `~/Downloads/` into `public/videos/`. Each dev now keeps their own copy.
+
+### 9.3 `1db1584` — `feat(grounding): manual bounding box editor with per-shot drag/resize/add/delete`
+
+Lets users correct the tracker output on the Grounding page when the model puts a box in the wrong place or misses a person entirely. Boxes are stored in normalized 0..1 coordinates so they survive any container resize.
+
+**New types and constants** at the top of `RunGrounding.tsx`:
+- `BoxRect = { x, y, w, h }`, `ResizeHandle = "nw" | "n" | ... | "w"`
+- `DEFAULT_BOX_POSITIONS` (initial fallback rects for the original tracker tracklets), `DEFAULT_NEW_BOX` (centered 25%×50% rect for newly added boxes), `MIN_BOX_SIZE` (clamps tiny boxes), `clampRect()` helper.
+
+**`EditableBox` component** (new, ~180 lines):
+- 8 resize handles (`nw/n/ne/e/se/s/sw/w`) plus a move drag surface, all sharing a single `dragRef` so the active handle owns the gesture.
+- Pointer-capture based (`setPointerCapture`/`releasePointerCapture`) — same pattern as the timeline divider fix in §2.2, so drags survive crossing into other regions.
+- Per-box delete (`×`) button visible only when selected, letter label and bound-speaker name badge.
+- `pointerEvents: "none"` when not in edit mode so the underlying queue/video stay clickable.
+
+**Rewritten `BoundingBoxOverlay`** that takes the shot, bindings, speakerNames, plus per-shot `userTracklets`/`hiddenIds`/`rects`/`editMode`/`selectedTrackletId` and `onUpdateRect`/`onSelect`/`onDelete` callbacks. The effective tracklet list is `(originals - hiddenIds) ∪ userTracklets`, so the editor can both prune the model's tracklets and add new ones.
+
+**State + helpers in the main `RunGrounding` component:**
+- `trackletBoxes: Record<shotIdx, Record<trackletId, BoxRect>>` — rect overrides
+- `userTracklets: Record<shotIdx, Tracklet[]>` — boxes the user added on top of the model's output
+- `hiddenIdsByShot: Record<shotIdx, string[]>` — original tracklets the user removed
+- `boxEditMode` / `selectedBoxKey` — global toggle and `"shotIdx:trackletId"` selection
+- `handleAddBox(shotIdx)` picks the next free letter past the originals + extras (D, E, …), assigns a unique id, drops a centered default rect, selects the new box, and auto-enables edit mode.
+- `handleDeleteBox(shotIdx, trackletId)` distinguishes originals (added to `hiddenIdsByShot`, recoverable in principle) from user-added (fully removed), and **also clears any speaker bindings** that referenced the deleted tracklet for that shot.
+
+**Floating glass toolbar** at top-right of the video container, mirroring the Queue panel's glass styling on the left. Two buttons: `[⌬ Edit boxes]` toggle (turns violet when active, deselects on toggle off) and `[+ Add box]` (disabled until edit mode is on).
+
+Coexists with the existing `ManualCropModal` — they're independent state.
+
+### 9.4 Push
+
+`git push` of all 11 commits ahead of origin landed cleanly:
+```
+fc396e8..1db1584  feat/functional-dummy-data -> feat/functional-dummy-data
+```
+
+PR back to `main` is **still pending** — the user has not asked for it yet.
+
+## 10. Full commit summary (everything shipped today)
+
+| SHA | Type | Description |
+|------|------|-------------|
+| `3ffcf6b` | fix | Wire Cortex Graph edges through the API. |
+| `8f1a6fe` | fix | Pointer-events timeline divider drag (Codex, reviewed). |
+| `95fa226` | docs | Drop stale Lovable preview URL from README. |
+| `43475e5` | merge | Merge `origin/main` into `feat/functional-dummy-data`. |
+| `8b4e334` | docs | Reconcile AGENTS/ARCHITECTURE/COMPONENTS + log edges bug. |
+| `29b7e3b` | docs | Add `MERGE_NOTES_2026-04-10` file (this file). |
+| `746e7fa` | feat | "See a demo" CTA → `/runs/demo/timeline` + black-iframe precedence fix. |
+| `b0318f1` | chore | Gitignore demo video binaries + README explaining the convention. |
+| `1db1584` | feat | Manual bounding box editor on the Grounding page (this section's §9.3). |
