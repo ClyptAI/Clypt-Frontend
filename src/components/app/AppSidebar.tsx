@@ -1,4 +1,4 @@
-import { LayoutGrid, Film, Plus, Settings, ChevronDown } from "lucide-react";
+import { LayoutGrid, Film, Plus, Settings, ChevronDown, Search } from "lucide-react";
 import { useMatch } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ const RUN_TABS = [
   { label: "Overview",        path: ""           },
   { label: "Timeline",        path: "/timeline"  },
   { label: "Cortex Graph",    path: "/graph"     },
-  { label: "Embeds",          path: "/embeds"    },
+  { label: "Search",          path: "/search"    },
   { label: "Clip Candidates", path: "/clips"     },
   { label: "Grounding",       path: "/grounding" },
   { label: "Render",          path: "/render"    },
