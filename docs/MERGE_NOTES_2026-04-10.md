@@ -307,4 +307,4 @@ manual_crop?: GroundingCropPosition
 | `1db1584` | feat | Manual bounding box editor on the Grounding page (§9.3). |
 | `ddc1737` | docs | Log post-merge follow-on work in MERGE_NOTES §9. |
 | `fb5e0c9` | feat | Persist Grounding box-editor state through the typed API + mock backend (§10). |
-| (next)    | feat | Extend Grounding persistence to bindings, camera intents, manual crops (§10.8). |
+| `d97532d` | feat | Extend Grounding persistence to bindings, camera intents, manual crops (§10.8). |
