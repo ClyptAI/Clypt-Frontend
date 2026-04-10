@@ -119,16 +119,21 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 - **Hooks:** `useNodeList` (React Query)
 - **State:** `selectedNode`, `selectedEdge`, `hoveredNodeId`, `hoveredEdgeId`, `activeTypes` set, `signalFilters`
 
-### Embeds — `RunEmbeds.tsx`
-- **Route:** `/runs/:id/embeds`
+### Search — `RunSearch.tsx`
+- **Route:** `/runs/:id/search`
 - **Features:**
-  - `EmbedToolbar` (semantic/multimodal toggle, zoom +/-, fit-to-view)
-  - `EmbedScatter` (SVG scatter plot with pan/zoom, type-colored dots)
+  - Unified search + embedding space — the scatter IS the search result surface
+  - `SearchBar` (floating, Cmd+K focus, Enter to search, Escape/X to clear)
+  - `EmbedScatter` (SVG scatter with pan/zoom, `highlightedIds` dims non-matches to 15%)
+  - `SearchResultsPanel` (slides up from bottom with horizontal ranked result cards)
   - `EmbedInspectPanel` (slides in from right for selected node)
-  - Type legend, node count chip
-- **Mock data:** `MOCK_EMBEDDINGS` (seeded PRNG clusters in `useEmbeddings`)
+  - Inline semantic/multimodal toggle + zoom controls (top right)
+  - Type legend (bottom left, shifts up when results panel is open)
+  - Node count chip (bottom right)
+- **States:** Idle (all nodes lit, exploration), Typing (no change), Results (matches glow + scale up, non-matches dim), Node selected (ring + inspect panel), Clear/Escape (return to idle)
+- **Mock data:** `MOCK_EMBEDDINGS` (seeded PRNG clusters in `useEmbeddings`); mock search via word overlap in summary + transcript_excerpt, fills to min 4 results
 - **Hooks:** `useEmbeddings`, `useRunDetail`
-- **State:** `embedType`, `selectedNode`, `fitSignal`, `zoomDelta`
+- **State:** `embedType`, `selectedNode`, `inputValue`, `activeQuery`, `results`, `fitSignal`, `zoomDelta`
 
 ### Clip Candidates — `RunClips.tsx`
 - **Route:** `/runs/:id/clips`
@@ -174,7 +179,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 
 ## Orphan Pages (not routed)
 
-### RunSearch — `RunSearch.tsx`
-- **Not in `App.tsx`** — successor to `RunEmbeds.tsx`, adds search bar and results panel
-- **Features:** Similar to Embeds page but adds `SearchBar`, `SearchResultsPanel`, `mockSearch()` function
-- **Status:** Dead code, not routed
+### RunEmbeds — `RunEmbeds.tsx`
+- **Not in `App.tsx`** — predecessor to `RunSearch.tsx`, plain embedding scatter without search
+- **Features:** `EmbedToolbar`, `EmbedScatter`, `EmbedInspectPanel`, type legend
+- **Status:** Dead code, superseded by `RunSearch.tsx`
