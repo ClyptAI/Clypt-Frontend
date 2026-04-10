@@ -1,5 +1,3 @@
-https://clypt-v3.lovable.app
-
 ## Getting Started
 
 ### Prerequisites
