@@ -194,61 +194,289 @@ function StatusIcon({ status }: { status: QueueClip["status"] }) {
 
 /* ═══════════════════════════════════════════════════════════
    BoundingBoxOverlay — draws tracklet boxes on video
-   ═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════
 
-function BoundingBoxOverlay({ shot, bindings }: { shot: ShotData; bindings: Binding[] }) {
-  const boxes = useMemo(() => {
-    return shot.tracklets.map((t, i) => {
-      const bound = bindings.find((b) => b.tracklet_id === t.id);
-      const color = bound ? SPEAKER_COLORS[bound.speaker_id] : "rgba(255,255,255,0.6)";
-      // Mock positions — in production these come from TrackletGeometryPoint bbox_xyxy
-      const positions = [
-        { left: "18%", top: "22%", width: "28%", height: "56%" },
-        { left: "54%", top: "20%", width: "28%", height: "58%" },
-        { left: "36%", top: "25%", width: "26%", height: "50%" },
-      ];
-      const pos = positions[i % positions.length];
-      return { ...t, color, pos, bound };
-    });
-  }, [shot, bindings]);
+   The boxes are positioned in normalized 0..1 coordinates relative to the
+   overlay's bounding rect (which tracks the video container, not the
+   <video> element itself — the overlay fills the letterboxed black area).
+   When `editMode` is on the user can drag/resize/delete boxes and add new
+   tracklets via `onAddBox`. Original tracklet positions fall back to a
+   small set of defaults if no rect has been set yet, so existing shots
+   render the same way they did before this editor landed. */
+
+type BoxRect = { x: number; y: number; w: number; h: number };
+type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+const DEFAULT_BOX_POSITIONS: BoxRect[] = [
+  { x: 0.18, y: 0.22, w: 0.28, h: 0.56 },
+  { x: 0.54, y: 0.20, w: 0.28, h: 0.58 },
+  { x: 0.36, y: 0.25, w: 0.26, h: 0.50 },
+];
+const DEFAULT_NEW_BOX: BoxRect = { x: 0.375, y: 0.25, w: 0.25, h: 0.5 };
+const MIN_BOX_SIZE = 0.04;
+
+function clampRect(r: BoxRect): BoxRect {
+  let { x, y, w, h } = r;
+  w = Math.max(MIN_BOX_SIZE, Math.min(1, w));
+  h = Math.max(MIN_BOX_SIZE, Math.min(1, h));
+  x = Math.max(0, Math.min(1 - w, x));
+  y = Math.max(0, Math.min(1 - h, y));
+  return { x, y, w, h };
+}
+
+interface EditableBoxProps {
+  rect: BoxRect;
+  color: string;
+  letter: string;
+  speakerName: string | null;
+  isSelected: boolean;
+  editMode: boolean;
+  containerRef: React.RefObject<HTMLDivElement>;
+  onChange: (next: BoxRect) => void;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+function EditableBox({
+  rect, color, letter, speakerName, isSelected, editMode, containerRef,
+  onChange, onSelect, onDelete,
+}: EditableBoxProps) {
+  // Drag state lives in a ref so the move handlers don't have to re-bind
+  // every render. Mirrors the timeline divider's pattern.
+  const dragRef = useRef<{
+    mode: "move" | ResizeHandle;
+    startX: number;
+    startY: number;
+    startRect: BoxRect;
+    cw: number;
+    ch: number;
+  } | null>(null);
+
+  const beginDrag = (mode: "move" | ResizeHandle, e: React.PointerEvent<HTMLDivElement>) => {
+    if (!editMode) return;
+    e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
+    if (cRect.width === 0 || cRect.height === 0) return;
+    dragRef.current = {
+      mode,
+      startX: e.clientX,
+      startY: e.clientY,
+      startRect: rect,
+      cw: cRect.width,
+      ch: cRect.height,
+    };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    onSelect();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const dx = (e.clientX - drag.startX) / drag.cw;
+    const dy = (e.clientY - drag.startY) / drag.ch;
+    const next: BoxRect = { ...drag.startRect };
+    if (drag.mode === "move") {
+      next.x = drag.startRect.x + dx;
+      next.y = drag.startRect.y + dy;
+    } else {
+      const m = drag.mode;
+      if (m.includes("n")) {
+        next.y = drag.startRect.y + dy;
+        next.h = drag.startRect.h - dy;
+      }
+      if (m.includes("s")) {
+        next.h = drag.startRect.h + dy;
+      }
+      if (m.includes("w")) {
+        next.x = drag.startRect.x + dx;
+        next.w = drag.startRect.w - dx;
+      }
+      if (m.includes("e")) {
+        next.w = drag.startRect.w + dx;
+      }
+    }
+    onChange(clampRect(next));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current) {
+      dragRef.current = null;
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    }
+  };
+
+  // Each handle (and the box body) gets its own copy of the drag handlers
+  // so pointer capture works on the element the user actually clicked.
+  // They all share the same dragRef, so they coordinate through it.
+  const dragProps = (mode: "move" | ResizeHandle) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => beginDrag(mode, e),
+    onPointerMove: handlePointerMove,
+    onPointerUp: handlePointerUp,
+    onPointerCancel: handlePointerUp,
+  });
+
+  const handleStyle: React.CSSProperties = {
+    position: "absolute",
+    background: color,
+    border: "1px solid rgba(0,0,0,0.6)",
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+    touchAction: "none",
+  };
 
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
-      {boxes.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            position: "absolute",
-            ...b.pos,
-            border: `2px solid ${b.color}`,
-            borderRadius: 3,
-            transition: "border-color 150ms",
-          }}
-        >
-          {/* Letter label */}
-          <div style={{
-            position: "absolute", top: -1, left: -1,
-            background: b.color, color: "#0A0909",
-            fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
-            padding: "1px 5px", borderRadius: "0 0 3px 0",
-            lineHeight: "14px",
-          }}>
-            {b.letter}
-          </div>
-          {/* Speaker name badge */}
-          {b.bound && (
-            <div style={{
-              position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)",
-              background: "rgba(10,9,9,0.85)", border: `1px solid ${b.color}`,
-              borderRadius: 3, padding: "1px 6px",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 9, fontWeight: 600,
-              color: b.color, whiteSpace: "nowrap",
-            }}>
-              {SPEAKER_NAMES[b.bound.speaker_id] ?? `Spk_0${b.bound.speaker_id}`}
-            </div>
-          )}
+    <div
+      {...dragProps("move")}
+      style={{
+        position: "absolute",
+        left: `${rect.x * 100}%`,
+        top: `${rect.y * 100}%`,
+        width: `${rect.w * 100}%`,
+        height: `${rect.h * 100}%`,
+        border: `2px solid ${color}`,
+        borderRadius: 3,
+        boxShadow: isSelected ? `0 0 0 1px ${color}, 0 0 12px rgba(167,139,250,0.4)` : "none",
+        cursor: editMode ? "grab" : "default",
+        pointerEvents: editMode ? "auto" : "none",
+        touchAction: "none",
+        transition: "border-color 150ms",
+      }}
+    >
+      {/* Letter label */}
+      <div style={{
+        position: "absolute", top: -1, left: -1,
+        background: color, color: "#0A0909",
+        fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700,
+        padding: "1px 5px", borderRadius: "0 0 3px 0", lineHeight: "14px",
+        pointerEvents: "none",
+      }}>
+        {letter}
+      </div>
+
+      {/* Speaker name badge (if bound) */}
+      {speakerName && (
+        <div style={{
+          position: "absolute", bottom: -1, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(10,9,9,0.85)", border: `1px solid ${color}`,
+          borderRadius: 3, padding: "1px 6px",
+          fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 9, fontWeight: 600,
+          color, whiteSpace: "nowrap",
+          pointerEvents: "none",
+        }}>
+          {speakerName}
         </div>
-      ))}
+      )}
+
+      {/* Delete button — only when selected and in edit mode */}
+      {editMode && isSelected && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute", top: -10, right: -10,
+            width: 18, height: 18, borderRadius: "50%",
+            background: "var(--color-rose)", border: "1px solid #0A0909",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", padding: 0, color: "#0A0909", zIndex: 4,
+          }}
+          title="Delete box"
+        >
+          <X size={11} />
+        </button>
+      )}
+
+      {/* 8 resize handles — only when selected and in edit mode */}
+      {editMode && isSelected && (
+        <>
+          <div {...dragProps("nw")} style={{ ...handleStyle, top: -5, left: -5,  cursor: "nwse-resize" }} />
+          <div {...dragProps("ne")} style={{ ...handleStyle, top: -5, right: -5, cursor: "nesw-resize" }} />
+          <div {...dragProps("sw")} style={{ ...handleStyle, bottom: -5, left: -5,  cursor: "nesw-resize" }} />
+          <div {...dragProps("se")} style={{ ...handleStyle, bottom: -5, right: -5, cursor: "nwse-resize" }} />
+          <div {...dragProps("n")}  style={{ ...handleStyle, top: -5, left: "50%", marginLeft: -4, cursor: "ns-resize" }} />
+          <div {...dragProps("s")}  style={{ ...handleStyle, bottom: -5, left: "50%", marginLeft: -4, cursor: "ns-resize" }} />
+          <div {...dragProps("w")}  style={{ ...handleStyle, top: "50%", left: -5,  marginTop: -4, cursor: "ew-resize" }} />
+          <div {...dragProps("e")}  style={{ ...handleStyle, top: "50%", right: -5, marginTop: -4, cursor: "ew-resize" }} />
+        </>
+      )}
+    </div>
+  );
+}
+
+interface BoundingBoxOverlayProps {
+  shot: ShotData;
+  bindings: Binding[];
+  speakerNames: Record<number, string>;
+  /** Extra tracklets the user added on top of the original tracker output. */
+  userTracklets: Tracklet[];
+  /** Original tracklet IDs the user removed via the editor. */
+  hiddenIds: string[];
+  /** trackletId -> rect, both originals and user-added. */
+  rects: Record<string, BoxRect>;
+  editMode: boolean;
+  selectedTrackletId: string | null;
+  onUpdateRect: (trackletId: string, rect: BoxRect) => void;
+  onSelect: (trackletId: string | null) => void;
+  onDelete: (trackletId: string) => void;
+}
+
+function BoundingBoxOverlay({
+  shot, bindings, speakerNames, userTracklets, hiddenIds, rects,
+  editMode, selectedTrackletId, onUpdateRect, onSelect, onDelete,
+}: BoundingBoxOverlayProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Effective tracklet list = originals (minus hidden) ∪ user-added.
+  const effective = useMemo(() => {
+    const originals = shot.tracklets
+      .filter((t) => !hiddenIds.includes(t.id))
+      .map((t, i) => ({ tracklet: t, originalIdx: i }));
+    const extras = userTracklets.map((t) => ({ tracklet: t, originalIdx: -1 }));
+    return [...originals, ...extras];
+  }, [shot.tracklets, userTracklets, hiddenIds]);
+
+  return (
+    <div
+      ref={overlayRef}
+      onPointerDown={(e) => {
+        // Click on the empty overlay background = deselect (only in edit mode)
+        if (editMode && e.target === e.currentTarget) onSelect(null);
+      }}
+      style={{
+        position: "absolute", inset: 0,
+        pointerEvents: editMode ? "auto" : "none",
+        zIndex: 2,
+      }}
+    >
+      {effective.map(({ tracklet, originalIdx }) => {
+        const bound = bindings.find((b) => b.tracklet_id === tracklet.id);
+        const color = bound ? SPEAKER_COLORS[bound.speaker_id] : "rgba(255,255,255,0.6)";
+        const rect =
+          rects[tracklet.id] ??
+          (originalIdx >= 0
+            ? DEFAULT_BOX_POSITIONS[originalIdx % DEFAULT_BOX_POSITIONS.length]
+            : DEFAULT_NEW_BOX);
+        const speakerName = bound
+          ? speakerNames[bound.speaker_id] ?? `Spk_0${bound.speaker_id}`
+          : null;
+        return (
+          <EditableBox
+            key={tracklet.id}
+            rect={rect}
+            color={color}
+            letter={tracklet.letter}
+            speakerName={speakerName}
+            isSelected={selectedTrackletId === tracklet.id}
+            editMode={editMode}
+            containerRef={overlayRef}
+            onChange={(next) => onUpdateRect(tracklet.id, next)}
+            onSelect={() => onSelect(tracklet.id)}
+            onDelete={() => onDelete(tracklet.id)}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -759,6 +987,82 @@ export default function RunGrounding() {
   /* Speaker naming */
   const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({ ...SPEAKER_NAMES });
 
+  /* Manual bounding box editor (per shot)
+     - trackletBoxes: shotIdx -> trackletId -> rect (overrides + new boxes)
+     - userTracklets: shotIdx -> tracklets the user added on top of originals
+     - hiddenIdsByShot: shotIdx -> originals the user removed
+     - boxEditMode: global toggle (the floating toolbar's [Edit boxes] button)
+     - selectedBoxKey: "shotIdx:trackletId" — single selection across all shots */
+  const [trackletBoxes, setTrackletBoxes] = useState<Record<number, Record<string, BoxRect>>>({});
+  const [userTracklets, setUserTracklets] = useState<Record<number, Tracklet[]>>({});
+  const [hiddenIdsByShot, setHiddenIdsByShot] = useState<Record<number, string[]>>({});
+  const [boxEditMode, setBoxEditMode] = useState(false);
+  const [selectedBoxKey, setSelectedBoxKey] = useState<string | null>(null);
+
+  const handleUpdateRect = useCallback((shotIdx: number, trackletId: string, rect: BoxRect) => {
+    setTrackletBoxes((prev) => ({
+      ...prev,
+      [shotIdx]: { ...(prev[shotIdx] ?? {}), [trackletId]: rect },
+    }));
+  }, []);
+
+  const handleSelectBox = useCallback((shotIdx: number, trackletId: string | null) => {
+    setSelectedBoxKey(trackletId ? `${shotIdx}:${trackletId}` : null);
+  }, []);
+
+  const handleDeleteBox = useCallback((shotIdx: number, trackletId: string) => {
+    // Originals (from SHOTS) get hidden so they can in principle come back later;
+    // user-added tracklets get fully removed.
+    const isOriginal = SHOTS.find((s) => s.idx === shotIdx)?.tracklets.some((t) => t.id === trackletId) ?? false;
+    if (isOriginal) {
+      setHiddenIdsByShot((prev) => ({
+        ...prev,
+        [shotIdx]: [...(prev[shotIdx] ?? []), trackletId],
+      }));
+    } else {
+      setUserTracklets((prev) => ({
+        ...prev,
+        [shotIdx]: (prev[shotIdx] ?? []).filter((t) => t.id !== trackletId),
+      }));
+    }
+    setTrackletBoxes((prev) => {
+      const next = { ...(prev[shotIdx] ?? {}) };
+      delete next[trackletId];
+      return { ...prev, [shotIdx]: next };
+    });
+    setSelectedBoxKey((prev) => (prev === `${shotIdx}:${trackletId}` ? null : prev));
+    // Clean up bindings that referenced this tracklet for the shot.
+    setBindings((prev) => ({
+      ...prev,
+      [shotIdx]: (prev[shotIdx] ?? []).filter((b) => b.tracklet_id !== trackletId),
+    }));
+  }, []);
+
+  const handleAddBox = useCallback((shotIdx: number) => {
+    // Pick the next free letter past the originals + extras already in use.
+    const shot = SHOTS.find((s) => s.idx === shotIdx);
+    const existingLetters = new Set<string>();
+    shot?.tracklets.forEach((t) => existingLetters.add(t.letter));
+    (userTracklets[shotIdx] ?? []).forEach((t) => existingLetters.add(t.letter));
+    let nextCode = "A".charCodeAt(0);
+    while (existingLetters.has(String.fromCharCode(nextCode)) && nextCode < "Z".charCodeAt(0)) {
+      nextCode++;
+    }
+    const letter = String.fromCharCode(nextCode);
+    const newId = `tracklet_user_${shotIdx}_${Date.now()}`;
+    const newTracklet: Tracklet = { id: newId, letter, durationPct: 100 };
+    setUserTracklets((prev) => ({
+      ...prev,
+      [shotIdx]: [...(prev[shotIdx] ?? []), newTracklet],
+    }));
+    setTrackletBoxes((prev) => ({
+      ...prev,
+      [shotIdx]: { ...(prev[shotIdx] ?? {}), [newId]: DEFAULT_NEW_BOX },
+    }));
+    setSelectedBoxKey(`${shotIdx}:${newId}`);
+    setBoxEditMode(true);
+  }, [userTracklets]);
+
   /* Progress */
   const progress = computeGroundingProgress(bindings);
   const completedIntents = SHOTS.reduce((a, _, i) => a + (intents[i] && isShotIntentComplete(intents[i]) ? 1 : 0), 0);
@@ -938,7 +1242,75 @@ export default function RunGrounding() {
             <video ref={videoRef} src={`${DEMO_VIDEO_URL}#t=${activeShot.startMs / 1000}`} preload="metadata"
               style={{ height: "100%", width: "auto", maxWidth: "100%", objectFit: "contain" }}
             />
-            <BoundingBoxOverlay shot={activeShot} bindings={bindings[activeShot.idx] || []} />
+            <BoundingBoxOverlay
+              shot={activeShot}
+              bindings={bindings[activeShot.idx] || []}
+              speakerNames={speakerNames}
+              userTracklets={userTracklets[activeShot.idx] ?? []}
+              hiddenIds={hiddenIdsByShot[activeShot.idx] ?? []}
+              rects={trackletBoxes[activeShot.idx] ?? {}}
+              editMode={boxEditMode}
+              selectedTrackletId={
+                selectedBoxKey?.startsWith(`${activeShot.idx}:`)
+                  ? selectedBoxKey.split(":").slice(1).join(":")
+                  : null
+              }
+              onUpdateRect={(id, rect) => handleUpdateRect(activeShot.idx, id, rect)}
+              onSelect={(id) => handleSelectBox(activeShot.idx, id)}
+              onDelete={(id) => handleDeleteBox(activeShot.idx, id)}
+            />
+
+            {/* Floating box-editor toolbar — top-right of the video container,
+                mirrors the queue panel's glass styling on the left. */}
+            <div style={{
+              position: "absolute", right: 8, top: 8, zIndex: 4,
+              display: "flex", gap: 6, alignItems: "center",
+              padding: 4,
+              background: "rgba(10,9,9,0.72)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 8,
+            }}>
+              <button
+                onClick={() => {
+                  setBoxEditMode((v) => {
+                    if (v) setSelectedBoxKey(null);
+                    return !v;
+                  });
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "5px 9px", borderRadius: 5,
+                  border: `1px solid ${boxEditMode ? "var(--color-violet)" : "rgba(255,255,255,0.12)"}`,
+                  background: boxEditMode ? "rgba(139,92,246,0.18)" : "transparent",
+                  color: boxEditMode ? "var(--color-violet)" : "var(--color-text-primary)",
+                  fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 11,
+                  cursor: "pointer",
+                }}
+                title="Toggle bounding box editor"
+              >
+                <Crop size={12} />
+                {boxEditMode ? "Editing boxes" : "Edit boxes"}
+              </button>
+              <button
+                onClick={() => handleAddBox(activeShot.idx)}
+                disabled={!boxEditMode}
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  padding: "5px 9px", borderRadius: 5,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "transparent",
+                  color: boxEditMode ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 11,
+                  cursor: boxEditMode ? "pointer" : "not-allowed",
+                  opacity: boxEditMode ? 1 : 0.55,
+                }}
+                title={boxEditMode ? "Add a new tracklet box" : "Enable Edit boxes first"}
+              >
+                + Add box
+              </button>
+            </div>
 
             {/* Queue — floats in the left black bar, same pattern as Timeline layer toggles */}
             <div style={{
