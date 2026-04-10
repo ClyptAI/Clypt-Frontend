@@ -18,6 +18,7 @@ import type {
   SemanticGraphEdge,
   RenderPreset,
   RenderJobStatus,
+  GroundingClipState,
 } from '@/types/clypt'
 
 const STORAGE_KEY = 'clypt:mock-db:v1'
@@ -37,6 +38,8 @@ export interface MockDB {
   presets: RenderPreset[]
   /** runId -> clipId -> 'approved' | 'rejected' */
   approvals: Record<string, Record<string, 'approved' | 'rejected'>>
+  /** `${runId}:${clipId}` -> persisted Grounding-page state (manual box edits). */
+  grounding: Record<string, GroundingClipState>
   /** Insertion order for runs — used to produce a stable "list" response */
   runOrder: string[]
 }
@@ -50,6 +53,7 @@ function emptyDB(): MockDB {
     renderJobs: {},
     presets: [],
     approvals: {},
+    grounding: {},
     runOrder: [],
   }
 }

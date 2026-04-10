@@ -7,6 +7,7 @@ import type {
   ClipCandidate,
   RenderJobStatus,
   RenderPreset,
+  GroundingClipState,
 } from '../types/clypt'
 import type { EmbeddingsData } from '../hooks/api/useEmbeddings'
 import { MOCK_EMBEDDINGS } from '../hooks/api/useEmbeddings'
@@ -18,6 +19,7 @@ import {
   mockClipsApi,
   mockEmbeddingsApi,
   mockRenderApi,
+  mockGroundingApi,
 } from '../mocks/api'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -112,6 +114,20 @@ export const embeddingsApi = {
     } catch {
       return MOCK_EMBEDDINGS
     }
+  },
+}
+
+export const groundingApi = {
+  get(runId: string, clipId: string): Promise<GroundingClipState> {
+    if (USE_MOCK) return mockGroundingApi.get(runId, clipId)
+    return apiFetch(`/v1/runs/${runId}/clips/${clipId}/grounding`)
+  },
+  put(runId: string, clipId: string, state: GroundingClipState): Promise<GroundingClipState> {
+    if (USE_MOCK) return mockGroundingApi.put(runId, clipId, state)
+    return apiFetch(`/v1/runs/${runId}/clips/${clipId}/grounding`, {
+      method: 'PUT',
+      body: JSON.stringify(state),
+    })
   },
 }
 

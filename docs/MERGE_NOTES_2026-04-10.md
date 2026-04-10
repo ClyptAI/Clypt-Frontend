@@ -189,7 +189,80 @@ fc396e8..1db1584  feat/functional-dummy-data -> feat/functional-dummy-data
 
 PR back to `main` is **still pending** — the user has not asked for it yet.
 
-## 10. Full commit summary (everything shipped today)
+## 10. Grounding state persistence (server round-trip)
+
+After §9.3 shipped the box editor, all of its state was still living in component-local `useState` slices on `RunGrounding`. That meant any user edit was destroyed the moment the page unmounted (queue switch, navigation, reload). User picked **Option B** of the persistence design — a real round-trip through the typed API + mock backend, so the same code path will work against the real backend whenever it lands.
+
+### 10.1 New domain types ([src/types/clypt.ts](clypt-frontend/src/types/clypt.ts))
+
+Added the wire format for persisted Grounding edits:
+
+```ts
+export interface BoundingBoxRect { x: number; y: number; w: number; h: number }  // all 0..1
+export interface GroundingTracklet { id: string; letter: string; duration_pct: number }
+export interface GroundingShotState {
+  shot_idx: number
+  rects: Record<string, BoundingBoxRect>
+  user_tracklets: GroundingTracklet[]
+  hidden_tracklet_ids: string[]
+}
+export interface GroundingClipState {
+  run_id: string
+  clip_id: string
+  shots: GroundingShotState[]
+  updated_at: string  // ISO 8601
+}
+```
+
+The wire shape is **shots-as-array** (matching the rest of the snake-case API) even though the in-component slices were originally shot-keyed maps — conversion happens at the page boundary.
+
+### 10.2 Mock backend ([src/mocks/store.ts](clypt-frontend/src/mocks/store.ts), [seed.ts](clypt-frontend/src/mocks/seed.ts), [api.ts](clypt-frontend/src/mocks/api.ts))
+
+- `MockDB` gets a new field: `grounding: Record<string, GroundingClipState>` keyed by `${runId}:${clipId}`. The forward-compat `{...emptyDB(), ...persisted}` merge in `loadDB()` fills this in for stale `clypt:mock-db:v1` caches automatically — no migration needed.
+- `seedMockDB()` initializes `db.grounding = {}` explicitly.
+- `mockGroundingApi.get(runId, clipId)` returns the saved state if any, otherwise an **empty stub** (`{ shots: [], updated_at: epoch }`) — never 404. The page treats "no overrides" as "use the model output as-is", so a missing record is the normal case.
+- `mockGroundingApi.put(runId, clipId, state)` upserts the full payload, stamps `updated_at = now()`, and writes through `mockDB.update()` (which persists to `localStorage` and notifies listeners).
+
+### 10.3 Real-mode wrappers ([src/lib/api.ts](clypt-frontend/src/lib/api.ts))
+
+```ts
+export const groundingApi = {
+  get(runId, clipId): Promise<GroundingClipState> { ... apiFetch(`/v1/runs/${runId}/clips/${clipId}/grounding`) }
+  put(runId, clipId, state): Promise<GroundingClipState> { ... apiFetch(..., { method: 'PUT', body: JSON.stringify(state) }) }
+}
+```
+
+### 10.4 React Query hooks ([src/hooks/api/useGrounding.ts](clypt-frontend/src/hooks/api/useGrounding.ts))
+
+New file with two exports:
+
+- `useGroundingState(runId, clipId)` — `useQuery` keyed on `['grounding', 'detail', runId, clipId]`, enabled when both ids are present.
+- `useUpdateGrounding(runId, clipId)` — `useMutation` with **optimistic updates**: `onMutate` cancels in-flight queries, snapshots the previous cache value, and writes the next state straight into the cache so the UI stays snappy across drag/resize. `onError` restores the snapshot. `onSettled` invalidates the query to re-fetch the truth.
+
+Re-exported from `src/hooks/api/index.ts`.
+
+### 10.5 Page rewrite ([src/pages/RunGrounding.tsx](clypt-frontend/src/pages/RunGrounding.tsx))
+
+- Deleted the three `useState` slices (`trackletBoxes`, `userTracklets`, `hiddenIdsByShot`) plus their handler bodies.
+- Added `useGroundingState(runId, activeClip || clipId)` and `useUpdateGrounding(...)`. Pure UI state (`boxEditMode`, `selectedBoxKey`) stays as `useState` since it shouldn't survive navigation.
+- Two new helpers: `getShotState(state, shotIdx)` (returns the matching shot or an empty stub) and `replaceShot(state, shotIdx, fn)` (immutable upsert of one shot inside the `GroundingClipState`).
+- Each handler (`handleUpdateRect`, `handleDeleteBox`, `handleAddBox`) now builds the **full next `GroundingClipState`** and calls `updateGrounding.mutate(next)`. No partial server-side merging — the wire format is "send the whole thing".
+- The overlay mount converts `GroundingTracklet[]` (snake_case wire) → `Tracklet[]` (camelCase UI type) via a tiny inline `.map()`.
+- `safeGrounding` memo gives the rest of the page a non-null placeholder while the first `GET` is in flight (mock mode resolves instantly, but real mode might not).
+
+### 10.6 Doc edits
+
+- `docs/ARCHITECTURE.md`: added `groundingApi` to the `api.ts` description, two new rows to the endpoint table (`GET`/`PUT /v1/runs/:id/clips/:clipId/grounding`), `grounding` to the `MockDB` field list, the new query key to the hierarchical list.
+- `docs/PAGES.md`: Grounding entry now says the box editor state is server-persisted via the hook pair, not local `useState`.
+- This section.
+
+### 10.7 Verification
+
+- `npx tsc --noEmit` — clean.
+- Existing localStorage carrying the old `clypt:mock-db:v1` shape boots without manual reset (forward-compat merge in `loadDB`).
+- Bindings still live in component-local state (not persisted) — the deletion-cascade cleanup happens alongside the mutation, but bindings themselves are out of scope for this round.
+
+## 11. Full commit summary (everything shipped today)
 
 | SHA | Type | Description |
 |------|------|-------------|
@@ -201,4 +274,6 @@ PR back to `main` is **still pending** — the user has not asked for it yet.
 | `29b7e3b` | docs | Add `MERGE_NOTES_2026-04-10` file (this file). |
 | `746e7fa` | feat | "See a demo" CTA → `/runs/demo/timeline` + black-iframe precedence fix. |
 | `b0318f1` | chore | Gitignore demo video binaries + README explaining the convention. |
-| `1db1584` | feat | Manual bounding box editor on the Grounding page (this section's §9.3). |
+| `1db1584` | feat | Manual bounding box editor on the Grounding page (§9.3). |
+| `ddc1737` | docs | Log post-merge follow-on work in MERGE_NOTES §9. |
+| (next)    | feat | Persist Grounding box-editor state through the typed API + mock backend (§10). |

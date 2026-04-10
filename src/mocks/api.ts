@@ -17,6 +17,7 @@ import type {
   ClipCandidate,
   RenderJobStatus,
   RenderPreset,
+  GroundingClipState,
 } from '@/types/clypt'
 import type { EmbeddingsData } from '@/hooks/api/useEmbeddings'
 import { MOCK_EMBEDDINGS } from '@/hooks/api/useEmbeddings'
@@ -188,6 +189,51 @@ export const mockEmbeddingsApi = {
     // represent a plausible 2D projection of ~27 nodes, which matches the
     // demo run's node count.
     return delay(MOCK_EMBEDDINGS)
+  },
+}
+
+// ─── Mock grounding API ──────────────────────────────────────────────────────
+
+function groundingKey(runId: string, clipId: string): string {
+  return `${runId}:${clipId}`
+}
+
+function emptyGroundingState(runId: string, clipId: string): GroundingClipState {
+  return {
+    run_id: runId,
+    clip_id: clipId,
+    shots: [],
+    updated_at: new Date(0).toISOString(),
+  }
+}
+
+export const mockGroundingApi = {
+  /**
+   * Returns the saved Grounding-page state for a clip. If nothing has been
+   * saved yet we return an empty state rather than 404 — the page treats
+   * "no overrides" as "use the model output as-is".
+   */
+  get(runId: string, clipId: string): Promise<GroundingClipState> {
+    const existing = mockDB.get().grounding[groundingKey(runId, clipId)]
+    return delay(existing ?? emptyGroundingState(runId, clipId), 90)
+  },
+
+  /**
+   * Upsert the full Grounding state for a clip. The mutation hook on the
+   * frontend builds the next state explicitly and PUTs the whole thing —
+   * no merging happens on the server side.
+   */
+  put(runId: string, clipId: string, state: GroundingClipState): Promise<GroundingClipState> {
+    const next: GroundingClipState = {
+      ...state,
+      run_id: runId,
+      clip_id: clipId,
+      updated_at: new Date().toISOString(),
+    }
+    mockDB.update((db) => {
+      db.grounding[groundingKey(runId, clipId)] = next
+    })
+    return delay(next, 90)
   },
 }
 
