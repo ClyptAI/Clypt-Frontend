@@ -46,6 +46,7 @@ export default function EmbedInspectPanel({ node, runId, onClose }: EmbedInspect
         bottom: 0,
         width: 340,
         zIndex: 30,
+        pointerEvents: "auto",
         background: "var(--color-surface-1)",
         borderLeft: "1px solid var(--color-border)",
         overflowY: "auto",

@@ -45,6 +45,7 @@ interface EmbedScatterProps {
   fitSignal: number;  // increment to trigger fit-to-view
   zoomDelta?: number; // non-zero = programmatic zoom step
   onZoomHandled?: () => void;
+  highlightedIds?: Set<string> | null; // when non-null, only these nodes are fully opaque; rest dim to ~15%
 }
 
 const DOT_R = 5;
@@ -58,6 +59,7 @@ export default function EmbedScatter({
   fitSignal,
   zoomDelta,
   onZoomHandled,
+  highlightedIds = null,
 }: EmbedScatterProps) {
   const containerRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -201,19 +203,35 @@ export default function EmbedScatter({
         const color = NODE_TYPE_COLORS[p.node_type] ?? "#71717A";
         const isHovered = hoveredId === p.node_id;
         const isSelected = selectedId === p.node_id;
-        const r = isHovered ? DOT_R_HOVER : DOT_R;
+        const isHighlighted = !highlightedIds || highlightedIds.has(p.node_id);
+        const isDimmed = highlightedIds !== null && !isHighlighted && !isSelected;
+        const r = isHighlighted && highlightedIds ? (isHovered ? DOT_R_HOVER + 1.5 : DOT_R + 1) : (isHovered ? DOT_R_HOVER : DOT_R);
 
         return (
           <g
             key={p.node_id}
             className="embed-dot"
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", transition: "opacity 250ms ease" }}
+            opacity={isDimmed ? 0.15 : 1}
             onMouseEnter={() => { setHoveredId(p.node_id); setTooltip({ point: p, svgX: cx, svgY: cy }); }}
             onMouseLeave={() => { setHoveredId(null); setTooltip(null); }}
             onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : p); }}
           >
+            {/* Highlighted glow for search matches */}
+            {isHighlighted && highlightedIds && (
+              <circle
+                cx={cx} cy={cy}
+                r={r + 6}
+                fill="none"
+                stroke={color}
+                strokeWidth={1.5}
+                opacity={0.5}
+                style={{ filter: `drop-shadow(0 0 6px ${color})` }}
+              />
+            )}
+
             {/* Candidate outer glow ring */}
-            {p.is_candidate && (
+            {p.is_candidate && !isDimmed && (
               <circle
                 cx={cx} cy={cy}
                 r={r + 4}
@@ -245,7 +263,7 @@ export default function EmbedScatter({
               opacity={isHovered || isSelected ? 1 : 0.82}
               style={{
                 transition: "r 80ms ease",
-                filter: isHovered || isSelected ? `drop-shadow(0 0 5px ${color})` : undefined,
+                filter: isHovered || isSelected || (isHighlighted && highlightedIds) ? `drop-shadow(0 0 5px ${color})` : undefined,
               }}
             />
           </g>
