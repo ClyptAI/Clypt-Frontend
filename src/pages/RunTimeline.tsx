@@ -256,7 +256,8 @@ export default function RunTimeline() {
   );
   const [selection, setSelection] = useState<Selection>(null);
   const [videoHeightPx, setVideoHeightPx] = useState<number>(() => Math.round(window.innerHeight * 0.55));
-  const isDraggingDivider = useRef(false);
+  const [isDividerDragging, setIsDividerDragging] = useState(false);
+  const dividerDragRef = useRef<{ startY: number; startH: number } | null>(null);
   const scrollRef     = useRef<HTMLDivElement>(null);
   const togglesRef    = useRef<HTMLDivElement>(null);
   const legendRef     = useRef<HTMLDivElement>(null);
@@ -355,6 +356,33 @@ export default function RunTimeline() {
   }, [scrollX]);
 
   // ── Scroll sync: DOM → store ────────────────────────────────────────────────
+  // Keep divider drags alive even if the pointer crosses the iframe-backed player.
+  useEffect(() => {
+    if (!isDividerDragging) return;
+
+    const onMove = (ev: PointerEvent) => {
+      const drag = dividerDragRef.current;
+      if (!drag) return;
+      const nextHeight = drag.startH + (ev.clientY - drag.startY);
+      setVideoHeightPx(Math.max(minVideoH, Math.min(MAX_VIDEO_H, nextHeight)));
+    };
+
+    const onStop = () => {
+      dividerDragRef.current = null;
+      setIsDividerDragging(false);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onStop);
+    window.addEventListener("pointercancel", onStop);
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onStop);
+      window.removeEventListener("pointercancel", onStop);
+    };
+  }, [isDividerDragging, minVideoH, MAX_VIDEO_H]);
+
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
       setScrollX(scrollRef.current.scrollLeft);
@@ -521,24 +549,13 @@ export default function RunTimeline() {
           cursor: 'ns-resize',
           position: 'relative',
           zIndex: 10,
+          touchAction: 'none',
         }}
-        onMouseDown={(e) => {
+        onPointerDown={(e) => {
           e.preventDefault();
-          isDraggingDivider.current = true;
-          const startY = e.clientY;
-          const startH = videoHeightPx;
-          const onMove = (ev: MouseEvent) => {
-            if (!isDraggingDivider.current) return;
-            const newH = Math.max(minVideoH, Math.min(MAX_VIDEO_H, startH + (ev.clientY - startY)));
-            setVideoHeightPx(newH);
-          };
-          const onUp = () => {
-            isDraggingDivider.current = false;
-            window.removeEventListener('mousemove', onMove);
-            window.removeEventListener('mouseup', onUp);
-          };
-          window.addEventListener('mousemove', onMove);
-          window.addEventListener('mouseup', onUp);
+          dividerDragRef.current = { startY: e.clientY, startH: videoHeightPx };
+          setIsDividerDragging(true);
+          e.currentTarget.setPointerCapture?.(e.pointerId);
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-violet-muted)'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-border-subtle)'; }}
@@ -557,6 +574,19 @@ export default function RunTimeline() {
       </div>
 
       {/* ── TRANSPORT BAR ── */}
+      {isDividerDragging && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 80,
+            cursor: 'ns-resize',
+            userSelect: 'none',
+          }}
+        />
+      )}
+
       <div style={{
         flexShrink: 0,
         height: 52,
