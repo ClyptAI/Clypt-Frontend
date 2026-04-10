@@ -3,6 +3,7 @@ import type {
   RunDetail,
   RunMeta,
   SemanticGraphNode,
+  SemanticGraphEdge,
   ClipCandidate,
   RenderJobStatus,
   RenderPreset,
@@ -13,6 +14,7 @@ import {
   isMockApiEnabled,
   mockRunsApi,
   mockNodesApi,
+  mockEdgesApi,
   mockClipsApi,
   mockEmbeddingsApi,
   mockRenderApi,
@@ -73,6 +75,13 @@ export const nodesApi = {
   get(runId: string, nodeId: string): Promise<SemanticGraphNode> {
     if (USE_MOCK) return mockNodesApi.get(runId, nodeId)
     return apiFetch(`/v1/runs/${runId}/nodes/${nodeId}`)
+  },
+}
+
+export const edgesApi = {
+  list(runId: string): Promise<SemanticGraphEdge[]> {
+    if (USE_MOCK) return mockEdgesApi.list(runId)
+    return apiFetch(`/v1/runs/${runId}/edges`)
   },
 }
 
