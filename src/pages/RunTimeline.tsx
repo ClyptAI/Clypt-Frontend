@@ -395,7 +395,9 @@ export default function RunTimeline() {
     setSelection({ type: "turn", data: turn, speakerName });
   };
 
-  const videoUrl = runDetail?.source_url ?? (runId === "demo" ? DEMO_VIDEO_URL : "");
+  // The seeded "demo" run carries a fake YouTube source_url for display, but
+  // the actual playable file is the local mp4 — always prefer that for the demo.
+  const videoUrl = runId === "demo" ? DEMO_VIDEO_URL : (runDetail?.source_url ?? "");
   const isLocalVideo = videoUrl.startsWith('/') || videoUrl.startsWith('./') || videoUrl.startsWith('blob:');
 
   const getPctFromClientX = useCallback((clientX: number) => {
@@ -439,7 +441,7 @@ export default function RunTimeline() {
       <RunContextBar
         runId={runId}
         runName={runDetail?.display_name ?? "Loading…"}
-        videoUrl={runDetail?.source_url ?? (runId === "demo" ? "Joe Rogan × Flagrant (demo)" : "")}
+        videoUrl={runId === "demo" ? "Joe Rogan × Flagrant (demo)" : (runDetail?.source_url ?? "")}
         currentPhase={currentPhase}
         completedPhases={completedPhases}
       />
