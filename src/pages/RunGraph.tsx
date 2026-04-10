@@ -25,8 +25,8 @@ import GraphToolbar from "@/components/graph/GraphToolbar";
 import GraphLegend from "@/components/graph/GraphLegend";
 import InspectPanel from "@/components/graph/InspectPanel";
 import TimelineStrip from "@/components/graph/TimelineStrip";
-import { useNodeList } from "@/hooks/api/useNodes";
-import type { SemanticGraphNode } from "@/types/clypt";
+import { useNodeList, useEdgeList } from "@/hooks/api/useNodes";
+import type { SemanticGraphNode, SemanticGraphEdge, EdgeType } from "@/types/clypt";
 
 const nodeTypes = { semantic: SemanticNode };
 const edgeTypes = {
@@ -104,6 +104,42 @@ function adaptApiNode(n: SemanticGraphNode): Node {
   };
 }
 
+// Map backend EdgeType → ReactFlow custom edge type registered in `edgeTypes`.
+function edgeTypeForRf(t: EdgeType): "structural" | "strong" | "moderate" | "longrange" {
+  switch (t) {
+    case "next_turn":
+    case "prev_turn":
+    case "overlaps_with":
+      return "structural";
+    case "setup_for":
+    case "payoff_of":
+    case "answers":
+      return "strong";
+    case "callback_to":
+    case "topic_recurrence":
+      return "longrange";
+    case "challenges":
+    case "contradicts":
+    case "supports":
+    case "elaborates":
+    case "reaction_to":
+    case "escalates":
+    default:
+      return "moderate";
+  }
+}
+
+function adaptApiEdge(e: SemanticGraphEdge, idx: number): Edge {
+  const rfType = edgeTypeForRf(e.edge_type);
+  return {
+    id: `${e.source_node_id}->${e.target_node_id}#${idx}`,
+    source: e.source_node_id,
+    target: e.target_node_id,
+    type: rfType,
+    label: rfType === "structural" ? undefined : e.edge_type,
+  };
+}
+
 function layoutGraph(nodes: Node[], edges: Edge[]): Node[] {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: "LR", ranksep: 200, nodesep: 90, edgesep: 50 });
@@ -121,19 +157,31 @@ function GraphInner() {
   const rf = useReactFlow();
 
   const { data: apiNodes, isLoading } = useNodeList(id ?? "");
+  const { data: apiEdges } = useEdgeList(id ?? "");
+
+  const usingApiData = !!(apiNodes && apiNodes.length > 0);
 
   const sourceNodes = useMemo<Node[]>(
-    () => (apiNodes && apiNodes.length > 0 ? apiNodes.map(adaptApiNode) : RAW_NODES),
-    [apiNodes],
+    () => (usingApiData ? apiNodes!.map(adaptApiNode) : RAW_NODES),
+    [apiNodes, usingApiData],
   );
 
-  const layoutNodes = useMemo(() => layoutGraph(sourceNodes, RAW_EDGES), [sourceNodes]);
+  const sourceEdges = useMemo<Edge[]>(
+    () => (usingApiData ? (apiEdges ?? []).map(adaptApiEdge) : RAW_EDGES),
+    [apiEdges, usingApiData],
+  );
+
+  const layoutNodes = useMemo(() => layoutGraph(sourceNodes, sourceEdges), [sourceNodes, sourceEdges]);
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
-  const [edges, , onEdgesChange] = useEdgesState(RAW_EDGES);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(sourceEdges);
 
   useEffect(() => {
     setNodes(layoutNodes);
   }, [layoutNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(sourceEdges);
+  }, [sourceEdges, setEdges]);
 
   // Toolbar state
   const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set(ALL_TYPES));

@@ -13,6 +13,7 @@ import type {
   RunDetail,
   RunMeta,
   SemanticGraphNode,
+  SemanticGraphEdge,
   ClipCandidate,
   RenderJobStatus,
   RenderPreset,
@@ -129,6 +130,15 @@ export const mockNodesApi = {
     const node = nodes.find((n) => n.node_id === nodeId)
     if (!node) return Promise.reject(new Error(`[mock] node not found: ${nodeId}`))
     return delay(node)
+  },
+}
+
+// ─── Mock edges API ──────────────────────────────────────────────────────────
+
+export const mockEdgesApi = {
+  list(runId: string): Promise<SemanticGraphEdge[]> {
+    const edges = mockDB.get().edges[runId] ?? []
+    return delay(edges)
   },
 }
 
