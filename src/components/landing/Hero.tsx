@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, useSpring } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import WaveformBand from "./WaveformBand";
@@ -408,8 +409,8 @@ const Hero = () => {
               <ArrowRight size={16} />
             </span>
           </a>
-          <a
-            href="#demo"
+          <Link
+            to="/runs/demo/timeline"
             className="font-sans transition-colors"
             style={{ fontSize: 15, color: "rgba(255,255,255,0.7)" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
@@ -417,7 +418,7 @@ const Hero = () => {
             data-cursor="pointer"
           >
             See a demo →
-          </a>
+          </Link>
         </motion.div>
 
         {/* Social proof */}
