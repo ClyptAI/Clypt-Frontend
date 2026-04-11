@@ -18,11 +18,12 @@ import type {
   RenderJobStatus,
   RenderPreset,
   GroundingClipState,
+  TimelineBundle,
 } from '@/types/clypt'
 import type { EmbeddingsData } from '@/hooks/api/useEmbeddings'
 import { MOCK_EMBEDDINGS } from '@/hooks/api/useEmbeddings'
 import { mockDB } from './store'
-import { seedMockDB, buildPhaseStatus } from './seed'
+import { seedMockDB, buildPhaseStatus, generateTimeline } from './seed'
 import { startMockRunLifecycle } from './lifecycle'
 
 // Seed on first import — safe because seedOnce is idempotent.
@@ -189,6 +190,39 @@ export const mockEmbeddingsApi = {
     // represent a plausible 2D projection of ~27 nodes, which matches the
     // demo run's node count.
     return delay(MOCK_EMBEDDINGS)
+  },
+}
+
+// ─── Mock timeline API ───────────────────────────────────────────────────────
+
+export const mockTimelineApi = {
+  get(runId: string): Promise<TimelineBundle> {
+    let bundle = mockDB.get().timelines[runId]
+    if (!bundle) {
+      // Lazy seed — handles stale localStorage caches that pre-date the timelines field.
+      if (!mockDB.get().runs[runId]) {
+        return Promise.reject(new Error(`[mock] run not found: ${runId}`))
+      }
+      bundle = generateTimeline(runId)
+      mockDB.update((db) => { db.timelines[runId] = bundle! })
+    }
+    return delay(bundle)
+  },
+}
+
+// ─── Mock clips (cross-run list) ─────────────────────────────────────────────
+
+export const mockAllClipsApi = {
+  list(): Promise<Array<ClipCandidate & { run_id: string }>> {
+    const db = mockDB.get()
+    const all: Array<ClipCandidate & { run_id: string }> = []
+    for (const runId of db.runOrder) {
+      const clips = db.clips[runId] ?? []
+      for (const clip of clips) {
+        all.push({ ...clip, run_id: runId })
+      }
+    }
+    return delay(all)
   },
 }
 

@@ -1,4 +1,5 @@
 import { ReactNode, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
 import { ReactFlow, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -27,6 +28,7 @@ const authEdges: Edge[] = [
 ];
 
 const AuthLayout = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
 
@@ -116,8 +118,10 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
         </div>
 
         {/* Logo — above graph */}
-        <div style={{ position: "relative", zIndex: 10, padding: 40, pointerEvents: "none" }}>
-          <ClyptLogo size="lg" defaultExpanded={true} />
+        <div style={{ position: "relative", zIndex: 10, padding: 40 }}>
+          <div className="cursor-pointer" onClick={() => navigate("/")}>
+            <ClyptLogo size="xl" />
+          </div>
         </div>
 
         {/* Spacer — must not block graph pointer events */}

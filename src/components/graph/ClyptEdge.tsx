@@ -1,5 +1,6 @@
 import { memo, useState } from "react";
 import { BaseEdge, getBezierPath, type EdgeProps } from "@xyflow/react";
+import { useLandingHover } from "@/components/landing/LandingHoverCtx";
 
 const edgeColorMap: Record<string, string> = {
   supports:         "#A78BFA",
@@ -19,6 +20,7 @@ function ClyptEdgeInner({
   sourceX, sourceY, targetX, targetY,
   sourcePosition, targetPosition,
   data, label,
+  source, target,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition,
@@ -32,10 +34,15 @@ function ClyptEdgeInner({
     || edgeLabel === "topic_recurrence";
 
   const [localHovered, setLocalHovered] = useState(false);
+  const lh = useLandingHover();
 
-  const isHighlighted = !!(data as any)?._isHoverHighlighted;
+  // When inside LandingGraphDemo, derive highlight from context (so the `edges`
+  // prop can also stay static). Fall back to data props elsewhere.
+  const isHighlighted = lh
+    ? (lh.hoveredNodeId ? lh.connectedEdgeIds.has(id) : false)
+    : !!(data as any)?._isHoverHighlighted;
   const isEdgeHovered = !!(data as any)?._isEdgeHovered || localHovered;
-  const hasHover      = !!(data as any)?._hasHover || localHovered;
+  const hasHover      = lh ? !!lh.hoveredNodeId || localHovered : !!(data as any)?._hasHover || localHovered;
   const showGlow      = isHighlighted || isEdgeHovered;
   const isDimmed      = hasHover && !showGlow;
 

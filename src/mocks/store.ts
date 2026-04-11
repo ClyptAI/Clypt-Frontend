@@ -19,6 +19,7 @@ import type {
   RenderPreset,
   RenderJobStatus,
   GroundingClipState,
+  TimelineBundle,
 } from '@/types/clypt'
 
 const STORAGE_KEY = 'clypt:mock-db:v1'
@@ -40,6 +41,8 @@ export interface MockDB {
   approvals: Record<string, Record<string, 'approved' | 'rejected'>>
   /** `${runId}:${clipId}` -> persisted Grounding-page state (manual box edits). */
   grounding: Record<string, GroundingClipState>
+  /** runId -> TimelineBundle (Phase 1 data: shots, speakers, emotions, audio events) */
+  timelines: Record<string, TimelineBundle>
   /** Insertion order for runs — used to produce a stable "list" response */
   runOrder: string[]
 }
@@ -54,6 +57,7 @@ function emptyDB(): MockDB {
     presets: [],
     approvals: {},
     grounding: {},
+    timelines: {},
     runOrder: [],
   }
 }

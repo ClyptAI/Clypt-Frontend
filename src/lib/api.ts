@@ -8,6 +8,7 @@ import type {
   RenderJobStatus,
   RenderPreset,
   GroundingClipState,
+  TimelineBundle,
 } from '../types/clypt'
 import type { EmbeddingsData } from '../hooks/api/useEmbeddings'
 import { MOCK_EMBEDDINGS } from '../hooks/api/useEmbeddings'
@@ -20,6 +21,8 @@ import {
   mockEmbeddingsApi,
   mockRenderApi,
   mockGroundingApi,
+  mockTimelineApi,
+  mockAllClipsApi,
 } from '../mocks/api'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -114,6 +117,21 @@ export const embeddingsApi = {
     } catch {
       return MOCK_EMBEDDINGS
     }
+  },
+}
+
+export const timelineApi = {
+  get(runId: string): Promise<TimelineBundle> {
+    if (USE_MOCK) return mockTimelineApi.get(runId)
+    return apiFetch(`/v1/runs/${runId}/timeline`)
+  },
+}
+
+export const allClipsApi = {
+  list(): Promise<Array<ClipCandidate & { run_id: string }>> {
+    if (USE_MOCK) return mockAllClipsApi.list()
+    // Real endpoint not yet defined — fall back to empty for now
+    return Promise.resolve([])
   },
 }
 

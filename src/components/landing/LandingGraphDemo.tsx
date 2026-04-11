@@ -1,9 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { ReactFlow, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import DemoCardShell from "./DemoCardShell";
 import { ClyptEdge } from "@/components/graph/ClyptEdge";
 import { ClyptNode } from "@/components/graph/ClyptNode";
+import { LandingHoverCtx } from "./LandingHoverCtx";
 
 const TYPE_STYLES: Record<string, { pillBg: string; pillText: string }> = {
   claim:             { pillBg: "rgba(167,139,250,0.15)", pillText: "#C4B5FD" },
@@ -46,13 +47,27 @@ const legendTypes = ["claim", "explanation", "anecdote", "setup_payoff", "reacti
 
 export default function LandingGraphDemo() {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Delay-mount ReactFlow until the container is in the viewport.
-  // This guarantees the same initialization conditions as AuthLayout
-  // (where the graph is above the fold and visible on first paint).
+  // RAF-debounced leave: ClyptNode's onMouseEnter triggers a React re-render which
+  // can cause the browser to refire mouseleave spuriously. Cancelling the scheduled
+  // leave if a new enter arrives within the same frame prevents flickering.
+  const leaveRAF = useRef<number | null>(null);
+  const onHoverEnter = useCallback((id: string) => {
+    if (leaveRAF.current !== null) {
+      cancelAnimationFrame(leaveRAF.current);
+      leaveRAF.current = null;
+    }
+    setHoveredNodeId(id);
+  }, []);
+  const onHoverLeave = useCallback(() => {
+    leaveRAF.current = requestAnimationFrame(() => {
+      leaveRAF.current = null;
+      setHoveredNodeId(null);
+    });
+  }, []);
+
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -90,29 +105,13 @@ export default function LandingGraphDemo() {
     return ids;
   }, [hoveredNodeId]);
 
-  const displayNodes = useMemo(() => {
-    return demoNodes.map((n) => ({
-      ...n,
-      data: {
-        ...n.data,
-        _isHoverTarget: hoveredNodeId === n.id,
-        _isHoverConnected: hoveredNodeId ? connectedNodeIds.has(n.id) && hoveredNodeId !== n.id : false,
-        _hasHover: !!hoveredNodeId,
-      },
-    }));
-  }, [hoveredNodeId, connectedNodeIds]);
-
-  const displayEdges = useMemo(() => {
-    return demoEdges.map((e) => ({
-      ...e,
-      data: {
-        ...e.data,
-        _isHoverHighlighted: hoveredNodeId ? connectedEdgeIds.has(e.id) : false,
-        _isEdgeHovered: hoveredEdgeId === e.id,
-        _hasHover: !!hoveredNodeId || !!hoveredEdgeId,
-      },
-    }));
-  }, [hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
+  // demoNodes and demoEdges are passed as-is (static constants). Hover state is
+  // delivered via LandingHoverCtx so React Flow's node layer never re-renders on
+  // hover, which was causing 54+ rapid remount/enter/leave events per hover tick.
+  const ctxValue = useMemo(
+    () => ({ hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave }),
+    [hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave],
+  );
 
   return (
     <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto">
@@ -127,26 +126,25 @@ export default function LandingGraphDemo() {
         >
           {mounted && (
             <div style={{ position: "absolute", inset: 0 }}>
-              <ReactFlow
-                nodes={displayNodes}
-                edges={displayEdges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                zoomOnScroll={false}
-                panOnScroll={false}
-                panOnDrag={false}
-                preventScrolling={false}
-                proOptions={{ hideAttribution: true }}
-                onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
-                onNodeMouseLeave={() => setHoveredNodeId(null)}
-                onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
-                onEdgeMouseLeave={() => setHoveredEdgeId(null)}
-                fitView
-                fitViewOptions={{ padding: 0.25 }}
-                style={{ background: "transparent" }}
-              />
+              <LandingHoverCtx.Provider value={ctxValue}>
+                <ReactFlow
+                  nodes={demoNodes}
+                  edges={demoEdges}
+                  nodeTypes={nodeTypes}
+                  edgeTypes={edgeTypes}
+                  nodesDraggable={false}
+                  nodesConnectable={false}
+                  zoomOnScroll={false}
+                  panOnScroll={false}
+                  panOnDrag={false}
+                  preventScrolling={false}
+                  proOptions={{ hideAttribution: true }}
+                  fitView
+                  fitViewOptions={{ padding: 0.25 }}
+                  style={{ background: "transparent" }}
+                  className="rf-landing"
+                />
+              </LandingHoverCtx.Provider>
             </div>
           )}
         </div>

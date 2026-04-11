@@ -1,8 +1,8 @@
 import { LayoutGrid, Film, Plus, Settings, ChevronDown, Search } from "lucide-react";
-import { useMatch } from "react-router-dom";
+import { useMatch, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import { ClyptLogo } from "@/components/ui/ClyptLogo";
+import { ClyptAnimatedMark } from "@/components/app/ClyptAnimatedMark";
 
 const navItems = [
   { title: "Library", icon: LayoutGrid, path: "/library" },
@@ -34,6 +34,7 @@ const runTabActive =
   "text-[var(--color-text-primary)] bg-[var(--color-surface-2)] border-l-2 border-[var(--color-violet)] pl-[16px]";
 
 export default function AppSidebar() {
+  const navigate = useNavigate();
   const runMatch = useMatch("/runs/:id/*");
   const runId = runMatch?.params?.id;
 
@@ -43,8 +44,12 @@ export default function AppSidebar() {
       style={{ padding: "8px 12px" }}
     >
       {/* Logo */}
-      <div className="flex items-center border-b border-[var(--color-border-subtle)]" style={{ padding: "8px 14px", paddingBottom: 10 }}>
-        <ClyptLogo size="sm" />
+      <div
+        className="flex items-center justify-center border-b border-[var(--color-border-subtle)] cursor-pointer"
+        style={{ padding: "6px 14px", paddingBottom: 8 }}
+        onClick={() => navigate("/")}
+      >
+        <ClyptAnimatedMark size={64} animate={false} />
       </div>
 
       {/* Nav */}
@@ -65,6 +70,7 @@ export default function AppSidebar() {
         <Button
           className="mt-[12px] w-full flex items-center justify-center gap-[8px]"
           variant="default"
+          onClick={() => navigate("/runs/new")}
         >
           <Plus size={16} />
           <span className="font-heading font-semibold text-[14px]">New Run</span>

@@ -25,6 +25,7 @@ interface AuthState {
   signup(name: string, email: string, _password: string): Promise<AuthSession>
   loginWithGoogle(): Promise<AuthSession>
   logout(): void
+  updateProfile(displayName: string, email: string): void
 }
 
 function makeSession(email: string, displayName: string): AuthSession {
@@ -74,6 +75,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => set({ session: null, isAuthenticated: false }),
+
+      updateProfile: (displayName, email) =>
+        set((state) => ({
+          session: state.session
+            ? { ...state.session, display_name: displayName, email }
+            : state.session,
+        })),
     }),
     {
       name: 'clypt.auth',

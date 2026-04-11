@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { Play, Pencil, Download, Plus } from "lucide-react";
+import { Play, Pencil, Download, Plus, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ClyptIcon from "@/components/app/ClyptIcon";
 import { useRunList } from "@/hooks/api/useRuns";
+import { useAllClips, fmtClipDuration } from "@/hooks/api/useTimeline";
 import type { RunListItem } from "@/types/clypt";
 
 type RunStatus = "analyzing" | "complete" | "grounding" | "failed";
@@ -16,19 +16,6 @@ interface RunCard {
   time: string;
   phases: ("done" | "active" | "pending" | "failed")[];
 }
-
-const mockClips = Array.from({ length: 6 }, (_, i) => ({
-  id: String(i + 1),
-  title: [
-    "The moment everything changed",
-    "Why most creators fail here",
-    "This one trick doubled retention",
-    "The real reason I quit",
-    "Setup-payoff in 30 seconds",
-    "Audience reaction gold",
-  ][i],
-  duration: ["0:35", "0:42", "0:28", "1:12", "0:31", "0:55"][i],
-}));
 
 function formatRelativeTime(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime();
@@ -222,62 +209,75 @@ function RunsTab({
           </span>
         </div>
       )}
-
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-[16px] mt-[32px]">
-        <button className="font-sans text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-40" disabled>
-          ← Previous
-        </button>
-        <span className="font-sans text-[14px] text-[var(--color-text-secondary)]">Page 1 of 3</span>
-        <button className="font-sans text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-          Next →
-        </button>
-      </div>
     </div>
   );
 }
 
 function ClipsTab() {
+  const navigate = useNavigate();
+  const { data: allClips, isLoading } = useAllClips();
+
   return (
     <div className="p-[32px]">
-      <div className="grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
-        {mockClips.map((clip) => (
-          <div
-            key={clip.id}
-            className="group relative rounded-[8px] overflow-hidden bg-[var(--color-surface-2)]"
-            style={{ aspectRatio: "9/16" }}
-          >
-            {/* Hover download button */}
-            <button className="absolute top-[8px] right-[8px] z-10 p-[4px] rounded-[4px] bg-[rgba(10,9,9,0.6)] opacity-0 group-hover:opacity-100 transition-opacity">
-              <Download size={16} className="text-white" />
-            </button>
-
-            {/* Bottom overlay */}
+      {isLoading && !allClips && (
+        <div className="grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+          {Array.from({ length: 6 }).map((_, i) => (
             <div
-              className="absolute inset-x-0 bottom-0 p-[10px] flex flex-col gap-[2px]"
-              style={{ background: "linear-gradient(transparent, rgba(10,9,9,0.85))" }}
-            >
-              <span className="font-heading font-medium text-[12px] text-white line-clamp-2">
-                {clip.title}
-              </span>
-              <span className="font-mono text-[11px] text-[var(--color-text-muted)]">
-                {clip.duration}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+              key={i}
+              className="animate-pulse rounded-[8px] bg-[var(--color-surface-2)]"
+              style={{ aspectRatio: "9/16" }}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-[16px] mt-[32px]">
-        <button className="font-sans text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-40" disabled>
-          ← Previous
-        </button>
-        <span className="font-sans text-[14px] text-[var(--color-text-secondary)]">Page 1 of 3</span>
-        <button className="font-sans text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-          Next →
-        </button>
-      </div>
+      {!isLoading && (!allClips || allClips.length === 0) && (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <Film size={36} className="text-[var(--color-text-muted)]" />
+          <span className="font-body text-[15px]" style={{ color: "var(--color-text-muted)" }}>
+            No clips yet — finish a run to generate clips.
+          </span>
+        </div>
+      )}
+
+      {allClips && allClips.length > 0 && (
+        <div className="grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+          {allClips.map((clip) => (
+            <div
+              key={`${clip.run_id}:${clip.clip_id}`}
+              className="group relative rounded-[8px] overflow-hidden bg-[var(--color-surface-2)] cursor-pointer"
+              style={{ aspectRatio: "9/16" }}
+              onClick={() => navigate(`/runs/${clip.run_id}/clips`)}
+            >
+              {/* Play icon center */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Play size={28} className="text-[var(--color-text-muted)] opacity-40 group-hover:opacity-80 transition-opacity" />
+              </div>
+
+              {/* Hover download button */}
+              <button
+                className="absolute top-[8px] right-[8px] z-10 p-[4px] rounded-[4px] bg-[rgba(10,9,9,0.6)] opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download size={16} className="text-white" />
+              </button>
+
+              {/* Bottom overlay */}
+              <div
+                className="absolute inset-x-0 bottom-0 p-[10px] flex flex-col gap-[2px]"
+                style={{ background: "linear-gradient(transparent, rgba(10,9,9,0.85))" }}
+              >
+                <span className="font-heading font-medium text-[12px] text-white line-clamp-2">
+                  {clip.rationale}
+                </span>
+                <span className="font-mono text-[11px] text-[var(--color-text-muted)]">
+                  {fmtClipDuration(clip.start_ms, clip.end_ms)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
