@@ -43,7 +43,7 @@ File touched: `src/pages/RunTimeline.tsx`. Type-checks clean.
 
 ### 2.3 `95fa226` — `docs: drop stale Lovable preview URL from README`
 
-Collaborator flagged via Discord screenshot that `clypt-frontend/README.md` still had a stale `https://clypt-v3.lovable.app` URL pointing at the old Lovable preview. Removed the URL line. File touched: `README.md`.
+Collaborator flagged via Discord screenshot that `README.md` still had a stale `https://clypt-v3.lovable.app` URL pointing at the old Lovable preview. Removed the URL line. File touched: `README.md`.
 
 ## 3. Demo video verification
 
@@ -193,7 +193,7 @@ PR back to `main` is **still pending** — the user has not asked for it yet.
 
 After §9.3 shipped the box editor, all of its state was still living in component-local `useState` slices on `RunGrounding`. That meant any user edit was destroyed the moment the page unmounted (queue switch, navigation, reload). User picked **Option B** of the persistence design — a real round-trip through the typed API + mock backend, so the same code path will work against the real backend whenever it lands.
 
-### 10.1 New domain types ([src/types/clypt.ts](clypt-frontend/src/types/clypt.ts))
+### 10.1 New domain types ([src/types/clypt.ts](../src/types/clypt.ts))
 
 Added the wire format for persisted Grounding edits:
 
@@ -216,14 +216,14 @@ export interface GroundingClipState {
 
 The wire shape is **shots-as-array** (matching the rest of the snake-case API) even though the in-component slices were originally shot-keyed maps — conversion happens at the page boundary.
 
-### 10.2 Mock backend ([src/mocks/store.ts](clypt-frontend/src/mocks/store.ts), [seed.ts](clypt-frontend/src/mocks/seed.ts), [api.ts](clypt-frontend/src/mocks/api.ts))
+### 10.2 Mock backend ([src/mocks/store.ts](../src/mocks/store.ts), [seed.ts](../src/mocks/seed.ts), [api.ts](../src/mocks/api.ts))
 
 - `MockDB` gets a new field: `grounding: Record<string, GroundingClipState>` keyed by `${runId}:${clipId}`. The forward-compat `{...emptyDB(), ...persisted}` merge in `loadDB()` fills this in for stale `clypt:mock-db:v1` caches automatically — no migration needed.
 - `seedMockDB()` initializes `db.grounding = {}` explicitly.
 - `mockGroundingApi.get(runId, clipId)` returns the saved state if any, otherwise an **empty stub** (`{ shots: [], updated_at: epoch }`) — never 404. The page treats "no overrides" as "use the model output as-is", so a missing record is the normal case.
 - `mockGroundingApi.put(runId, clipId, state)` upserts the full payload, stamps `updated_at = now()`, and writes through `mockDB.update()` (which persists to `localStorage` and notifies listeners).
 
-### 10.3 Real-mode wrappers ([src/lib/api.ts](clypt-frontend/src/lib/api.ts))
+### 10.3 Real-mode wrappers ([src/lib/api.ts](../src/lib/api.ts))
 
 ```ts
 export const groundingApi = {
@@ -232,7 +232,7 @@ export const groundingApi = {
 }
 ```
 
-### 10.4 React Query hooks ([src/hooks/api/useGrounding.ts](clypt-frontend/src/hooks/api/useGrounding.ts))
+### 10.4 React Query hooks ([src/hooks/api/useGrounding.ts](../src/hooks/api/useGrounding.ts))
 
 New file with two exports:
 
@@ -241,7 +241,7 @@ New file with two exports:
 
 Re-exported from `src/hooks/api/index.ts`.
 
-### 10.5 Page rewrite ([src/pages/RunGrounding.tsx](clypt-frontend/src/pages/RunGrounding.tsx))
+### 10.5 Page rewrite ([src/pages/RunGrounding.tsx](../src/pages/RunGrounding.tsx))
 
 - Deleted the three `useState` slices (`trackletBoxes`, `userTracklets`, `hiddenIdsByShot`) plus their handler bodies.
 - Added `useGroundingState(runId, activeClip || clipId)` and `useUpdateGrounding(...)`. Pure UI state (`boxEditMode`, `selectedBoxKey`) stays as `useState` since it shouldn't survive navigation.
@@ -266,7 +266,7 @@ Re-exported from `src/hooks/api/index.ts`.
 
 Before §10 the persisted blob only carried box-editor state (rects, user tracklets, hidden ids). Everything *else* the user did on the Grounding page — speaker bindings, camera intent selections, manual crop boxes — was still local `useState` and got thrown away on navigation. This sub-section extends the same persistence path to all three.
 
-**Wire types ([src/types/clypt.ts](clypt-frontend/src/types/clypt.ts))** — `GroundingShotState` gains three optional fields:
+**Wire types ([src/types/clypt.ts](../src/types/clypt.ts))** — `GroundingShotState` gains three optional fields:
 
 ```ts
 bindings?: GroundingBinding[]
@@ -276,7 +276,7 @@ manual_crop?: GroundingCropPosition
 
 `undefined` is meaningful: it means "the user has not touched this aspect of this shot, fall back to the seed default". An explicit empty array (or new value) means "user touched it, persist it as-is". This keeps the wire payload sparse (untouched shots round-trip as empty objects) and lets the seed evolve independently of saved state. New supporting types: `GroundingBinding`, `GroundingIntentType`, `GroundingIntent`, `GroundingCropPosition`. Bindings and crops share the wire shape with the local UI types, so no conversion is needed at the boundary; intents do need a converter because the local UI uses camelCase (`reactOn`, `splitLeft`) and the wire uses snake_case (`react_on`, `split_left`).
 
-**Page wiring ([src/pages/RunGrounding.tsx](clypt-frontend/src/pages/RunGrounding.tsx))**:
+**Page wiring ([src/pages/RunGrounding.tsx](../src/pages/RunGrounding.tsx))**:
 
 - Deleted the `useState` slices for `bindings`, `intents`, `manualCrops`. `cropModal` and `speakerNames` stay local — they're pure UI state.
 - New module-level converters `intentToWire` / `intentFromWire` translate between camelCase `ShotIntent` and snake_case `GroundingIntent`.
