@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const stepLabels = ["Channel", "Analyzing", "Brand Profile", "Preferences", "Voiceprints", "Ready"];
@@ -9,10 +10,13 @@ interface OnboardingLayoutProps {
 }
 
 const OnboardingLayout = ({ children, currentStep }: OnboardingLayoutProps) => {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col h-screen bg-[var(--color-bg)]">
       <div className="h-16 flex-shrink-0 border-b border-[var(--color-border-subtle)] flex items-center justify-between px-10">
-        <ClyptLogo size="md" defaultExpanded={true} />
+        <div className="cursor-pointer" onClick={() => navigate("/")}>
+          <ClyptLogo size="md" defaultExpanded={true} />
+        </div>
 
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">

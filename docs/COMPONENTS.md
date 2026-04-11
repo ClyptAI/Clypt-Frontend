@@ -7,14 +7,15 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `AppShell` | `AppShell.tsx` | Flex layout: `<AppSidebar />` + `<Outlet />`. Wraps all authenticated routes. |
-| `AppSidebar` | `AppSidebar.tsx` | 220px fixed sidebar. Top: logo + Library/Clips nav + "New Run" button. Middle: run-scoped tabs (Overview, Timeline, Cortex Graph, Embeds, Clip Candidates, Grounding, Render) — only shown when a `/runs/:id` route is active. Bottom: Settings + user avatar ("Rithvik K."). |
-| `RunContextBar` | `RunContextBar.tsx` | Horizontal bar at top of every run page. Shows run name (left), source URL (center), and phase status text label (right, e.g. "Phase 2 of 6 — Running" or "Complete"). Props: `runId`, `runName`, `videoUrl`, `currentPhase`, `completedPhases` (only `runName`, `videoUrl`, `currentPhase` are destructured). |
-| `ClipBoundaryEditor` | `ClipBoundaryEditor.tsx` | Compact clip boundary editor used inside the Clips page detail panel. Renders a looping `<video>` preview clamped to `[startMs, endMs]` with a mini timeline strip and draggable start/end handles + nudge buttons. Defaults `videoSrc` to `/videos/joeroganflagrant.mp4` (the demo placeholder) since the mock pipeline doesn't host per-clip source videos. Calls `onBoundaryChange(startMs, endMs)` on commit. |
-| `ErrorBoundary` | `ErrorBoundary.tsx` | React error boundary with fallback UI. Wraps the app-shell layout route and most individual page routes (except `/runs/new`). |
+| `AppSidebar` | `AppSidebar.tsx` | 220px fixed sidebar. Top: `ClyptAnimatedMark` (64px, static, centered, no wordmark) + Library/Clips nav + "New Run" button. Middle: run-scoped tabs — only shown when a `/runs/:id` route is active. Bottom: Settings + user avatar. |
+| `RunContextBar` | `RunContextBar.tsx` | Horizontal bar at top of every run page. Shows run name (left), source URL (center), and phase status text label (right). |
+| `ClipBoundaryEditor` | `ClipBoundaryEditor.tsx` | Compact clip boundary editor. Renders a looping `<video>` preview clamped to `[startMs, endMs]` with draggable start/end handles + nudge buttons. |
+| `ClyptAnimatedMark` | `ClyptAnimatedMark.tsx` | **Primary brand mark.** Framer Motion animated scissor/graph SVG logo. `animate={true}` plays the full 5.8s intro sequence (center node → C arcs → petal arcs → scissor arcs + 45° rotation). `animate={false}` renders the settled final state instantly. Endpoint dots are DOM-gated via `setTimeout` to guarantee they never appear before their arcs reach them. Props: `size` (px), `animate` (bool, default true), `color`. |
+| `ErrorBoundary` | `ErrorBoundary.tsx` | React error boundary with fallback UI. |
 | `PageSkeleton` | `PageSkeleton.tsx` | Loading skeleton placeholder. |
 | `ClyptIcon` | `ClyptIcon.tsx` | Small Clypt icon (the "C" mark). |
-| `ClyptLogo` | `ClyptLogo.tsx` | Full Clypt wordmark. Note: there is also `src/components/ui/ClyptLogo.tsx` (the shared one used by sidebar/onboarding). |
-| `ClyptMark` | `ClyptMark.tsx` | Clypt brandmark SVG (the three-dot curve). |
+| `ClyptLogo` | `ClyptLogo.tsx` | Legacy logo component in `app/` — uses `ClyptMark` + Bricolage Grotesque text. Superseded by `ui/ClyptLogo` for all primary usage. |
+| `ClyptMark` | `ClyptMark.tsx` | Legacy two-bar parallelogram SVG mark. Used only by `app/ClyptLogo`. |
 
 ## `src/components/auth/` — Authentication
 
@@ -39,8 +40,8 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `SemanticNode` | `SemanticNode.tsx` | Primary graph node. Frosted-glass background (`backdrop-filter: blur(4px)`) with type-colored linear-gradient tint, dynamic border color, glow `box-shadow` on hover/select. Visible `Handle` dots (top=target, bottom=source) colored by node type. Displays: type label, summary excerpt, timestamp. Supports `dimmed`, `_isHoverTarget`, `_isHoverConnected` data flags. |
-| `ClyptNode` | `ClyptNode.tsx` | Simplified shared version of `SemanticNode` styling for use in `AuthLayout` and `LandingGraphDemo`. Same visual properties without the full data-driven logic. |
-| `ClyptEdge` | `ClyptEdge.tsx` | Custom edge for auth/landing graphs. Has local hover state, transparent 12px-wide hit area path for reliable mouse detection, label tooltip on hover. |
+| `ClyptNode` | `ClyptNode.tsx` | Simplified shared version of `SemanticNode` styling for `AuthLayout` and `LandingGraphDemo`. Dual hover-state source: when rendered inside a `LandingHoverCtx.Provider` it reads hover flags from context (so the React Flow `nodes` prop stays static and avoids remount cascades); otherwise falls back to `_isHoverTarget` / `_isHoverConnected` / `_hasHover` flags in `data` (used by `AuthLayout` via React Flow's `onNodeMouseEnter`). `_onHoverEnter` / `_onHoverLeave` callbacks in `data` are also supported as a fallback. |
+| `ClyptEdge` | `ClyptEdge.tsx` | Custom edge for auth/landing graphs. Local `useState` for direct edge hover (drives glow + label). When rendered inside a `LandingHoverCtx.Provider`, reads `connectedEdgeIds` from context for the node-hover highlight; otherwise reads `_isHoverHighlighted` from `data`. Transparent 12px-wide hit-area path for reliable mouse detection. |
 | `edges.tsx` | `edges.tsx` | Four custom edge types for the main graph: `StructuralEdge` (bezier, curvature 0.2, gray), `StrongRhetoricalEdge` (animated dashes, type-colored), `ModerateRhetoricalEdge` (animated dashes, type-colored), `LongRangeEdge` (dashed, subtle). All use `getBezierPath` with `sourcePosition`/`targetPosition`. |
 | `EdgeMarkers` | `EdgeMarkers.tsx` | SVG marker definitions. **Orphan** — no longer rendered since arrowheads were removed. |
 | `GraphToolbar` | `GraphToolbar.tsx` | Top-center toolbar. Contains signal filter toggles (trend/comment/retention) and "All types" dropdown with checkboxes per node type. Dropdown uses `position: absolute` — the toolbar root must NOT have `overflow` set. |
@@ -57,7 +58,8 @@ Complete inventory of all components grouped by domain.
 | `HowItWorks` | `HowItWorks.tsx` | Step-by-step pipeline explanation. |
 | `PipelineDemos` | `PipelineDemos.tsx` | Orchestrator for the six demo cards. |
 | `LandingTimelineDemo` | `LandingTimelineDemo.tsx` | Animated timeline mockup. |
-| `LandingGraphDemo` | `LandingGraphDemo.tsx` | Embedded React Flow graph using `ClyptNode` + `ClyptEdge`. |
+| `LandingGraphDemo` | `LandingGraphDemo.tsx` | Embedded React Flow graph using `ClyptNode` + `ClyptEdge`. Mounts lazily via `IntersectionObserver`. Hover state is managed in a `LandingHoverCtx.Provider` that wraps `<ReactFlow>` — the `nodes` and `edges` props are static constants so React Flow never remounts its wrapper divs on hover. RAF-debounced `onHoverLeave` guards against residual same-frame spurious leave events. |
+| `LandingHoverCtx` | `LandingHoverCtx.ts` | React Context that delivers `{hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave}` to `ClyptNode` and `ClyptEdge` inside `LandingGraphDemo` without touching React Flow's data pipeline. |
 | `LandingNodeDemo` | `LandingNodeDemo.tsx` | Node card visualization. |
 | `LandingEmbeddingDemo` | `LandingEmbeddingDemo.tsx` | Scatter plot mockup. |
 | `LandingClipDemo` | `LandingClipDemo.tsx` | Clip candidate card. |
@@ -100,7 +102,7 @@ Standard shadcn/ui components built on Radix UI. These should generally not be m
 
 Full list: `accordion`, `alert-dialog`, `alert`, `aspect-ratio`, `avatar`, `badge`, `breadcrumb`, `button`, `calendar`, `card`, `carousel`, `chart`, `checkbox`, `ClyptLogo`, `collapsible`, `command`, `context-menu`, `dialog`, `drawer`, `dropdown-menu`, `form`, `hover-card`, `input-otp`, `input`, `label`, `menubar`, `navigation-menu`, `pagination`, `popover`, `progress`, `radio-group`, `resizable`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toast`, `toaster`, `toggle-group`, `toggle`, `tooltip`.
 
-Notable: `ClyptLogo.tsx` in `ui/` is the version used by `OnboardingLayout` and `AppSidebar` (accepts `size` and `defaultExpanded` props).
+Notable: `ClyptLogo.tsx` in `ui/` is the **primary logo lockup** used by `Navbar`, `AuthLayout`, `OnboardingLayout`, and `Footer`. It renders `ClyptAnimatedMark` (the scissor/graph mark) alongside a Bricolage Grotesque 700 lowercase "clypt" wordmark. Props: `size` (`sm` | `md` | `lg` | `xl`), `animate` (default `false` — only `Navbar` passes `true`), `defaultExpanded` (no-op, kept for API compat). Size map: sm=38px mark/15px text, md=52/20, lg=70/27, xl=110/46. `AppSidebar` uses `ClyptAnimatedMark` directly (mark only, no wordmark).
 
 ## `src/components/NavLink.tsx` — Shared Component
 

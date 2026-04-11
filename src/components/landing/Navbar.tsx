@@ -11,7 +11,7 @@ const Navbar = () => {
     <nav
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center"
       style={{
-        height: 56,
+        height: 72,
         backgroundColor: "rgba(10,9,9,0.75)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
@@ -26,11 +26,11 @@ const Navbar = () => {
           width: "100%",
           maxWidth: 1280,
           margin: "0 auto",
-          padding: "0 32px",
+          padding: "0 56px",
         }}
       >
         <div style={{ justifySelf: "start" }}>
-          <ClyptLogo size="md" />
+          <ClyptLogo size="lg" animate={true} />
         </div>
 
         <div className="flex items-center justify-center" style={{ gap: 32 }}>

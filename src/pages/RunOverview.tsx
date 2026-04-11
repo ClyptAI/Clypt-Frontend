@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Check, X, AlertTriangle, Play, ChevronRight, FileText } from "lucide-react";
+import { Check, X, AlertTriangle, Play, ChevronRight } from "lucide-react";
 import RunContextBar from "@/components/app/RunContextBar";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useRunStore } from "@/stores/run-store";
@@ -107,9 +107,6 @@ function StatusBadge({ status }: { status: PhaseStatus }) {
 
 /* ─── phase row ─── */
 function PhaseRow({ phase, isLast }: { phase: Phase; isLast: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasArtifacts = phase.artifacts && phase.artifacts.length > 0;
-
   return (
     <div className="relative flex gap-4 pb-6" style={{ alignItems: "flex-start" }}>
       {/* vertical line */}
@@ -140,29 +137,6 @@ function PhaseRow({ phase, isLast }: { phase: Phase; isLast: boolean }) {
         <span className="font-body text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
           {phase.summary}
         </span>
-
-        {/* artifacts toggle */}
-        {hasArtifacts && (
-          <>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="font-body text-[12px] mt-1 hover:underline bg-transparent border-none cursor-pointer p-0"
-              style={{ color: "var(--color-violet)" }}
-            >
-              {expanded ? "Hide" : "Show artifacts →"}
-            </button>
-            {expanded && (
-              <div className="flex flex-col gap-1 mt-1">
-                {phase.artifacts!.map((a) => (
-                  <div key={a} className="flex items-center gap-1.5">
-                    <FileText size={11} style={{ color: "var(--color-text-muted)" }} />
-                    <span className="font-mono text-[11px]" style={{ color: "var(--color-text-muted)" }}>{a}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ const OnboardAnalyzing = () => {
     <OnboardingLayout currentStep={2}>
       <div className="flex flex-col items-center">
         {/* SVG timeline animation */}
-        <svg width="320" height="80" viewBox="0 0 320 80" fill="none" className="mb-2">
+        <svg width="320" height="32" viewBox="0 0 320 32" fill="none" className="mb-2">
           {/* Timeline bar */}
           <line x1="20" y1="20" x2="300" y2="20" stroke="var(--color-surface-3)" strokeWidth="2" />
           {/* Nodes */}
@@ -76,30 +76,12 @@ const OnboardAnalyzing = () => {
                     repeatCount="indefinite"
                   />
                 </circle>
-                <line
-                  x1={cx}
-                  y1={25}
-                  x2={cx}
-                  y2={41}
-                  stroke="var(--color-border)"
-                  strokeWidth="1"
-                  opacity="0"
-                >
-                  <animate
-                    attributeName="opacity"
-                    from="0"
-                    to="0.6"
-                    dur="0.3s"
-                    begin={`${i * 0.4}s`}
-                    fill="freeze"
-                  />
-                </line>
               </g>
             );
           })}
         </svg>
 
-        <h2 className="font-heading font-bold text-[var(--color-text-primary)] text-center mt-10" style={{ fontSize: 28 }}>
+        <h2 className="font-heading font-bold text-[var(--color-text-primary)] text-center mt-4" style={{ fontSize: 28 }}>
           Building your creator profile
         </h2>
 

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Upload, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
 
 export default function SettingsProfile() {
-  const [name, setName] = useState("Rithvik");
-  const [email, setEmail] = useState("rithvik@example.com");
+  const session = useAuthStore((s) => s.session);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+
+  const [name, setName] = useState(session?.display_name ?? "");
+  const [email, setEmail] = useState(session?.email ?? "");
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -47,7 +51,7 @@ export default function SettingsProfile() {
           <label style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 13, color: "var(--color-text-primary)" }}>Profile photo</label>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--color-surface-3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 16, color: "var(--color-text-secondary)" }}>R</span>
+              <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 16, color: "var(--color-text-secondary)" }}>{(name[0] ?? "?").toUpperCase()}</span>
             </div>
             <button
               style={{
@@ -62,7 +66,7 @@ export default function SettingsProfile() {
         </div>
 
         <button
-          onClick={() => toast.success("Changes saved")}
+          onClick={() => { updateProfile(name.trim() || name, email.trim() || email); toast.success("Changes saved"); }}
           style={{
             padding: "10px 24px", borderRadius: 6, border: "none", background: "var(--color-violet)",
             fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, color: "#0A0909",

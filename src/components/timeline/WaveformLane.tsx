@@ -141,10 +141,31 @@ export default function WaveformLane({
           position: "absolute",
           left: scrollX,
           top: 0,
-          cursor: onClickTurn ? "pointer" : "default",
         }}
         onClick={handleClick}
       />
+
+      {/* Translucent clickable overlays — one per speaking turn */}
+      {onClickTurn && turns.map((turn) => (
+        <div
+          key={turn.id}
+          style={{
+            position: "absolute",
+            left: turn.start * pixelsPerSecond,
+            width: Math.max((turn.end - turn.start) * pixelsPerSecond, 2),
+            top: 0,
+            height: laneH,
+            background: color,
+            opacity: 0.22,
+            cursor: "pointer",
+            borderRadius: 2,
+            transition: "opacity 0.1s",
+          }}
+          onClick={() => onClickTurn(turn)}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.45"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.22"; }}
+        />
+      ))}
     </div>
   );
 }

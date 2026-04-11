@@ -5,8 +5,10 @@ import RunContextBar from "@/components/app/RunContextBar";
 import { TimeRuler, VideoPlayer, WaveformLane } from "@/components/timeline";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
+import { useTimelineData } from "@/hooks/api/useTimeline";
 import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
 import { formatTimecode } from "@/lib/timeline-utils";
+import type { TimelineSpeakerTurn, EmotionLabel } from "@/types/clypt";
 
 /* ─── constants ─── */
 const VIDEO_DURATION = 24 * 60 + 31; // 24:31 in seconds
@@ -26,71 +28,21 @@ const EMOTION_COLORS: Record<string, string> = {
   disgusted: "rgba(249,115,22,0.5)",
 };
 
-/* ─── mock data ─── */
-const MOCK_SHOTS = Array.from({ length: 42 }, (_, i) => ({
-  id: i + 1,
-  start: (VIDEO_DURATION / 42) * i,
-  end: (VIDEO_DURATION / 42) * (i + 1),
-}));
+/* ─── internal turn shape (seconds) used by WaveformLane / InfoPanel ─── */
+interface Turn {
+  id: string;
+  speaker: number;
+  start: number;
+  end: number;
+  transcript: string;
+  emotion: { primary: EmotionLabel; score: number; secondary: { label: EmotionLabel; score: number }[] };
+}
 
-// Tracklets are shot-level: each shot spans a time range, and multiple tracklets
-// (visual entities) can be present simultaneously within that range.
-const MOCK_SHOT_TRACKLETS = MOCK_SHOTS.slice(0, 20).map((shot, si) => {
-  const count = si % 3 === 0 ? 3 : si % 2 === 0 ? 2 : 1;
-  const letters = Array.from({ length: count }, (_, ti) => String.fromCharCode(65 + ti));
-  return {
-    shotId: shot.id,
-    start: shot.start,
-    end: shot.end,
-    letters,
-  };
-});
-
-const generateTurns = (speaker: number, count: number) => {
-  const gap = VIDEO_DURATION / (count + 1);
-  return Array.from({ length: count }, (_, i) => {
-    const start = gap * (i + 0.5) + speaker * 3;
-    const duration = 8 + Math.random() * 28;
-    return {
-      id: `turn_${speaker}_${i}`,
-      speaker,
-      start: Math.min(start, VIDEO_DURATION - duration),
-      end: Math.min(start + duration, VIDEO_DURATION),
-      transcript: speaker === 0
-        ? "So the question really becomes, how do you scale that kind of reasoning across all of these different modalities?"
-        : "I think the interesting thing about this approach is that it fundamentally changes how we think about the problem space.",
-      emotion: { primary: i % 2 === 0 ? "happy" : "neutral", score: 0.6 + Math.random() * 0.3, secondary: [{ label: "surprised", score: 0.2 }] },
-    };
-  });
-};
-
-const MOCK_SPEAKERS = [
-  { id: 0, name: "Speaker 01", turns: generateTurns(0, 18) },
-  { id: 1, name: "Speaker 02", turns: generateTurns(1, 14) },
-  { id: 2, name: "Speaker 03", turns: generateTurns(2, 9) },
-];
-
-const MOCK_EMOTIONS = [
-  { start: 0, end: 120, label: "neutral" },
-  { start: 120, end: 280, label: "happy" },
-  { start: 280, end: 420, label: "surprised" },
-  { start: 420, end: 600, label: "neutral" },
-  { start: 600, end: 780, label: "angry" },
-  { start: 780, end: 1000, label: "happy" },
-  { start: 1000, end: 1200, label: "neutral" },
-  { start: 1200, end: VIDEO_DURATION, label: "sad" },
-];
-
-const MOCK_AUDIO_EVENTS = [
-  { start: 45, end: 46, label: "laughter", confidence: 0.92 },
-  { start: 190, end: 191, label: "applause", confidence: 0.78 },
-  { start: 380, end: 381, label: "music", confidence: 0.85 },
-  { start: 540, end: 541, label: "laughter", confidence: 0.88 },
-  { start: 720, end: 721, label: "silence", confidence: 0.95 },
-  { start: 890, end: 891, label: "laughter", confidence: 0.81 },
-  { start: 1100, end: 1101, label: "applause", confidence: 0.73 },
-  { start: 1300, end: 1301, label: "music", confidence: 0.69 },
-];
+interface Speaker {
+  id: number;
+  name: string;
+  turns: Turn[];
+}
 
 /* ─── helpers ─── */
 function fmtTime(s: number) {
@@ -136,7 +88,7 @@ function TT({ children, tip }: { children: React.ReactNode; tip: string }) {
 }
 
 /* ─── info panel ─── */
-type Selection = { type: "turn"; data: typeof MOCK_SPEAKERS[0]["turns"][0]; speakerName: string } | null;
+type Selection = { type: "turn"; data: Turn; speakerName: string } | null;
 
 function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () => void }) {
   const [editing, setEditing] = useState(false);
@@ -243,8 +195,49 @@ export default function RunTimeline() {
 
   const isPlaying = playbackState === "playing";
 
-  // ── Run metadata ────────────────────────────────────────────────────────────
+  // ── Run metadata + timeline data ─────────────────────────────────────────────
   const { data: runDetail } = useRunDetail(runId);
+  const { data: timelineBundle } = useTimelineData(runId);
+
+  // Adapt bundle → page-internal shapes (seconds).
+  const shots = (timelineBundle?.shots ?? []).map((s) => ({
+    id: s.shot_id,
+    start: s.start_ms / 1000,
+    end: s.end_ms / 1000,
+  }));
+  const shotTracklets = (timelineBundle?.shot_tracklets ?? []).map((st) => ({
+    shotId: st.shot_id,
+    start: st.start_ms / 1000,
+    end: st.end_ms / 1000,
+    letters: st.tracklet_letters,
+  }));
+  const speakers: Speaker[] = (timelineBundle?.speakers ?? []).map((sp, idx) => ({
+    id: idx,
+    name: sp.display_name,
+    turns: sp.turns.map((t: TimelineSpeakerTurn) => ({
+      id: t.turn_id,
+      speaker: idx,
+      start: t.start_ms / 1000,
+      end: t.end_ms / 1000,
+      transcript: t.transcript_text,
+      emotion: {
+        primary: t.emotion_primary,
+        score: t.emotion_score,
+        secondary: t.emotion_secondary,
+      },
+    })),
+  }));
+  const emotions = (timelineBundle?.emotions ?? []).map((e) => ({
+    start: e.start_ms / 1000,
+    end: e.end_ms / 1000,
+    label: e.label,
+  }));
+  const audioEvents = (timelineBundle?.audio_events ?? []).map((ev) => ({
+    start: ev.start_ms / 1000,
+    end: ev.end_ms / 1000,
+    label: ev.label,
+    confidence: ev.confidence,
+  }));
 
   const completedPhases = runDetail?.phases.filter(p => p.status === "completed").length ?? 0;
   const runningPhase    = runDetail?.phases.find(p => p.status === "running");
@@ -277,7 +270,7 @@ export default function RunTimeline() {
 
   // ── Speaker grouping (max 5 primary + 1 minor) ──────────────────────────────
   const MAX_PRIMARY_SPEAKERS = 5;
-  const sortedSpeakers  = [...MOCK_SPEAKERS].sort((a, b) => b.turns.length - a.turns.length);
+  const sortedSpeakers  = [...speakers].sort((a, b) => b.turns.length - a.turns.length);
   const primarySpeakers = sortedSpeakers.slice(0, MAX_PRIMARY_SPEAKERS);
   const minorSpeakers   = sortedSpeakers.slice(MAX_PRIMARY_SPEAKERS);
   const hasMinorSpeakers = minorSpeakers.length > 0;
@@ -391,7 +384,7 @@ export default function RunTimeline() {
 
   const toggleLayer = (l: string) => setLayers((p) => ({ ...p, [l]: !p[l] }));
 
-  const selectTurn = (turn: typeof MOCK_SPEAKERS[0]["turns"][0], speakerName: string) => {
+  const selectTurn = (turn: Turn, speakerName: string) => {
     setSelection({ type: "turn", data: turn, speakerName });
   };
 
@@ -752,7 +745,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Shots</span>
               </div>
               <div className="relative flex" style={{ width: totalWidth }}>
-                {MOCK_SHOTS.map((shot, i) => (
+                {shots.map((shot, i) => (
                   <TT key={shot.id} tip={`Shot ${shot.id}: ${fmtTime(shot.start)} → ${fmtTime(shot.end)}`}>
                     <div
                       className="flex items-center px-1 border-r"
@@ -780,7 +773,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Tracklets</span>
               </div>
               <div className="relative" style={{ width: totalWidth, height: laneH }}>
-                {MOCK_SHOT_TRACKLETS.map((st) => (
+                {shotTracklets.map((st) => (
                   <TT key={st.shotId} tip={`Shot ${st.shotId} · ${fmtTime(st.start)} → ${fmtTime(st.end)} · tracklets: ${st.letters.join(", ")}`}>
                     <div
                       className="absolute flex items-center justify-center rounded-sm border"
@@ -821,7 +814,7 @@ export default function RunTimeline() {
                   viewportWidth={viewportWidth}
                   totalWidth={totalWidth}
                   laneH={laneH}
-                  onClickTurn={(turn) => selectTurn(turn as typeof MOCK_SPEAKERS[0]["turns"][0], speaker.name)}
+                  onClickTurn={(turn) => selectTurn(turn as Turn, speaker.name)}
                 />
               </div>
             );
@@ -843,7 +836,7 @@ export default function RunTimeline() {
                 laneH={laneH}
                 onClickTurn={(turn) => {
                   const sp = minorSpeakers.find(s => s.turns.some(t => t.id === turn.id));
-                  selectTurn(turn as typeof MOCK_SPEAKERS[0]["turns"][0], sp?.name ?? "Minor Speakers");
+                  selectTurn(turn as Turn, sp?.name ?? "Minor Speakers");
                 }}
               />
             </div>
@@ -856,7 +849,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Transcript</span>
               </div>
               <div className="relative" style={{ width: totalWidth, height: laneH }}>
-                {MOCK_SPEAKERS.flatMap((sp) => sp.turns).sort((a, b) => a.start - b.start).slice(0, 60).map((turn) => (
+                {speakers.flatMap((sp) => sp.turns).sort((a, b) => a.start - b.start).slice(0, 60).map((turn) => (
                   <div
                     key={turn.id}
                     className="absolute inline-flex items-center px-1 rounded-sm cursor-pointer hover:brightness-110"
@@ -869,7 +862,7 @@ export default function RunTimeline() {
                       maxWidth: Math.max((turn.end - turn.start) * pps - 2, 24),
                       overflow: "hidden",
                     }}
-                    onClick={() => selectTurn(turn, MOCK_SPEAKERS.find(s => s.id === turn.speaker)?.name || "Unknown")}
+                    onClick={() => selectTurn(turn, speakers.find(s => s.id === turn.speaker)?.name || "Unknown")}
                   >
                     <span className="font-mono text-[9px] truncate whitespace-nowrap" style={{ color: "var(--color-text-muted)" }}>
                       {turn.transcript}
@@ -887,7 +880,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Emotion</span>
               </div>
               <div className="relative" style={{ width: totalWidth, height: laneH }}>
-                {MOCK_EMOTIONS.map((emo, i) => (
+                {emotions.map((emo, i) => (
                   <TT key={i} tip={`${emo.label} · ${fmtTime(emo.start)} → ${fmtTime(emo.end)}`}>
                     <div
                       className="absolute flex items-center px-1"
@@ -915,7 +908,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Audio</span>
               </div>
               <div className="relative" style={{ width: totalWidth, height: laneH }}>
-                {MOCK_AUDIO_EVENTS.map((ev, i) => (
+                {audioEvents.map((ev, i) => (
                   <TT key={i} tip={`${ev.label} · ${(ev.confidence * 100).toFixed(0)}% · ${fmtTime(ev.start)}`}>
                     <div
                       className="absolute top-0 flex flex-col items-center"

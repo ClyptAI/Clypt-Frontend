@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { useLandingHover } from "@/components/landing/LandingHoverCtx";
 
 /* ── Type → color map (matches SemanticNode exactly) ── */
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -80,19 +81,34 @@ export interface ClyptNodeData {
   _isHoverTarget?: boolean;
   _isHoverConnected?: boolean;
   _hasHover?: boolean;
+  /** Optional: caller can inject hover callbacks to bypass React Flow's
+   *  onNodeMouseEnter (which is gated by an internal isDragging flag that
+   *  can be stuck when the component mounts during a scroll gesture). */
+  _onHoverEnter?: (id: string) => void;
+  _onHoverLeave?: () => void;
   [key: string]: unknown;
 }
 
-function ClyptNodeComponent({ data }: NodeProps) {
+function ClyptNodeComponent({ data, id }: NodeProps) {
   const d = data as unknown as ClyptNodeData;
+  const lh = useLandingHover();
+
   const color  = NODE_TYPE_COLORS[d.type] ?? "#71717A";
   const pill   = PILL_STYLES[d.type]      ?? { pillBg: "rgba(113,113,122,0.15)", pillText: "#A1A1AA" };
   const base   = GLOW_BASE[d.type]        ?? "rgba(167,139,250,";
 
-  const isTarget    = !!d._isHoverTarget;
-  const isConnected = !!d._isHoverConnected;
-  const hasHover    = !!d._hasHover;
+  // When inside LandingGraphDemo, read hover state from context so the ReactFlow
+  // `nodes` prop stays static and never triggers remount cascades. Fall back to
+  // data props (used by AuthLayout where onNodeMouseEnter works normally).
+  const isTarget    = lh ? lh.hoveredNodeId === id
+                         : !!d._isHoverTarget;
+  const isConnected = lh ? (lh.hoveredNodeId ? lh.connectedNodeIds.has(id) && lh.hoveredNodeId !== id : false)
+                         : !!d._isHoverConnected;
+  const hasHover    = lh ? !!lh.hoveredNodeId : !!d._hasHover;
   const isDimmed    = hasHover && !isTarget && !isConnected;
+
+  const handleEnter = lh ? () => lh.onHoverEnter(id) : (d._onHoverEnter ? () => d._onHoverEnter!(id) : undefined);
+  const handleLeave = lh ? () => lh.onHoverLeave()   : (d._onHoverLeave ? () => d._onHoverLeave!()   : undefined);
 
   const boxShadow = isTarget
     ? `0 0 28px ${base}0.7), 0 0 10px ${base}0.45)`
@@ -106,6 +122,8 @@ function ClyptNodeComponent({ data }: NodeProps) {
 
   return (
     <div
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
       style={{
         width: 160,
         borderRadius: 10,

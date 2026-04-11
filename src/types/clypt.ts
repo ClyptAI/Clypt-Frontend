@@ -260,6 +260,63 @@ export interface RenderJobStatus {
   error: string | null
 }
 
+// ─── Timeline bundle (Phase 1 data surfaced to the editor) ───────────────────
+//
+// A compact, page-friendly bundle returned by GET /v1/runs/:id/timeline.
+// All timestamps are in milliseconds to match the rest of the API.
+
+export interface TimelineSpeakerTurn {
+  turn_id: string
+  speaker_id: string
+  start_ms: number
+  end_ms: number
+  transcript_text: string
+  emotion_primary: EmotionLabel
+  emotion_score: number
+  emotion_secondary: Array<{ label: EmotionLabel; score: number }>
+}
+
+export interface TimelineSpeaker {
+  speaker_id: string
+  display_name: string
+  turns: TimelineSpeakerTurn[]
+}
+
+export interface TimelineEmotionSegment {
+  start_ms: number
+  end_ms: number
+  label: EmotionLabel
+}
+
+export interface TimelineAudioEvent {
+  start_ms: number
+  end_ms: number
+  label: string
+  confidence: number
+}
+
+export interface TimelineShotTracklets {
+  shot_id: string
+  start_ms: number
+  end_ms: number
+  tracklet_letters: string[]
+}
+
+export interface TimelineShot {
+  shot_id: string
+  start_ms: number
+  end_ms: number
+}
+
+export interface TimelineBundle {
+  duration_ms: number
+  shots: TimelineShot[]
+  shot_tracklets: TimelineShotTracklets[]
+  speakers: TimelineSpeaker[]
+  emotions: TimelineEmotionSegment[]
+  audio_events: TimelineAudioEvent[]
+}
+
 // ─── Grounding (manual bounding box editor) ──────────────────────────────────
 //
 // Persists the user's edits to the per-shot tracker output on the Grounding

@@ -17,6 +17,14 @@ import type {
   PhaseStatus,
   NodeType,
   EdgeType,
+  EmotionLabel,
+  TimelineBundle,
+  TimelineSpeaker,
+  TimelineSpeakerTurn,
+  TimelineShot,
+  TimelineShotTracklets,
+  TimelineEmotionSegment,
+  TimelineAudioEvent,
 } from '@/types/clypt'
 import type { MockDB } from './store'
 
@@ -66,7 +74,7 @@ const DEMO_RUN_ID = 'demo'
 const DEMO_RUN: RunDetail = {
   run_id: DEMO_RUN_ID,
   source_url: 'https://youtube.com/watch?v=demo412',
-  display_name: 'Lex ep. 412 — Sam Altman',
+  display_name: 'Joe Rogan × Flagrant',
   created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2h ago
   phases: buildPhaseStatus(7, 'completed'),
   node_count: 27,
@@ -402,6 +410,108 @@ const RENDER_PRESETS: RenderPreset[] = [
   },
 ]
 
+// ─── Timeline seed ────────────────────────────────────────────────────────────
+
+/** Tiny deterministic PRNG (mulberry32) so timeline data is stable across reloads. */
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const VIDEO_DURATION_MS = (24 * 60 + 31) * 1000 // 24:31
+
+export function generateTimeline(_runId: string): TimelineBundle {
+  const rng = mulberry32(0xdeadbeef)
+
+  // 42 shots evenly distributed
+  const shots: TimelineShot[] = Array.from({ length: 42 }, (_, i) => ({
+    shot_id: `shot_${String(i + 1).padStart(3, '0')}`,
+    start_ms: Math.round((VIDEO_DURATION_MS / 42) * i),
+    end_ms: Math.round((VIDEO_DURATION_MS / 42) * (i + 1)),
+  }))
+
+  // Tracklets: first 20 shots get 1-3 tracklets
+  const shot_tracklets: TimelineShotTracklets[] = shots.slice(0, 20).map((shot, si) => {
+    const count = si % 3 === 0 ? 3 : si % 2 === 0 ? 2 : 1
+    return {
+      shot_id: shot.shot_id,
+      start_ms: shot.start_ms,
+      end_ms: shot.end_ms,
+      tracklet_letters: Array.from({ length: count }, (_, ti) => String.fromCharCode(65 + ti)),
+    }
+  })
+
+  const EMOTIONS: EmotionLabel[] = ['neutral', 'happy', 'surprised', 'angry', 'sad', 'fearful', 'disgusted']
+  const TRANSCRIPTS = [
+    'So the question really becomes, how do you scale that kind of reasoning across all of these different modalities?',
+    'I think the interesting thing about this approach is that it fundamentally changes how we think about the problem space.',
+    "The real challenge isn't the technology itself — it's convincing people to rethink their assumptions.",
+    "What we found is that once you remove the artificial constraints, the system starts doing things nobody predicted.",
+    "There's this moment in every creative process where you have to decide: are you building for the audience you have, or the one you want?",
+  ]
+
+  function buildSpeaker(speakerId: string, displayName: string, turnCount: number): TimelineSpeaker {
+    const speakerIndex = parseInt(speakerId.split('_')[1]) - 1
+    const gap = VIDEO_DURATION_MS / (turnCount + 1)
+    const turns: TimelineSpeakerTurn[] = Array.from({ length: turnCount }, (_, i) => {
+      const startMs = Math.min(
+        Math.round(gap * (i + 0.5) + speakerIndex * 3000),
+        VIDEO_DURATION_MS - 30000,
+      )
+      const durationMs = Math.round((8 + rng() * 28) * 1000)
+      const endMs = Math.min(startMs + durationMs, VIDEO_DURATION_MS)
+      const primaryEmotion = EMOTIONS[Math.floor(rng() * EMOTIONS.length)] as EmotionLabel
+      const score = 0.6 + rng() * 0.3
+      return {
+        turn_id: `turn_${speakerId}_${i + 1}`,
+        speaker_id: speakerId,
+        start_ms: startMs,
+        end_ms: endMs,
+        transcript_text: TRANSCRIPTS[Math.floor(rng() * TRANSCRIPTS.length)],
+        emotion_primary: primaryEmotion,
+        emotion_score: score,
+        emotion_secondary: [{ label: 'surprised' as EmotionLabel, score: 0.2 }],
+      }
+    })
+    return { speaker_id: speakerId, display_name: displayName, turns }
+  }
+
+  const speakers: TimelineSpeaker[] = [
+    buildSpeaker('spk_001', 'Speaker 01', 18),
+    buildSpeaker('spk_002', 'Speaker 02', 14),
+    buildSpeaker('spk_003', 'Speaker 03', 9),
+  ]
+
+  const emotions: TimelineEmotionSegment[] = [
+    { start_ms: 0,       end_ms: 120000,  label: 'neutral' },
+    { start_ms: 120000,  end_ms: 280000,  label: 'happy' },
+    { start_ms: 280000,  end_ms: 420000,  label: 'surprised' },
+    { start_ms: 420000,  end_ms: 600000,  label: 'neutral' },
+    { start_ms: 600000,  end_ms: 780000,  label: 'angry' },
+    { start_ms: 780000,  end_ms: 1000000, label: 'happy' },
+    { start_ms: 1000000, end_ms: 1200000, label: 'neutral' },
+    { start_ms: 1200000, end_ms: VIDEO_DURATION_MS, label: 'sad' },
+  ]
+
+  const audio_events: TimelineAudioEvent[] = [
+    { start_ms: 45000,   end_ms: 46000,   label: 'laughter',  confidence: 0.92 },
+    { start_ms: 190000,  end_ms: 191000,  label: 'applause',  confidence: 0.78 },
+    { start_ms: 380000,  end_ms: 381000,  label: 'music',     confidence: 0.85 },
+    { start_ms: 540000,  end_ms: 541000,  label: 'laughter',  confidence: 0.88 },
+    { start_ms: 720000,  end_ms: 721000,  label: 'silence',   confidence: 0.95 },
+    { start_ms: 890000,  end_ms: 891000,  label: 'laughter',  confidence: 0.81 },
+    { start_ms: 1100000, end_ms: 1101000, label: 'applause',  confidence: 0.73 },
+    { start_ms: 1300000, end_ms: 1301000, label: 'music',     confidence: 0.69 },
+  ]
+
+  return { duration_ms: VIDEO_DURATION_MS, shots, shot_tracklets, speakers, emotions, audio_events }
+}
+
 // ─── Master seed function ────────────────────────────────────────────────────
 
 export function seedMockDB(db: MockDB): void {
@@ -439,4 +549,10 @@ export function seedMockDB(db: MockDB): void {
   db.presets = RENDER_PRESETS
   // Grounding state is created lazily on first PUT — start empty.
   db.grounding = {}
+
+  // Timeline data — seeded for every run so the editor always has something to render.
+  db.timelines = {}
+  for (const runId of [DEMO_RUN_ID, ...SECONDARY_RUNS.map((r) => r.run_id)]) {
+    db.timelines[runId] = generateTimeline(runId)
+  }
 }

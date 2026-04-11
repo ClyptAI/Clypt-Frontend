@@ -9,6 +9,17 @@
   to { opacity: 1; }
 }
 
+/*
+ * Landing graph: the ReactFlow pane sits above the node/edge layers in DOM order
+ * (same stacking level, later sibling = higher paint order). With pointer-events on
+ * the pane, mouseenter/mouseleave never reach the node wrappers, so onNodeMouseEnter
+ * silently never fires. Since this graph has pan/zoom/scroll all disabled, the pane
+ * needs no pointer events — nullifying them passes events directly to nodes & edges.
+ */
+.rf-landing .react-flow__pane {
+  pointer-events: none;
+}
+
 @layer base {
   :root {
     /* Base surfaces */
