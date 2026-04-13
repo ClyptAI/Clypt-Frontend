@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="130 130 240 240" fill="none">
-  <g stroke="#F4F1EE" stroke-width="8" fill="none" stroke-linecap="square" stroke-linejoin="miter">
+  <!-- Black fill between the brackets -->
+  <rect x="156" y="156" width="188" height="188" rx="4" fill="#0A0909"/>
+  <!-- Pure white + thicker strokes for legibility at favicon sizes (in-app uses #F4F1EE / 8) -->
+  <g stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="square" stroke-linejoin="miter">
     <path d="M 160 210 L 160 160 L 210 160"/>
     <path d="M 290 160 L 340 160 L 340 210"/>
     <path d="M 340 290 L 340 340 L 290 340"/>
