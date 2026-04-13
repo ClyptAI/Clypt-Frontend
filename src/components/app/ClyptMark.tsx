@@ -1,28 +1,97 @@
+import { useMemo } from "react";
+
+const WAVEFORM_LAYERS = [
+  {
+    color: "#7C3AED",
+    getHeight: (dx: number) => {
+      const xLeft = 250 - dx;
+      if (xLeft < 165) return 0;
+      const t = (140 - Math.sqrt(Math.max(0, 19600 - 220 * (xLeft - 165)))) / 110;
+      return 30 * t + 55 * t * t;
+    },
+  },
+  {
+    color: "#8B5CF6",
+    getHeight: (dx: number) => {
+      const xLeft = 250 - dx;
+      if (xLeft < 185) return 0;
+      const t = (110 - Math.sqrt(Math.max(0, 12100 - 180 * (xLeft - 185)))) / 90;
+      return 20 * t + 45 * t * t;
+    },
+  },
+  {
+    color: "#A78BFA",
+    getHeight: (dx: number) => {
+      const xLeft = 250 - dx;
+      if (xLeft < 205) return 0;
+      const t = (80 - Math.sqrt(Math.max(0, 6400 - 140 * (xLeft - 205)))) / 70;
+      return 10 * t + 35 * t * t;
+    },
+  },
+  {
+    color: "#C4B5FD",
+    getHeight: (dx: number) => {
+      const xLeft = 250 - dx;
+      if (xLeft < 225) return 0;
+      const t = (46 - Math.sqrt(Math.max(0, 2116 - 84 * (xLeft - 225)))) / 42;
+      return 4 * t + 21 * t * t;
+    },
+  },
+];
+
 interface ClyptMarkProps {
   size?: number;
-  topColor?: string;
-  bottomColor?: string;
   className?: string;
 }
 
-const ClyptMark = ({
-  size = 20,
-  topColor = "#635E6C",
-  bottomColor = "#A78BFA",
-  className,
-}: ClyptMarkProps) => {
-  const width = size * 2;
+const ClyptMark = ({ size = 20, className }: ClyptMarkProps) => {
+  const bars = useMemo(() => {
+    const result: React.ReactElement[] = [];
+    for (let x = 162; x <= 338; x += 8) {
+      const dx = Math.abs(x - 250);
+      WAVEFORM_LAYERS.forEach((layer, i) => {
+        const h = layer.getHeight(dx);
+        if (h > 0.5) {
+          result.push(
+            <line
+              key={`${x}-${i}`}
+              x1={x}
+              y1={250 - h}
+              x2={x}
+              y2={250 + h}
+              stroke={layer.color}
+              strokeWidth={4.8}
+              strokeLinecap="round"
+            />
+          );
+        }
+      });
+    }
+    return result;
+  }, []);
+
   return (
     <svg
-      width={width}
+      width={size}
       height={size}
-      viewBox="0 0 40 20"
-      preserveAspectRatio="xMidYMid meet"
+      viewBox="0 0 500 500"
       fill="none"
       className={className}
+      xmlns="http://www.w3.org/2000/svg"
     >
-      <path d="M 5 0 L 35 0 L 30 8 L 0 8 Z" fill={topColor} />
-      <path d="M 10 12 L 40 12 L 35 20 L 5 20 Z" fill={bottomColor} />
+      <g
+        stroke="#F4F1EE"
+        strokeWidth="8"
+        fill="none"
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+      >
+        <path d="M 160 210 L 160 160 L 210 160" />
+        <path d="M 290 160 L 340 160 L 340 210" />
+        <path d="M 340 290 L 340 340 L 290 340" />
+        <path d="M 210 340 L 160 340 L 160 290" />
+      </g>
+      <g>{bars}</g>
     </svg>
   );
 };

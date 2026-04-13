@@ -10,8 +10,6 @@ interface ClyptLogoProps {
   size?: "sm" | "md" | "lg";
   markOnly?: boolean;
   wordmarkColor?: string;
-  topColor?: string;
-  bottomColor?: string;
   className?: string;
 }
 
@@ -19,8 +17,6 @@ const ClyptLogo = ({
   size = "sm",
   markOnly = false,
   wordmarkColor = "var(--color-text-primary)",
-  topColor,
-  bottomColor,
   className,
 }: ClyptLogoProps) => {
   const config = sizeConfig[size];
@@ -30,7 +26,7 @@ const ClyptLogo = ({
       className={className}
       style={{ display: "flex", alignItems: "center", gap: config.gap }}
     >
-      <ClyptMark size={config.markSize} topColor={topColor} bottomColor={bottomColor} />
+      <ClyptMark size={config.markSize} />
       {!markOnly && (
         <span
           style={{
