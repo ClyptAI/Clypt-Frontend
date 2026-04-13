@@ -47,6 +47,7 @@ export default function PipelineDemos() {
     <>
       {/* Section 1 — Timeline */}
       <DemoSectionLayout
+        id="phase-01"
         layout="odd"
         copy={
           <>
@@ -78,6 +79,7 @@ export default function PipelineDemos() {
 
       {/* Section 2 — Node */}
       <DemoSectionLayout
+        id="phase-02"
         layout="even"
         copy={
           <>
@@ -91,6 +93,7 @@ export default function PipelineDemos() {
 
       {/* Section 3 — Graph (full-width) */}
       <DemoSectionLayout
+        id="phase-03"
         layout="full"
         copy={
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
@@ -108,6 +111,7 @@ export default function PipelineDemos() {
 
       {/* Section 4 — Embeddings */}
       <DemoSectionLayout
+        id="phase-04"
         layout="even"
         copy={
           <>
@@ -145,6 +149,7 @@ export default function PipelineDemos() {
 
       {/* Section 5 — Participation */}
       <DemoSectionLayout
+        id="phase-05"
         layout="odd"
         copy={
           <>
@@ -186,6 +191,7 @@ export default function PipelineDemos() {
 
       {/* Section 6 — Clip */}
       <DemoSectionLayout
+        id="phase-06"
         layout="even"
         copy={
           <>

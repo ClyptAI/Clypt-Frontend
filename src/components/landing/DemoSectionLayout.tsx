@@ -7,12 +7,13 @@ interface DemoSectionLayoutProps {
   layout: "odd" | "even" | "full";
   copy: ReactNode;
   ui: ReactNode;
+  id?: string;
 }
 
-export default function DemoSectionLayout({ layout, copy, ui }: DemoSectionLayoutProps) {
+export default function DemoSectionLayout({ layout, copy, ui, id }: DemoSectionLayoutProps) {
   if (layout === "full") {
     return (
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "120px 24px" }}>
+      <section id={id} style={{ maxWidth: 1200, margin: "0 auto", padding: "120px 24px" }}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -54,7 +55,7 @@ export default function DemoSectionLayout({ layout, copy, ui }: DemoSectionLayou
   );
 
   return (
-    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "120px 24px" }}>
+    <section id={id} style={{ maxWidth: 1200, margin: "0 auto", padding: "120px 24px" }}>
       <div
         style={{
           display: "grid",
