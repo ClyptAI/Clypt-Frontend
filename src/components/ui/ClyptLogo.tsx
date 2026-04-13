@@ -2,17 +2,17 @@ import { ClyptAnimatedMark } from "@/components/app/ClyptAnimatedMark";
 
 type LogoSize = "sm" | "md" | "lg" | "xl"
 
-// mark px, font size px, gap px — mark is the clear focus
-const sizeMap: Record<LogoSize, { mark: number; fontSize: number; gap: number }> = {
-  sm: { mark: 38, fontSize: 15, gap: 6  },
-  md: { mark: 52, fontSize: 20, gap: 8  },
-  lg: { mark: 70, fontSize: 27, gap: 9  },
-  xl: { mark: 110, fontSize: 46, gap: 14 },
+// trim: negative right margin that eats into the SVG's built-in whitespace,
+// pulling the wordmark closer to the visible mark content.
+const sizeMap: Record<LogoSize, { mark: number; fontSize: number; gap: number; trim: number }> = {
+  sm: { mark: 58,  fontSize: 15, gap: 2, trim: 15 },
+  md: { mark: 80,  fontSize: 20, gap: 2, trim: 20 },
+  lg: { mark: 108, fontSize: 27, gap: 2, trim: 28 },
+  xl: { mark: 180, fontSize: 46, gap: 3, trim: 50 },
 }
 
 interface ClyptLogoProps {
   size?: LogoSize
-  /** Play the intro draw animation. Only pass true on the landing page Navbar. */
   animate?: boolean
   defaultExpanded?: boolean
   className?: string
@@ -23,14 +23,16 @@ export const ClyptLogo = ({
   animate = false,
   className,
 }: ClyptLogoProps) => {
-  const { mark, fontSize, gap } = sizeMap[size]
+  const { mark, fontSize, gap, trim } = sizeMap[size]
 
   return (
     <div
       className={`select-none flex items-center flex-shrink-0 ${className ?? ""}`}
       style={{ gap }}
     >
-      <ClyptAnimatedMark size={mark} animate={animate} color="#A78BFA" />
+      <div style={{ marginRight: -trim }}>
+        <ClyptAnimatedMark size={mark} animate={animate} />
+      </div>
       <span
         style={{
           fontFamily: "'Bricolage Grotesque', sans-serif",

@@ -45,11 +45,13 @@ export default function AppSidebar() {
     >
       {/* Logo */}
       <div
-        className="flex items-center justify-center border-b border-[var(--color-border-subtle)] cursor-pointer"
+        className="flex items-center justify-center border-b border-[var(--color-border-subtle)] cursor-pointer overflow-hidden"
         style={{ padding: "6px 14px", paddingBottom: 8 }}
         onClick={() => navigate("/")}
       >
-        <ClyptAnimatedMark size={64} animate={false} />
+        <div style={{ margin: "-40px 0" }}>
+          <ClyptAnimatedMark size={160} animate={false} />
+        </div>
       </div>
 
       {/* Nav */}
