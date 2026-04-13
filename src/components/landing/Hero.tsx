@@ -309,7 +309,7 @@ const Hero = () => {
             className="animate-pulse"
             style={{ width: 4, height: 4, borderRadius: "50%", background: "#A78BFA" }}
           />
-          AI-powered video intelligence
+          Creator-first content intelligence
         </motion.div>
 
         {/* Line 1 */}
@@ -348,7 +348,12 @@ const Hero = () => {
               key={i}
               variants={wordVariants}
               className="font-display italic leading-none"
-              style={{ fontSize: "clamp(52px, 7vw, 88px)", lineHeight: 1.05, color: "#fff" }}
+              style={{
+                fontSize: "clamp(52px, 7vw, 88px)",
+                lineHeight: 1.05,
+                color: word === "moment." ? "#A78BFA" : "#fff",
+                filter: word === "moment." ? "drop-shadow(0 0 22px rgba(167,139,250,0.55))" : undefined,
+              }}
             >
               {word}
             </motion.span>

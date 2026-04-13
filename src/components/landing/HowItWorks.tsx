@@ -4,12 +4,12 @@ import { Layers, GitFork, Network, Search, Users, Film } from "lucide-react";
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const phases = [
-  { num: "01", name: "Timeline Foundation", desc: "Transcription, diarization, shots, tracklets, emotion, and audio events.", icon: Layers },
-  { num: "02", name: "Node Construction", desc: "Gemini merges speaker turns into semantic units and classifies each one.", icon: GitFork },
-  { num: "03", name: "Graph Construction", desc: "Structural and rhetorical edges connect the semantic units into a navigable graph.", icon: Network },
-  { num: "04", name: "Candidate Retrieval", desc: "Embedding-based retrieval seeds subgraph expansion and Gemini ranking.", icon: Search },
-  { num: "05", name: "Participation Grounding", desc: "You assign speakers to tracklets and set camera intent per shot.", icon: Users },
-  { num: "06", name: "Render Planning", desc: "Shot-by-shot render instructions compile into 9:16 output clips.", icon: Film },
+  { num: "01", name: "Timeline Foundation", desc: "Transcription, diarization, shots, tracklets, emotion, and audio events.", icon: Layers, anchor: "phase-01" },
+  { num: "02", name: "Node Construction", desc: "Gemini merges speaker turns into semantic units and classifies each one.", icon: GitFork, anchor: "phase-02" },
+  { num: "03", name: "Graph Construction", desc: "Structural and rhetorical edges connect the semantic units into a navigable graph.", icon: Network, anchor: "phase-03" },
+  { num: "04", name: "Candidate Retrieval", desc: "Embedding-based retrieval seeds subgraph expansion and Gemini ranking.", icon: Search, anchor: "phase-04" },
+  { num: "05", name: "Participation Grounding", desc: "You assign speakers to tracklets and set camera intent per shot.", icon: Users, anchor: "phase-05" },
+  { num: "06", name: "Render Planning", desc: "Shot-by-shot render instructions compile into 9:16 output clips.", icon: Film, anchor: "phase-06" },
 ];
 
 const HowItWorks = () => {
@@ -61,7 +61,10 @@ const HowItWorks = () => {
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 20,
                   padding: 28,
-                  cursor: "default",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  document.getElementById(phase.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
                 variants={{
                   hidden: { opacity: 0, y: 24 },
