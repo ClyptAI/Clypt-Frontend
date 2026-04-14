@@ -241,7 +241,7 @@ const Hero = () => {
   const heroRef = useRef<HTMLElement>(null);
 
   const line1Words = ["Break", "the", "video."];
-  const line2Words = ["Keep", "the", "moment."];
+  const line2Words = ["Keep", "the", "gems."];
 
   return (
     <section
@@ -351,8 +351,8 @@ const Hero = () => {
               style={{
                 fontSize: "clamp(52px, 7vw, 88px)",
                 lineHeight: 1.05,
-                color: word === "moment." ? "#A78BFA" : "#fff",
-                filter: word === "moment." ? "drop-shadow(0 0 22px rgba(167,139,250,0.55))" : undefined,
+                color: word === "gems." ? "#A78BFA" : "#fff",
+                filter: word === "gems." ? "drop-shadow(0 0 22px rgba(167,139,250,0.55))" : undefined,
               }}
             >
               {word}
@@ -368,7 +368,7 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.45 }}
         >
-          Clypt finds and frames the clips that matter, using the semantic structure of your content.
+          Clypt maps semantic structure against <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;real&nbsp;&nbsp;</em>audience engagement and <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;live&nbsp;&nbsp;</em>trends, mining the moments worth clipping.
         </motion.p>
 
         {/* CTA buttons */}
