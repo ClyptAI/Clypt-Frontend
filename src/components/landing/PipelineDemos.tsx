@@ -84,8 +84,8 @@ export default function PipelineDemos() {
         copy={
           <>
             <Overline>PHASE 02 · NODE CONSTRUCTION</Overline>
-            <Heading>Every insight, named.</Heading>
-            <Subtext>Clypt's extraction model identifies each semantic unit — tagging it with type, speaker, timestamp, and confidence score. Raw transcript becomes structured, addressable knowledge.</Subtext>
+            <Heading>Every moment, labeled.</Heading>
+            <Subtext>Your video gets broken into moments — a claim, a reaction, a payoff — each one tagged with who said it, when it happened, and how strong the signal is. You stop scrubbing and start pointing.</Subtext>
           </>
         }
         ui={<LandingNodeDemo />}
@@ -99,10 +99,10 @@ export default function PipelineDemos() {
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
             <Overline>PHASE 03 · GRAPH CONSTRUCTION</Overline>
             <h3 style={{ fontFamily: brico, fontWeight: 700, fontSize: 48, color: "white", lineHeight: 1.15, margin: 0 }}>
-              Rhetoric, mapped.
+              See the connections your video is built on.
             </h3>
             <p style={{ fontFamily: jakarta, fontSize: 17, color: "rgba(255,255,255,0.6)", lineHeight: 1.65, marginTop: 16 }}>
-              Every semantic unit becomes a node. Every connection — a claim supporting an anecdote, a question answered three minutes later — becomes a typed edge. The result is a navigable knowledge graph of your content.
+              A claim supporting an anecdote. A question answered three minutes later. A callback to the setup from ten minutes ago. Clypt pulls every one of these connections into a graph — so you see the shape of your video, not just the timeline.
             </p>
           </div>
         }
@@ -116,8 +116,8 @@ export default function PipelineDemos() {
         copy={
           <>
             <Overline>PHASE 04 · CANDIDATE RETRIEVAL</Overline>
-            <Heading>The content, charted.</Heading>
-            <Subtext>Each node gets embedded into semantic space. Clusters reveal conceptual structure — and signal-tagged nodes light up as clip candidates before a single frame is rendered.</Subtext>
+            <Heading>The clips worth cutting, before you touch the timeline.</Heading>
+            <Subtext>Similar moments cluster together. The ones already resonating — lit up by trending topics or hot comment threads — rise to the top as candidates. You walk in already knowing where the clips live.</Subtext>
             <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { color: "rgba(167,139,250,0.85)", label: "Argument cluster" },
