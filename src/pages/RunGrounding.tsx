@@ -1,13 +1,3 @@
-/*
- * TODO — Grounding page known issues (to fix later):
- *  1. Internal colored bars (speaker turn segments) do not scale proportionally
- *     with their outer lane height when dragging the divider.
- *  2. Clip 008 can still get cut off when dragging the divider up — MIN_VIDEO_H
- *     does not perfectly match the queue panel's rendered height on all viewports.
- *  3. Camera intent: only the header row scales with laneH. The content row
- *     (intent buttons + Follow/Reaction/Split/Wide selectors) does not resize
- *     proportionally — buttons and selects stay fixed-size.
- */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -655,15 +645,16 @@ function ManualCropModal({
    IntentConfig — camera intent controls for a single shot
    ═══════════════════════════════════════════════════════════ */
 
-function IntentConfig({ intent, shot, onChange, onOpenCrop }: {
+function IntentConfig({ intent, shot, onChange, onOpenCrop, controlH }: {
   intent: ShotIntent; shot: ShotData;
   onChange: (patch: Partial<ShotIntent>) => void; onOpenCrop?: () => void;
+  controlH: number;
 }) {
   const speakers = shot.speakers;
   const Sel = ({ value, onSelect, label }: { value?: number; onSelect: (v: number) => void; label: string }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
       <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>{label}</span>
-      <select value={value ?? ""} onChange={(e) => onSelect(Number(e.target.value))} style={{ flex: 1, height: 26, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: 4, fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)", padding: "0 6px", cursor: "pointer", outline: "none" }}>
+      <select value={value ?? ""} onChange={(e) => onSelect(Number(e.target.value))} style={{ flex: 1, height: controlH, background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: 4, fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-primary)", padding: "0 6px", cursor: "pointer", outline: "none" }}>
         <option value="" disabled>Select…</option>
         {speakers.map((s) => <option key={s} value={s}>{SPEAKER_NAMES[s] ?? `Spk_0${s}`}</option>)}
       </select>
@@ -872,11 +863,11 @@ function ActiveShotWorkspace({
         return (
           <div key={sIdx}>
             <div style={{ height: speakerH, display: "flex", alignItems: "center", padding: "0 12px", background: "var(--color-bg)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-              <div draggable onDragStart={(e) => handleSpeakerDragStart(e, sIdx)} style={{ width: 72, flexShrink: 0, display: "flex", alignItems: "center", gap: 5, cursor: "grab" }}>
+              <div draggable onDragStart={(e) => handleSpeakerDragStart(e, sIdx)} style={{ width: 72, flexShrink: 0, display: "flex", alignItems: "center", gap: 5, cursor: "grab", overflow: "hidden" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)" }}>{speakerNames[sIdx]?.split("—")[0]?.trim() ?? `Spk_0${sIdx}`}</span>
+                <span style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 11, color: "var(--color-text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(speakerNames[sIdx]?.split("—")[0]?.trim() ?? `Spk_0${sIdx}`).replace(/^Speaker_/, "Spk_")}</span>
               </div>
-              <div style={{ flex: 1, position: "relative", height: 18 }}>
+              <div style={{ flex: 1, position: "relative", height: Math.max(12, speakerH - 16) }}>
                 {turn && <div style={{ position: "absolute", left: `${turn.startPct}%`, width: `${turn.widthPct}%`, height: "100%", background: `${color}66`, borderRadius: 2 }} />}
               </div>
             </div>
@@ -1286,20 +1277,23 @@ export default function RunGrounding() {
   }, [getPctFromClientX, seekToPct]);
 
   /* Drag divider — same pattern as Timeline: inline window listeners, no useEffect */
-  // Queue needs: header(32) + items(queue.length * 34) + insets(16). Floor to
-  // a sane minimum so the panel has room even when the queue is empty.
-  const MIN_VIDEO_H = 32 + Math.max(1, queue.length) * 34 + 16;
+  const [queueNaturalH, setQueueNaturalH] = useState(120);
+  const [viewportH, setViewportH] = useState(() => window.innerHeight);
   // Lane counting: tracklet(1) + speakers(activeShot.speakers.length) + transcript(1) + camera header(1) + camera content(1 if open)
   const numLanes = 1 + activeShot.speakers.length + 1 + 1 + (cameraOpen ? 1 : 0);
   const LANE_MIN_H = 24;
   // Chrome below video: divider(6) + transport(48) + ruler(32) + shot-strip(40) = 126. Context bar: 48.
   // MAX ensures each lane >= LANE_MIN_H
-  const MAX_VIDEO_H = window.innerHeight - 48 - 126 - numLanes * LANE_MIN_H;
+  const MAX_VIDEO_H = viewportH - 48 - 126 - numLanes * LANE_MIN_H;
+  // Queue panel is inset top:8 + bottom:8 inside the video container, so floor needs +16.
+  // Cap at 70% of MAX so queue never wedges the divider when the run has many clips.
+  const MIN_VIDEO_H = Math.min(queueNaturalH + 16, Math.max(120, Math.floor(MAX_VIDEO_H * 0.7)));
   const [videoH, setVideoH] = useState(() => Math.round(window.innerHeight * 0.50));
   const isDraggingDivider = useRef(false);
   const rulerContainerRef = useRef<HTMLDivElement>(null);
   const [rulerWidth, setRulerWidth] = useState(800);
   const queuePanelRef = useRef<HTMLDivElement>(null);
+  const queueItemsRef = useRef<HTMLDivElement>(null);
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
   const [workspaceContainerH, setWorkspaceContainerH] = useState(300);
   const parseTimeStr = (t: string) => { const [m, s] = t.split(":"); return parseInt(m) * 60 + parseInt(s); };
@@ -1324,6 +1318,37 @@ export default function RunGrounding() {
     setWorkspaceContainerH(el.getBoundingClientRect().height);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Keep videoH within the viewport's live bounds so shrinking the window doesn't
+  // leave the video area taller than what's available for the rest of the lanes.
+  useEffect(() => {
+    setVideoH((h) => Math.max(120, Math.min(h, Math.max(120, MAX_VIDEO_H))));
+  }, [MAX_VIDEO_H]);
+
+  // Natural queue panel height = clamped panel height + any items-container
+  // overflow hidden by its maxHeight. We read both refs so shrinking the
+  // video area doesn't make the queue falsely appear smaller than its content.
+  useEffect(() => {
+    const panel = queuePanelRef.current;
+    const items = queueItemsRef.current;
+    if (!panel || !items) return;
+    const recompute = () => {
+      const panelH = panel.getBoundingClientRect().height;
+      const extra = Math.max(0, items.scrollHeight - items.clientHeight);
+      setQueueNaturalH(panelH + extra);
+    };
+    const ro = new ResizeObserver(recompute);
+    ro.observe(panel);
+    ro.observe(items);
+    recompute();
+    return () => ro.disconnect();
+  }, [queue.length]);
 
   // Dynamic lane height — exactly like Timeline: measured container ÷ total lanes
   const laneH = numLanes > 0
@@ -1457,7 +1482,7 @@ export default function RunGrounding() {
             </div>
 
             {/* Queue — floats in the left black bar, same pattern as Timeline layer toggles */}
-            <div style={{
+            <div ref={queuePanelRef} style={{
               position: "absolute", left: 8, top: 8,
               width: 172, zIndex: 4,
               maxHeight: "calc(100% - 16px)",
@@ -1475,7 +1500,7 @@ export default function RunGrounding() {
                 <span style={{ fontFamily: "'Geist Mono'", fontSize: 10, color: "var(--color-text-muted)" }}>{queue.length}</span>
               </div>
               {/* Items */}
-              <div style={{ flex: 1, overflowY: "auto" }}>
+              <div ref={queueItemsRef} style={{ flex: 1, overflowY: "auto" }}>
                 {queue.length === 0 && (
                   <div style={{ padding: "12px 10px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, color: "var(--color-text-muted)", textAlign: "center" }}>
                     No approved clips.
@@ -1662,31 +1687,34 @@ export default function RunGrounding() {
                     {isShotIntentComplete(activeShotIntent) ? "Set" : "Needs input"}
                   </span>
                 </div>
-                {cameraOpen && (
-                  <div style={{ height: laneH, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", overflow: "hidden" }}>
-                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                      {INTENT_OPTIONS.map((opt) => {
-                        const active = activeShotIntent.intent === opt;
-                        return (
-                          <button key={opt} onClick={() => updateIntent(activeShotIntentIdx, { intent: opt })}
-                            style={{
-                              height: 22, padding: "0 7px", borderRadius: 4,
-                              fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 10,
-                              background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
-                              color: active ? "var(--color-violet)" : "var(--color-text-muted)",
-                              border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
-                              cursor: "pointer", transition: "all 100ms",
-                            }}>
-                            {opt}
-                          </button>
-                        );
-                      })}
+                {cameraOpen && (() => {
+                  const controlH = Math.max(18, laneH - 14);
+                  return (
+                    <div style={{ height: laneH, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", background: "var(--color-surface-1)", borderBottom: "1px solid var(--color-border-subtle)", overflow: "hidden" }}>
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                        {INTENT_OPTIONS.map((opt) => {
+                          const active = activeShotIntent.intent === opt;
+                          return (
+                            <button key={opt} onClick={() => updateIntent(activeShotIntentIdx, { intent: opt })}
+                              style={{
+                                height: controlH, padding: "0 7px", borderRadius: 4,
+                                fontFamily: "'Bricolage Grotesque'", fontWeight: 500, fontSize: 10,
+                                background: active ? "var(--color-violet-muted)" : "var(--color-surface-2)",
+                                color: active ? "var(--color-violet)" : "var(--color-text-muted)",
+                                border: active ? "1px solid rgba(167,139,250,0.4)" : "1px solid var(--color-border)",
+                                cursor: "pointer", transition: "all 100ms",
+                              }}>
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <IntentConfig intent={activeShotIntent} shot={activeShot} onChange={(p) => updateIntent(activeShotIntentIdx, p)} onOpenCrop={() => setCropModal(activeShot.idx)} controlH={controlH} />
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <IntentConfig intent={activeShotIntent} shot={activeShot} onChange={(p) => updateIntent(activeShotIntentIdx, p)} onOpenCrop={() => setCropModal(activeShot.idx)} />
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
             </div>
           </div>
         </div>
