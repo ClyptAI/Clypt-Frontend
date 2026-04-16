@@ -156,9 +156,9 @@ const ClipShowcase = () => {
         >
           Clips{" "}
           <span style={{ color: "#A78BFA", filter: "drop-shadow(0 0 20px rgba(167,139,250,0.5))" }}>
-            composed
+            cut
           </span>{" "}
-          from meaning.
+          from what matters.
         </motion.h2>
         <motion.p
           className="font-sans mx-auto"
@@ -168,7 +168,7 @@ const ClipShowcase = () => {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease, delay: 0.1 }}
         >
-          Every clip is stitched together from the semantic nodes that carry its meaning — grounded, framed, and render-planned.
+          Every clip is built from the moments that actually carry your video — the claims, the reactions, the payoffs. No scrubbing, no guesswork.
         </motion.p>
       </div>
 

@@ -196,8 +196,8 @@ export default function PipelineDemos() {
         copy={
           <>
             <Overline>PHASE 06 · CLIP RENDERING</Overline>
-            <Heading>Render-ready. Zero editing.</Heading>
-            <Subtext>Every output clip arrives fully dressed — speaker-labeled, type-tagged, frame-trimmed, and metadata-stamped. Drop it anywhere, or queue it for batch export.</Subtext>
+            <Heading>Ready to post. Zero editing.</Heading>
+            <Subtext>No cropping, no captioning, no cleanup. Every clip leaves Clypt ready for the feed — one at a time, or a whole batch.</Subtext>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 32 }}>
               {[
                 "Speaker-attributed transcript overlay",
