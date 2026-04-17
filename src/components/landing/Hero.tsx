@@ -309,7 +309,7 @@ const Hero = () => {
             className="animate-pulse"
             style={{ width: 4, height: 4, borderRadius: "50%", background: "#A78BFA" }}
           />
-          Creator-first content intelligence
+          An all-in-one knowledge graph for creators
         </motion.div>
 
         {/* Line 1 */}
