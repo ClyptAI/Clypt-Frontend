@@ -36,10 +36,9 @@ The landing page introduces the product, the knowledge-graph concept, and the cr
 
 The app exposes multiple ways to inspect a run: graph structure, embedding space, semantic search, and candidate detail.
 
-<p align="center">
-  <img src="docs/readme-assets/frontend-search.png" alt="Clypt embedding search view" width="49%" />
-  <img src="docs/readme-assets/frontend-clips.png" alt="Clypt clip candidate review view" width="49%" />
-</p>
+![Clypt embedding search view](docs/readme-assets/frontend-search.png)
+
+![Clypt clip candidate review view](docs/readme-assets/frontend-clips.png)
 
 ### Pipeline overview
 
