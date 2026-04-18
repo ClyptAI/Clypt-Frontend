@@ -122,7 +122,7 @@ export default function AppSidebar() {
             </span>
           </div>
           <span className="font-heading font-medium text-[13px] text-[var(--color-text-primary)] flex-1 truncate">
-            Rithvik K.
+            Rithvik M.
           </span>
           <ChevronDown size={14} className="text-[var(--color-text-muted)] shrink-0" />
         </div>
