@@ -1,4 +1,6 @@
-# AGENTS.md — Clypt Frontend
+# AGENTS
+
+Operational startup and maintenance guide for coding agents.
 
 ## Project Overview
 
