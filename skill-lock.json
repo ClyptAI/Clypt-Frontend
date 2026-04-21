@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "skills": {
+    "composition-patterns": {
+      "source": ".agents/skills/composition-patterns",
+      "sourceType": "local",
+      "computedHash": "d493cd1038581ca5fbb841f1dbc86274febc36c251fb416548201999b1bfbb1e"
+    },
+    "context-hub": {
+      "source": "andrewyng/context-hub",
+      "sourceType": "github",
+      "computedHash": "ddafb0ecb8f6ecf1990675f5b72389d414113b8c3a847ecfe6a61c7400343f1c"
+    },
+    "gitnexus": {
+      "source": ".agents/skills/gitnexus",
+      "sourceType": "local",
+      "computedHash": "86c17059c42e296ae0c01335839e62a09ad79306f4b1fed0d7db165cd927ecb7"
+    },
+    "gstack": {
+      "source": "garrytan/gstack",
+      "sourceType": "github",
+      "computedHash": "fa9e058828bb65fe87cb0b9d7cc880a34dee0538ec0bb3869283b3f98300ec81"
+    },
+    "react-best-practices": {
+      "source": ".agents/skills/react-best-practices",
+      "sourceType": "local",
+      "computedHash": "bdec28aa4c964388e6383fd3eb2182a7a8a9cb56f6311d5c060c5c4c484b94c0"
+    },
+    "react-view-transitions": {
+      "source": "vercel-labs/react-view-transitions-skill",
+      "sourceType": "github",
+      "computedHash": "65d15f26217a62dce5bede399fa93061ab6b452585e6bb7b0ad75dc6296abac3"
+    },
+    "superpowers": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "37f7de6ffcfe268e5076bdaebe217fdd2f41e779c709993aa28f00b8f91e3918"
+    },
+    "web-design-guidelines": {
+      "source": ".agents/skills/web-design-guidelines",
+      "sourceType": "local",
+      "computedHash": "e9596b4d8c877954a9350596c1f885b2e4112485a202f3e9848416d8fa30b19f"
+    }
+  }
+}
