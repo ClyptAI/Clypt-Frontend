@@ -49,6 +49,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-01"
         layout="odd"
+        shader="pipeline-cool"
         copy={
           <>
             <Overline>PHASE 01 · TIMELINE FOUNDATION</Overline>
@@ -81,6 +82,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-02"
         layout="even"
+        shader="pipeline-cool"
         copy={
           <>
             <Overline>PHASE 02 · NODE CONSTRUCTION</Overline>
@@ -95,6 +97,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-03"
         layout="full"
+        shader="pipeline-warm"
         copy={
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
             <Overline>PHASE 03 · GRAPH CONSTRUCTION</Overline>
@@ -113,6 +116,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-04"
         layout="even"
+        shader="pipeline-cool"
         copy={
           <>
             <Overline>PHASE 04 · CANDIDATE RETRIEVAL</Overline>
@@ -151,6 +155,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-05"
         layout="odd"
+        shader="pipeline-warm"
         copy={
           <>
             <Overline>PHASE 05 · PARTICIPATION GROUNDING</Overline>
@@ -193,6 +198,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-06"
         layout="even"
+        shader="pipeline-warm"
         copy={
           <>
             <Overline>PHASE 06 · CLIP RENDERING</Overline>

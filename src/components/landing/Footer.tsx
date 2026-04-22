@@ -5,11 +5,11 @@ const Footer = () => {
     <footer
       style={{
         borderTop: "1px solid rgba(255,255,255,0.07)",
-        padding: "32px 24px",
+        padding: "8px 24px",
       }}
     >
       <div className="flex items-center justify-between max-w-[1100px] mx-auto">
-        <ClyptLogo size="sm" />
+        <ClyptLogo size="lg" />
         <div className="flex items-center gap-6 font-sans" style={{ fontSize: 13 }}>
           <a
             href="#"
@@ -32,7 +32,7 @@ const Footer = () => {
           >
             Contact
           </a>
-          <span style={{ color: "rgba(255,255,255,0.3)" }}>© 2025 Clypt</span>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>© 2026 Clypt</span>
         </div>
       </div>
     </footer>

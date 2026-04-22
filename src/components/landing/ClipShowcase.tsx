@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import ShaderBackground from "./ShaderBackground";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -144,8 +145,13 @@ const ClipShowcase = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   return (
-    <section id="features" style={{ padding: "100px 24px" }}>
-      <div className="text-center" style={{ marginBottom: 56 }}>
+    <section
+      id="features"
+      style={{ padding: "100px 24px", position: "relative", isolation: "isolate" }}
+      data-cursor-bg="amber"
+    >
+      <ShaderBackground variant="showcase" intensity="normal" className="shader-layer" />
+      <div className="text-center content-layer" style={{ marginBottom: 56 }}>
         <motion.h2
           className="font-heading font-bold"
           style={{ fontSize: 42, color: "#fff" }}
@@ -174,7 +180,7 @@ const ClipShowcase = () => {
 
       {/* Card fan */}
       <div
-        className="flex justify-center items-center gap-4 mx-auto"
+        className="flex justify-center items-center gap-4 mx-auto content-layer"
         style={{ perspective: "1200px", perspectiveOrigin: "50% 60%", maxWidth: 1000 }}
         onMouseLeave={() => setHoveredCard(null)}
       >
@@ -288,7 +294,10 @@ const ClipShowcase = () => {
       </div>
 
       {/* Stats row */}
-      <div className="flex justify-center items-center mx-auto" style={{ gap: 80, marginTop: 80 }}>
+      <div
+        className="flex justify-center items-center mx-auto content-layer"
+        style={{ gap: 80, marginTop: 80 }}
+      >
         <AnimatedCounter
           target={2400}
           suffix="K+"

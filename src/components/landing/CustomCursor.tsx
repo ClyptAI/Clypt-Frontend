@@ -3,10 +3,25 @@ import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Play } from "lucide-react";
 
 type CursorState = "default" | "pointer" | "play" | "text" | "clicking";
+type CursorTone = "violet" | "cyan" | "amber";
+
+const TONE_COLOR: Record<CursorTone, string> = {
+  violet: "#A78BFA",
+  cyan: "#22D3EE",
+  amber: "#FBB249",
+};
+
+/** Pick a contrasting accent for the local background tone. */
+const contrastFor = (tone: CursorTone): CursorTone => {
+  if (tone === "violet") return "cyan";
+  if (tone === "cyan") return "violet";
+  return "violet"; // amber → violet
+};
 
 const CustomCursor = () => {
   const [cursorState, setCursorState] = useState<CursorState>("default");
   const [isClicking, setIsClicking] = useState(false);
+  const [tone, setTone] = useState<CursorTone>("cyan");
 
   // Dot position — direct, no lag
   const dotX = useMotionValue(0);
@@ -32,6 +47,11 @@ const CustomCursor = () => {
     } else {
       setCursorState("default");
     }
+
+    // Walk up looking for a section that declares its dominant tone.
+    const toneEl = target.closest("[data-cursor-bg]");
+    const localTone = (toneEl?.getAttribute("data-cursor-bg") as CursorTone) || "violet";
+    setTone(contrastFor(localTone));
   }, []);
 
   const handleMouseDown = useCallback(() => setIsClicking(true), []);
@@ -55,8 +75,11 @@ const CustomCursor = () => {
   // Ring size/style per state
   const ringSize = active === "clicking" ? 24 : active === "pointer" ? 48 : active === "play" ? 56 : active === "text" ? 4 : 32;
   const ringOpacity = active === "text" ? 0.4 : active === "default" ? 0.6 : 1;
-  const ringBg = active === "pointer" ? "var(--color-violet-muted)" : "transparent";
-  const ringBorder = "1.5px solid var(--color-violet)";
+  // White on difference blend = inverts the background color underneath,
+  // guaranteeing contrast against violet, amber, dark, or light areas.
+  const accent = TONE_COLOR[tone];
+  const ringBg = active === "pointer" ? `${accent}40` : "transparent";
+  const ringBorder = `1.5px solid ${accent}`;
 
   // Dot style per state
   const dotW = active === "text" ? 2 : active === "play" ? 0 : active === "pointer" ? 4 : 6;
@@ -76,15 +99,15 @@ const CustomCursor = () => {
           y: dotY,
           pointerEvents: "none",
           zIndex: 9999,
-          mixBlendMode: "difference",
         }}
       >
         <motion.div
           animate={{ width: dotW, height: dotH, borderRadius: dotRadius, opacity: dotOpacity }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           style={{
-            background: "var(--color-violet)",
+            background: accent,
             transform: "translate(-50%, -50%)",
+            transition: "background 0.25s ease",
           }}
         />
       </motion.div>
@@ -116,6 +139,7 @@ const CustomCursor = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            transition: "border-color 0.25s ease",
           }}
         >
           {active === "play" && (
@@ -124,7 +148,7 @@ const CustomCursor = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.15 }}
             >
-              <Play size={16} color="var(--color-violet)" fill="var(--color-violet)" />
+              <Play size={16} color={accent} fill={accent} />
             </motion.div>
           )}
         </motion.div>

@@ -12,13 +12,13 @@ const bars = Array.from({ length: 300 }, (_, i) => {
   let opacity: number;
   if (isBlue) {
     color = "#60A5FA";
-    opacity = tall ? 0.38 : 0.25;
+    opacity = tall ? 0.7 : 0.5;
   } else if (isAmber) {
     color = "#FBB249";
-    opacity = tall ? 0.38 : 0.3;
+    opacity = tall ? 0.7 : 0.55;
   } else {
     color = "#A78BFA";
-    opacity = tall ? 0.45 : 0.35;
+    opacity = tall ? 0.85 : 0.65;
   }
 
   const wh = 0.2 + Math.random() * 0.9;
@@ -71,6 +71,7 @@ const WaveformBand = () => (
             height: b.height,
             backgroundColor: b.color,
             opacity: b.opacity,
+            boxShadow: `0 0 6px ${b.color}, 0 0 12px ${b.color}55`,
             ["--wh" as any]: b.wh,
             animation: `waveBar ${b.dur}s ease-in-out infinite`,
             animationDelay: `${-(b.i * 0.022)}s`,

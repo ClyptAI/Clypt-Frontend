@@ -1,0 +1,371 @@
+import { useEffect, useState, type CSSProperties } from "react";
+import {
+  MeshGradient,
+  GrainGradient,
+  Warp,
+  GodRays,
+  PulsingBorder,
+  DotGrid,
+  NeuroNoise,
+  Spiral,
+} from "@paper-design/shaders-react";
+
+/**
+ * Variant library — every variant echoes the section's existing accent.
+ * Palettes pull from Clypt's index.css token values:
+ *   violet  #A78BFA   amber  #FBB249   cyan  #22D3EE   bg  #0A0909
+ */
+export type ShaderVariant =
+  | "hero"
+  | "auth"
+  | "how-it-works"
+  | "pipeline-cool"
+  | "pipeline-warm"
+  | "showcase"
+  | "try-it"
+  | "onboard-aurora"
+  | "onboard-analyzing"
+  | "onboard-ready";
+
+export type ShaderIntensity = "subtle" | "normal" | "bold";
+
+interface ShaderBackgroundProps {
+  variant?: ShaderVariant;
+  intensity?: ShaderIntensity;
+  className?: string;
+  /** Inline style overrides (positioning, opacity, zIndex). */
+  style?: CSSProperties;
+}
+
+const BG = "#0A0909";
+const VIOLET = "#A78BFA";
+const VIOLET_DEEP = "#241452";
+const VIOLET_DIM = "#1a1035";
+const AMBER = "#FBB249";
+const CYAN = "#22D3EE";
+const SKY = "#38BDF8";
+
+const intensityMap: Record<ShaderIntensity, number> = {
+  subtle: 0.55,
+  normal: 1,
+  bold: 1.35,
+};
+
+/**
+ * Animated Paper Design shader background. Sits behind content
+ * (pointer-events: none) and falls back to a static gradient
+ * when prefers-reduced-motion is on.
+ */
+const ShaderBackground = ({
+  variant = "hero",
+  intensity = "normal",
+  className,
+  style,
+}: ShaderBackgroundProps) => {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+
+  const opacityScale = intensityMap[intensity];
+
+  const baseStyle: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    pointerEvents: "none",
+    overflow: "hidden",
+    ...style,
+  };
+
+  const fillStyle: CSSProperties = { width: "100%", height: "100%" };
+
+  // ── Reduced-motion static fallbacks (one per variant family) ──
+  if (reduced) {
+    const staticBg = staticFallback(variant);
+    return (
+      <div
+        aria-hidden
+        className={className}
+        style={{ ...baseStyle, background: staticBg, opacity: opacityScale }}
+      />
+    );
+  }
+
+  // ── Variant render ──
+  switch (variant) {
+    case "auth": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            distortion={0.9}
+            swirl={0.6}
+            speed={0.35}
+            style={fillStyle}
+          />
+          <Overlay
+            background="linear-gradient(180deg, rgba(10,9,9,0.3) 0%, rgba(10,9,9,0.45) 100%)"
+          />
+        </div>
+      );
+    }
+
+    case "how-it-works": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <Warp
+            colors={[BG, VIOLET_DIM, VIOLET, BG]}
+            proportion={0.45}
+            softness={0.95}
+            distortion={0.55}
+            swirl={0.35}
+            swirlIterations={6}
+            shapeScale={0.5}
+            speed={0.18}
+            style={{ ...fillStyle, opacity: 0.55 * opacityScale }}
+          />
+          <Overlay background="radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(10,9,9,0.65) 100%)" />
+        </div>
+      );
+    }
+
+    case "pipeline-cool": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DIM, VIOLET, CYAN, BG]}
+            distortion={0.7}
+            swirl={0.4}
+            speed={0.18}
+            style={{ ...fillStyle, opacity: 0.6 * opacityScale }}
+          />
+          <Overlay background="linear-gradient(180deg, #0A0909 0%, transparent 18%, transparent 82%, #0A0909 100%)" />
+          <Overlay background="rgba(10,9,9,0.45)" />
+        </div>
+      );
+    }
+
+    case "pipeline-warm": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DIM, VIOLET, AMBER, BG]}
+            distortion={0.75}
+            swirl={0.45}
+            speed={0.2}
+            style={{ ...fillStyle, opacity: 0.55 * opacityScale }}
+          />
+          <Overlay background="linear-gradient(180deg, #0A0909 0%, transparent 18%, transparent 82%, #0A0909 100%)" />
+          <Overlay background="rgba(10,9,9,0.5)" />
+        </div>
+      );
+    }
+
+    case "showcase": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <GodRays
+            colorBack={BG}
+            colorBloom={VIOLET}
+            colors={[VIOLET, AMBER, "#7C3AED"]}
+            bloom={0.45}
+            intensity={0.35}
+            density={0.55}
+            spotty={0.35}
+            midSize={0.45}
+            midIntensity={0.4}
+            offsetY={-0.4}
+            speed={0.3}
+            style={{ ...fillStyle, opacity: 0.7 * opacityScale }}
+          />
+          <GrainGradient
+            colors={[VIOLET, AMBER]}
+            colorBack="#00000000"
+            softness={0.9}
+            intensity={0.3}
+            noise={0.5}
+            speed={0.15}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              mixBlendMode: "screen",
+              opacity: 0.4 * opacityScale,
+            }}
+          />
+          <Overlay background="radial-gradient(ellipse 80% 60% at 50% 40%, transparent 20%, rgba(10,9,9,0.7) 90%)" />
+        </div>
+      );
+    }
+
+    case "try-it": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <DotGrid
+            colorBack="#00000000"
+            colorFill={VIOLET}
+            colorStroke="#00000000"
+            size={2}
+            gapX={28}
+            gapY={28}
+            strokeWidth={0}
+            sizeRange={0.4}
+            opacityRange={0.7}
+            shape="circle"
+            style={{ ...fillStyle, opacity: 0.25 * opacityScale }}
+          />
+          <PulsingBorder
+            colorBack="#00000000"
+            colors={[VIOLET, "#7C3AED", CYAN]}
+            roundness={0.45}
+            thickness={0.06}
+            softness={0.9}
+            intensity={0.5}
+            bloom={0.6}
+            spots={3}
+            spotSize={0.35}
+            pulse={0.45}
+            smoke={0.35}
+            smokeSize={0.4}
+            marginLeft={0.05}
+            marginRight={0.05}
+            marginTop={0.05}
+            marginBottom={0.05}
+            speed={0.4}
+            style={{ ...fillStyle, opacity: 0.85 * opacityScale }}
+          />
+          <Overlay background="radial-gradient(ellipse 70% 70% at 50% 50%, transparent 35%, rgba(10,9,9,0.55) 100%)" />
+        </div>
+      );
+    }
+
+    case "onboard-aurora": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            distortion={0.85}
+            swirl={0.5}
+            speed={0.22}
+            style={fillStyle}
+          />
+          <Overlay background="linear-gradient(180deg, rgba(10,9,9,0.35) 0%, rgba(10,9,9,0.5) 100%)" />
+        </div>
+      );
+    }
+
+    case "onboard-analyzing": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            distortion={0.85}
+            swirl={0.55}
+            speed={0.4}
+            style={fillStyle}
+          />
+          <Overlay background="radial-gradient(ellipse 80% 65% at 50% 50%, transparent 25%, rgba(10,9,9,0.55) 90%)" />
+        </div>
+      );
+    }
+
+    case "onboard-ready": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <Spiral
+            colorBack={BG}
+            colorFront="#7C5CD9"
+            density={0.5}
+            distortion={0.35}
+            noiseFrequency={0.3}
+            noise={0.25}
+            softness={0.8}
+            speed={0.35}
+            style={fillStyle}
+          />
+          <Overlay background="linear-gradient(180deg, rgba(10,9,9,0.35) 0%, rgba(10,9,9,0.5) 100%)" />
+        </div>
+      );
+    }
+
+    case "hero":
+    default: {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", SKY, BG]}
+            distortion={0.9}
+            swirl={0.4}
+            speed={0.25}
+            style={fillStyle}
+          />
+          <GrainGradient
+            colors={["#7C5CD9", CYAN]}
+            colorBack="#00000000"
+            softness={0.9}
+            intensity={0.32}
+            noise={0.4}
+            speed={0.2}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              mixBlendMode: "screen",
+              opacity: 0.4 * opacityScale,
+            }}
+          />
+          <Overlay background="radial-gradient(ellipse 90% 70% at 50% 30%, transparent 30%, rgba(10,9,9,0.55) 75%, #0A0909 100%)" />
+        </div>
+      );
+    }
+  }
+};
+
+/** Absolute-positioned legibility / fade overlay. */
+const Overlay = ({ background }: { background: string }) => (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      background,
+      pointerEvents: "none",
+    }}
+  />
+);
+
+function staticFallback(variant: ShaderVariant): string {
+  switch (variant) {
+    case "auth":
+      return "radial-gradient(ellipse at 30% 20%, rgba(167,139,250,0.25) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.18) 0%, transparent 60%), #0A0909";
+    case "how-it-works":
+      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.12) 0%, transparent 65%), #0A0909";
+    case "pipeline-cool":
+      return "radial-gradient(ellipse at 30% 50%, rgba(167,139,250,0.16) 0%, transparent 60%), radial-gradient(ellipse at 75% 50%, rgba(34,211,238,0.12) 0%, transparent 60%), #0A0909";
+    case "pipeline-warm":
+      return "radial-gradient(ellipse at 30% 50%, rgba(167,139,250,0.16) 0%, transparent 60%), radial-gradient(ellipse at 75% 50%, rgba(251,178,73,0.14) 0%, transparent 60%), #0A0909";
+    case "showcase":
+      return "radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.22) 0%, transparent 65%), radial-gradient(ellipse at 50% 100%, rgba(251,178,73,0.14) 0%, transparent 60%), #0A0909";
+    case "try-it":
+      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.22) 0%, transparent 60%), #0A0909";
+    case "onboard-aurora":
+      return "radial-gradient(ellipse at 30% 20%, rgba(167,139,250,0.22) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.16) 0%, transparent 60%), #0A0909";
+    case "onboard-analyzing":
+      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.32) 0%, transparent 60%), #0A0909";
+    case "onboard-ready":
+      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.28) 0%, transparent 55%), radial-gradient(ellipse at 60% 70%, rgba(34,211,238,0.18) 0%, transparent 60%), #0A0909";
+    case "hero":
+    default:
+      return "radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.22) 0%, transparent 65%), radial-gradient(ellipse at 80% 100%, rgba(34,211,238,0.15) 0%, transparent 60%), #0A0909";
+  }
+}
+
+export default ShaderBackground;

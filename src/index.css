@@ -20,6 +20,23 @@
   pointer-events: none;
 }
 
+/* ── Shader / content layering contract ──
+   Any section that hosts a Paper Design shader background should:
+   - Add `position: relative; isolation: isolate;` to the section
+   - Place the shader as the first child with class `shader-layer`
+   - Wrap content blocks with `content-layer` so they sit on top.
+*/
+.shader-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.content-layer {
+  position: relative;
+  z-index: 10;
+}
+
 @layer base {
   :root {
     /* Base surfaces */

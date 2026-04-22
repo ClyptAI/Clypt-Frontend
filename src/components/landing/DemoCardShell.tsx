@@ -12,11 +12,14 @@ export default function DemoCardShell({ label, rightContent, children, className
     <div
       className={className}
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.09)",
+        background: "rgba(14,12,18,0.78)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.12)",
         borderRadius: 20,
         overflow: "hidden",
-        boxShadow: "0 32px 80px rgba(0,0,0,0.5)",
+        boxShadow:
+          "0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
       }}
     >
       {/* macOS-style header bar */}
@@ -27,7 +30,7 @@ export default function DemoCardShell({ label, rightContent, children, className
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 14px",
-          background: "rgba(255,255,255,0.04)",
+          background: "rgba(255,255,255,0.05)",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
         }}
       >
