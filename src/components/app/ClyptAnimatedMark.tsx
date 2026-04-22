@@ -105,7 +105,7 @@ export function ClyptAnimatedMark({
               transition={{
                 delay: staggerDelay,
                 duration: 0.4,
-                ease: BAR_EASE as unknown as number[],
+                ease: BAR_EASE as never,
               }}
             />
           );
@@ -193,7 +193,7 @@ export function ClyptAnimatedMark({
             transition={{
               delay: 0.96,
               duration: 0.6,
-              ease: BRACKET_EASE as unknown as number[],
+              ease: BRACKET_EASE as never,
             }}
           />
           <motion.path
@@ -203,7 +203,7 @@ export function ClyptAnimatedMark({
             transition={{
               delay: 0.96,
               duration: 0.6,
-              ease: BRACKET_EASE as unknown as number[],
+              ease: BRACKET_EASE as never,
             }}
           />
           <motion.path
@@ -213,7 +213,7 @@ export function ClyptAnimatedMark({
             transition={{
               delay: 0.96,
               duration: 0.6,
-              ease: BRACKET_EASE as unknown as number[],
+              ease: BRACKET_EASE as never,
             }}
           />
           <motion.path
@@ -223,7 +223,7 @@ export function ClyptAnimatedMark({
             transition={{
               delay: 0.96,
               duration: 0.6,
-              ease: BRACKET_EASE as unknown as number[],
+              ease: BRACKET_EASE as never,
             }}
           />
         </g>

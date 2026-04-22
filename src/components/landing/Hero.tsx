@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useSpring } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import WaveformBand from "./WaveformBand";
+import ShaderBackground from "./ShaderBackground";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 const entryEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -248,12 +249,16 @@ const Hero = () => {
       ref={heroRef}
       className="relative flex flex-col items-center justify-center overflow-hidden"
       style={{ minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}
+      data-cursor-bg="violet"
     >
+      {/* LAYER 0 — Animated shader background */}
+      <ShaderBackground variant="hero" className="shader-layer" />
+
       {/* LAYER 1 — Subtle grid */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          zIndex: 0,
+          zIndex: 1,
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
           backgroundSize: "32px 32px",
@@ -266,7 +271,7 @@ const Hero = () => {
       <div
         className="absolute pointer-events-none"
         style={{
-          zIndex: 0,
+          zIndex: 1,
           top: -60,
           left: "50%",
           transform: "translateX(-50%)",

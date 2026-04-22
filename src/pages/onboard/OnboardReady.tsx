@@ -25,7 +25,7 @@ const OnboardReady = () => {
   };
 
   return (
-    <OnboardingLayout currentStep={6}>
+    <OnboardingLayout currentStep={6} shaderVariant="onboard-ready">
       <div className="flex flex-col items-center text-center">
         {/* Waveform cut icon */}
         <svg width="40" height="24" viewBox="0 0 40 24" fill="none" className="mb-4">

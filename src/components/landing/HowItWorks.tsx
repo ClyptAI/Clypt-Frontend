@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Layers, GitFork, Network, Search, Users, Film } from "lucide-react";
+import ShaderBackground from "./ShaderBackground";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -16,8 +17,13 @@ const HowItWorks = () => {
   const isAmber = (i: number) => i >= 3;
 
   return (
-    <section id="how-it-works" style={{ padding: "100px 24px" }}>
-      <div className="max-w-[1100px] mx-auto">
+    <section
+      id="how-it-works"
+      style={{ padding: "100px 24px", position: "relative", isolation: "isolate" }}
+      data-cursor-bg="violet"
+    >
+      <ShaderBackground variant="how-it-works" intensity="subtle" className="shader-layer" />
+      <div className="max-w-[1100px] mx-auto content-layer">
         <p
           className="font-sans text-center"
           style={{
@@ -57,11 +63,15 @@ const HowItWorks = () => {
                 key={phase.num}
                 className="relative overflow-hidden transition-all"
                 style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(14,12,18,0.72)",
+                  backdropFilter: "blur(14px)",
+                  WebkitBackdropFilter: "blur(14px)",
+                  border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: 20,
                   padding: 28,
                   cursor: "pointer",
+                  boxShadow:
+                    "0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
                 }}
                 onClick={() => {
                   document.getElementById(phase.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -71,15 +81,22 @@ const HowItWorks = () => {
                   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
                 }}
                 whileHover={{
-                  borderColor: "rgba(167,139,250,0.25)",
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  boxShadow: "0 0 40px -12px rgba(167,139,250,0.15)",
+                  borderColor: "rgba(167,139,250,0.4)",
+                  backgroundColor: "rgba(20,16,28,0.82)",
+                  boxShadow:
+                    "0 24px 60px -20px rgba(0,0,0,0.7), 0 0 40px -12px rgba(167,139,250,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
                 }}
               >
                 {/* Ghost number */}
                 <span
                   className="absolute font-mono font-bold pointer-events-none"
-                  style={{ top: 16, right: 20, fontSize: 64, color: "rgba(255,255,255,0.04)" }}
+                  style={{
+                    top: 12,
+                    right: 18,
+                    fontSize: 72,
+                    lineHeight: 1,
+                    color: "rgba(255,255,255,0.12)",
+                  }}
                 >
                   {phase.num}
                 </span>

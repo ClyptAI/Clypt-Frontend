@@ -62,8 +62,8 @@ export default function RunEmbeds() {
         runId={runId}
         runName={runDetail?.display_name ?? "Run"}
         videoUrl={runDetail?.source_url ?? ""}
-        currentPhase={runDetail?.current_phase ?? 2}
-        completedPhases={runDetail?.completed_phases ?? 0}
+        currentPhase={(runDetail as any)?.current_phase ?? 2}
+        completedPhases={(runDetail as any)?.completed_phases ?? 0}
       />
 
       {/* Main area */}
@@ -121,7 +121,7 @@ export default function RunEmbeds() {
                 gap: 5,
               }}
             >
-              {LEGEND_TYPES.filter((l) => typesPresent.has(l.type)).map((l) => (
+              {LEGEND_TYPES.filter((l) => typesPresent.has(l.type as any)).map((l) => (
                 <div key={l.type} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span
                     style={{

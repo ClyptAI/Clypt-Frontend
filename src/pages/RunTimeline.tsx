@@ -805,7 +805,7 @@ export default function RunTimeline() {
                   <span className="font-heading font-medium text-[12px] uppercase tracking-wide whitespace-nowrap" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
                 </div>
                 <WaveformLane
-                  turns={speaker.turns}
+                  turns={speaker.turns as any}
                   color={spColor}
                   speakerId={speaker.id}
                   totalDuration={videoDuration}
@@ -814,7 +814,7 @@ export default function RunTimeline() {
                   viewportWidth={viewportWidth}
                   totalWidth={totalWidth}
                   laneH={laneH}
-                  onClickTurn={(turn) => selectTurn(turn as Turn, speaker.name)}
+                  onClickTurn={(turn) => selectTurn(turn as unknown as Turn, speaker.name)}
                 />
               </div>
             );
@@ -825,7 +825,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Minor Speakers</span>
               </div>
               <WaveformLane
-                turns={minorSpeakerObj.turns}
+                turns={minorSpeakerObj.turns as any}
                 color="#71717A"
                 speakerId={99}
                 totalDuration={videoDuration}
@@ -836,7 +836,7 @@ export default function RunTimeline() {
                 laneH={laneH}
                 onClickTurn={(turn) => {
                   const sp = minorSpeakers.find(s => s.turns.some(t => t.id === turn.id));
-                  selectTurn(turn as Turn, sp?.name ?? "Minor Speakers");
+                  selectTurn(turn as unknown as Turn, sp?.name ?? "Minor Speakers");
                 }}
               />
             </div>

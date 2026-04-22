@@ -1,18 +1,21 @@
 import { ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import ShaderBackground from "./ShaderBackground";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const TryItBar = () => {
   return (
     <motion.section
-      style={{ padding: "100px 24px" }}
+      style={{ padding: "56px 24px", position: "relative", isolation: "isolate" }}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, ease }}
+      data-cursor-bg="violet"
     >
-      <div className="max-w-[600px] mx-auto text-center">
+      <ShaderBackground variant="try-it" intensity="subtle" className="shader-layer" />
+      <div className="max-w-[600px] mx-auto text-center content-layer">
         <motion.h2
           className="font-heading font-bold"
           style={{ fontSize: 30, color: "#fff", marginBottom: 8 }}
