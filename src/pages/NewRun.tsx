@@ -163,7 +163,7 @@ export default function NewRun() {
               setRunName(e.target.value);
               setRunNameTouched(true);
             }}
-            placeholder="e.g. Lex ep. 412 — Sam Altman"
+            placeholder="e.g. Joe Rogan × Flagrant"
             className="w-full h-[40px] px-[14px] rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[15px] font-sans text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-violet)] focus:outline-none transition-colors"
           />
           <p className="font-sans text-[12px] text-[var(--color-text-muted)] mt-[6px]">

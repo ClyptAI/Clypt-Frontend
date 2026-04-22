@@ -28,23 +28,27 @@ It is designed to make Clypt’s reasoning visible instead of hiding everything 
 
 ### Landing experience
 
-The landing page introduces the product, the knowledge-graph concept, and the creator workflow.
+The landing page introduces the product, the knowledge-graph concept, and the creator workflow in a more cinematic, demo-forward way.
 
-![Clypt landing page](docs/readme-assets/frontend-landing.png)
+![Clypt landing page](docs/readme-assets/frontend-landing-2026-04.png)
 
-### Search and graph interfaces
+### Signup experience
 
-The app exposes multiple ways to inspect a run: graph structure, embedding space, semantic search, and candidate detail.
+The auth surface carries the same visual system into the first-run experience instead of dropping into a generic form page.
 
-![Clypt embedding search view](docs/readme-assets/frontend-search.png)
+![Clypt signup page](docs/readme-assets/frontend-signup-2026-04.png)
 
-![Clypt clip candidate review view](docs/readme-assets/frontend-clips.png)
+### Onboarding flow
 
-### Pipeline overview
+The onboarding sequence walks creators from account setup through workspace readiness in a guided, visual flow.
 
-The overview page gives creators a quick read on where a run is in the six-phase pipeline and what artifacts already exist.
+![Clypt onboarding flow](docs/readme-assets/frontend-onboarding.gif)
 
-![Clypt run overview](docs/readme-assets/frontend-overview.png)
+### Run workspace tour
+
+The app workspace covers the full run lifecycle: overview, timeline, Cortex graph, semantic search, clip candidates, grounding, and render.
+
+![Clypt run workspace tour](docs/readme-assets/frontend-workspace.gif)
 
 ## What Makes This UI Different
 

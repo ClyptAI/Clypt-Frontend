@@ -10,6 +10,10 @@ import { useRunDetail } from "@/hooks/api/useRuns";
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 
+const SEARCH_BAR_SIDE_PADDING = 48;
+const SEARCH_BAR_MAX_WIDTH = 600;
+const SEARCH_BAR_CONTROL_GAP = 12;
+
 const LEGEND_TYPES: Array<{ type: string; color: string }> = [
   { type: "claim",             color: "#A78BFA" },
   { type: "anecdote",          color: "#FBB249" },
@@ -194,12 +198,16 @@ export default function RunSearch() {
                 style={{
                   position: "absolute",
                   top: 20,
-                  right: selectedNode ? 364 : 16,
+                  right: selectedNode ? "auto" : 16,
+                  left: selectedNode
+                    ? `calc(50% - min(${SEARCH_BAR_MAX_WIDTH / 2}px, calc((100vw - ${SEARCH_BAR_SIDE_PADDING}px) / 2)) - ${SEARCH_BAR_CONTROL_GAP}px)`
+                    : "auto",
+                  transform: selectedNode ? "translateX(-100%)" : "none",
                   display: "flex",
                   gap: 6,
                   alignItems: "center",
                   pointerEvents: "auto",
-                  transition: "right 200ms ease-in-out",
+                  transition: "right 200ms ease-in-out, left 200ms ease-in-out, transform 200ms ease-in-out",
                 }}
               >
                 {/* Semantic / Multimodal pill */}

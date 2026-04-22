@@ -73,7 +73,7 @@ interface CropPosition { x_percent: number; y_percent: number; height_percent: n
    ═══════════════════════════════════════════════════════════ */
 
 const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
-const SPEAKER_NAMES: Record<number, string> = { 0: "Speaker_00", 1: "Speaker_01", 2: "Speaker_02" };
+const SPEAKER_NAMES: Record<number, string> = { 0: "Joe", 1: "Andrew", 2: "Akaash" };
 const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
 
 const SHOTS: ShotData[] = [
@@ -82,28 +82,28 @@ const SHOTS: ShotData[] = [
     tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100 }, { id: "tracklet_002", letter: "B", durationPct: 100 }],
     turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 33, widthPct: 67 }],
     speakers: [0, 1],
-    transcript: ["I", "think", "we're", "at", "an", "inflection", "point", "with", "AI", "that", "most", "people", "don't", "fully", "appreciate", "yet"],
+    transcript: ["The", "bear", "took", "down", "a", "fucking", "moose"],
   },
   {
     idx: 2, timeStart: "0:51.3", timeEnd: "1:04.1", duration: "12.8s", startMs: 51300, endMs: 64100,
     tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 100 }],
     turns: [{ speakerIdx: 1, startPct: 0, widthPct: 100 }],
     speakers: [1],
-    transcript: ["The", "capabilities", "are", "advancing", "faster", "than", "our", "institutions", "can", "adapt", "to", "them"],
+    transcript: ["And", "you're", "gonna", "have", "a", "little", "cloth", "house", "that", "you", "sleep", "in"],
   },
   {
-    idx: 3, timeStart: "1:04.1", timeEnd: "1:11.8", duration: "7.7s", startMs: 64100, endMs: 71800,
+    idx: 3, timeStart: "1:40.3", timeEnd: "1:51.8", duration: "11.5s", startMs: 100300, endMs: 111800,
     tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
     turns: [{ speakerIdx: 0, startPct: 0, widthPct: 65 }, { speakerIdx: 1, startPct: 39, widthPct: 61 }],
     speakers: [0, 1],
-    transcript: ["Let", "me", "show", "you", "what", "happens", "when", "you", "ask", "the", "model"],
+    transcript: ["No", "that's", "a", "polar", "bear", "He", "smells", "meat"],
   },
   {
-    idx: 4, timeStart: "1:11.8", timeEnd: "1:18.1", duration: "6.3s", startMs: 71800, endMs: 78100,
+    idx: 4, timeStart: "1:51.8", timeEnd: "2:05.5", duration: "13.7s", startMs: 111800, endMs: 125500,
     tracklets: [{ id: "tracklet_001", letter: "A", durationPct: 50 }, { id: "tracklet_002", letter: "B", durationPct: 50 }],
     turns: [{ speakerIdx: 0, startPct: 0, widthPct: 100 }, { speakerIdx: 1, startPct: 19, widthPct: 81 }],
     speakers: [0, 1],
-    transcript: ["It", "fails", "consistently", "and", "not", "in", "a", "random", "way"],
+    transcript: ["He's", "trying", "to", "bite", "that", "box", "to", "eat", "that", "man"],
   },
 ];
 
