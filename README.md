@@ -216,9 +216,3 @@ If you want the implementation details, start here:
 - current UX scope covers the six-phase creator workflow
 - default developer experience is mock-first
 - app stack is production-oriented even when backed by mocks
-
-## For Maintainers
-
-This README is intentionally public-facing.
-
-Maintainer and agent workflow rules live in [AGENTS.md](AGENTS.md).
