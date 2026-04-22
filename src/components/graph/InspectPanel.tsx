@@ -52,50 +52,50 @@ const MOCK_ENRICHMENT: Record<string, {
   clipCandidates?: { id: string; rank: number; score: number }[];
 }> = {
   "001": {
-    transcript: "I think we're at an inflection point with AI that most people don't fully appreciate yet. The capabilities are advancing faster than our institutions can adapt.",
+    transcript: "Everyone should have a fear of grizzly bears. If there was only one grizzly bear and it only existed in a movie, you'd still think it was one of the scariest things ever imagined.",
     sourceTurns: ["t_001", "t_002"],
     emotions: [
-      { label: "confident", score: 0.82, color: "#4ADE80" },
-      { label: "excited", score: 0.41, color: "#FBB249" },
+      { label: "confident", score: 0.84, color: "#4ADE80" },
+      { label: "fearful", score: 0.46, color: "#FBB249" },
     ],
     signalTags: ["trend"],
   },
   "003": {
-    transcript: "Let me show you what happens when you ask the model to do basic arithmetic with large numbers. It fails consistently, and not in a random way.",
-    sourceTurns: ["t_005", "t_006", "t_007"],
+    transcript: "This is him just being curious. No, that's a polar bear. He smells meat. He's trying to get in there and eat that dude.",
+    sourceTurns: ["t_025", "t_028", "t_033"],
     emotions: [
-      { label: "neutral", score: 0.65, color: "#71717A" },
-      { label: "amused", score: 0.22, color: "#FBB249" },
+      { label: "tense", score: 0.67, color: "#71717A" },
+      { label: "amused", score: 0.25, color: "#FBB249" },
     ],
     signalTags: ["comment"],
   },
   "007": {
-    transcript: "So I set up this experiment — I told the model it was wrong when it was actually right, and watched what happened. The guest's face when I revealed the results was priceless.",
-    sourceTurns: ["t_014", "t_015", "t_016"],
+    transcript: "They came back to the elk, noticed bear sign, ignored it, sat down for lunch, and then heard the noise that meant the whole situation had changed.",
+    sourceTurns: ["t_060", "t_061", "t_063"],
     emotions: [
-      { label: "surprised", score: 0.88, color: "#22D3EE" },
-      { label: "amused", score: 0.72, color: "#FBB249" },
+      { label: "tense", score: 0.81, color: "#22D3EE" },
+      { label: "focused", score: 0.59, color: "#FBB249" },
     ],
-    audioEvents: [{ label: "laughter", time: "4:02 → 4:08" }],
+    audioEvents: [{ label: "shouting", time: "4:44 → 4:52" }],
     signalTags: ["trend", "retention"],
     clipCandidates: [{ id: "clip_003", rank: 1, score: 9.2 }],
   },
   "008": {
-    transcript: "No way. No way! You're telling me it just… agreed? That's insane.",
-    sourceTurns: ["t_017"],
+    transcript: "There was this giant beast running through the camp. One guy wound up on top of the bear as it sprinted downhill before falling off.",
+    sourceTurns: ["t_063", "t_065"],
     emotions: [
-      { label: "surprised", score: 0.94, color: "#22D3EE" },
-      { label: "happy", score: 0.68, color: "#FBB249" },
+      { label: "surprised", score: 0.92, color: "#22D3EE" },
+      { label: "fearful", score: 0.71, color: "#FBB249" },
     ],
-    audioEvents: [{ label: "laughter", time: "4:28 → 4:35" }, { label: "applause", time: "4:40 → 4:44" }],
+    audioEvents: [{ label: "laughter", time: "5:09 → 5:10" }, { label: "shouting", time: "4:50 → 4:58" }],
     signalTags: ["comment", "retention"],
     clipCandidates: [{ id: "clip_003", rank: 1, score: 9.2 }],
   },
   "009": {
-    transcript: "That was the whole point. I wanted to see if it would hold its ground or capitulate. And it capitulated immediately.",
-    sourceTurns: ["t_018", "t_019"],
+    transcript: "The bear had claimed the elk. At that point the humans were just trying to leave the situation alive.",
+    sourceTurns: ["t_067", "t_071"],
     emotions: [
-      { label: "confident", score: 0.76, color: "#4ADE80" },
+      { label: "grim", score: 0.74, color: "#4ADE80" },
     ],
     signalTags: ["trend"],
   },
@@ -242,7 +242,7 @@ function NodeInspect({ node, allEdges, onClose }: { node: Node; allEdges: Edge[]
                     <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--color-text-primary)" }}>Trend</span>
                   </div>
                   <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)" }}>
-                    Query: "AI safety debate"<br />Relevance: 0.91
+                    Query: "polar bear attack"<br />Relevance: 0.91
                   </div>
                 </div>
               )}
@@ -255,12 +255,12 @@ function NodeInspect({ node, allEdges, onClose }: { node: Node; allEdges: Edge[]
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                       <span style={{ color: "var(--color-comment)" }}>▸</span>
-                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--color-text-primary)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>This part blew my mind, the way he just demonstrated the failure live</span>
+                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--color-text-primary)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>The "he smells meat" line instantly sold me on never getting near a polar bear.</span>
                       <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>2.4k</span>
                     </div>
                     <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                       <span style={{ color: "var(--color-comment)" }}>▸</span>
-                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--color-text-primary)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>I keep coming back to this segment, it's the best part of the episode</span>
+                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "var(--color-text-primary)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>The camp story is the clip I keep replaying. It escalates so fast.</span>
                       <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>1.1k</span>
                     </div>
                     <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-violet)", cursor: "pointer" }}>Show all →</span>
@@ -274,7 +274,7 @@ function NodeInspect({ node, allEdges, onClose }: { node: Node; allEdges: Edge[]
                     <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--color-text-primary)" }}>Retention</span>
                   </div>
                   <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)", marginBottom: 6 }}>
-                    Peak at 4:02.3 · 94th percentile
+                    Peak at 5:09.3 · 94th percentile
                   </div>
                   <svg width={200} height={36} style={{ display: "block" }}>
                     <path

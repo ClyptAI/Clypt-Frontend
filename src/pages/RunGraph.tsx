@@ -39,23 +39,23 @@ const edgeTypes = {
 // Signal tags mock
 const SIGNAL_TAGS: Record<string, ("trend" | "comment" | "retention")[]> = {
   "001": ["trend"],
-  "003": ["comment"],
+  "004": ["comment"],
   "007": ["trend", "retention"],
   "008": ["comment", "retention"],
   "009": ["trend"],
 };
 
 const RAW_NODES: Node[] = [
-  { id: "001", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "claim", timeStart: "0:00", timeEnd: "0:28", summary: "Host opens with a direct assertion about AI capabilities.", signalTags: SIGNAL_TAGS["001"] } },
-  { id: "002", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "explanation", timeStart: "0:28", timeEnd: "1:05", summary: "Breaks down the technical mechanism behind the claim." } },
-  { id: "003", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "example", timeStart: "1:05", timeEnd: "1:42", summary: "Gives a concrete demo of the model failing in a real scenario.", signalTags: SIGNAL_TAGS["003"] } },
-  { id: "004", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "challenge_exchange", timeStart: "1:42", timeEnd: "2:18", summary: "Guest pushes back — argues the failure is an edge case." } },
-  { id: "005", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "qa_exchange", timeStart: "2:18", timeEnd: "2:55", summary: "Host asks what would change the guest's mind." } },
-  { id: "006", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "anecdote", timeStart: "2:55", timeEnd: "3:40", summary: "Guest shares a personal story about the same model working." } },
-  { id: "007", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "setup_payoff", timeStart: "3:40", timeEnd: "4:22", summary: "Host lays out the failed experiment, guest reacts in disbelief.", flags: ["high_resonance_candidate"], signalTags: SIGNAL_TAGS["007"] } },
-  { id: "008", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "reaction_beat", timeStart: "4:22", timeEnd: "4:48", summary: "Guest's 'no way' moment — laughter, genuine surprise.", signalTags: SIGNAL_TAGS["008"] } },
-  { id: "009", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "reveal", timeStart: "4:48", timeEnd: "5:20", summary: "Host reveals the result was intentional — explains why.", signalTags: SIGNAL_TAGS["009"] } },
-  { id: "010", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "transition", timeStart: "5:20", timeEnd: "5:45", summary: "Conversation moves to the next topic." } },
+  { id: "001", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "claim", timeStart: "0:00", timeEnd: "0:24", summary: "Joe opens with the core thesis: every sane person should fear grizzly bears.", signalTags: SIGNAL_TAGS["001"] } },
+  { id: "002", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "explanation", timeStart: "0:24", timeEnd: "0:53", summary: "He frames a grizzly as a giant unfenced predator and backs it up with the moose story." } },
+  { id: "003", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "challenge_exchange", timeStart: "1:36", timeEnd: "1:42", summary: "The guest reads the polar bear footage as curiosity instead of predation." } },
+  { id: "004", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "example", timeStart: "1:42", timeEnd: "2:05", summary: "Joe rejects that instantly: the polar bear smells meat and is trying to get into the box.", signalTags: SIGNAL_TAGS["004"] } },
+  { id: "005", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "qa_exchange", timeStart: "2:25", timeEnd: "2:37", summary: "Someone asks the obvious follow-up: what do you even do in that situation?" } },
+  { id: "006", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "anecdote", timeStart: "2:37", timeEnd: "3:27", summary: "Joe tells the ice-raft story where a polar bear closes the gap floe by floe before taking a man." } },
+  { id: "007", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "setup_payoff", timeStart: "4:18", timeEnd: "4:44", summary: "The Steve Rinella elk-camp story starts with the warning sign everybody ignored: fresh bear sign near the carcass.", flags: ["high_resonance_candidate"], signalTags: SIGNAL_TAGS["007"] } },
+  { id: "008", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "reaction_beat", timeStart: "4:44", timeEnd: "5:09", summary: "The camp erupts when the giant bear tears through, and one hunter nearly ends up riding it downhill.", signalTags: SIGNAL_TAGS["008"] } },
+  { id: "009", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "reveal", timeStart: "5:09", timeEnd: "5:39", summary: "The payoff is simple and brutal: the bear has claimed the elk, and the humans are lucky to keep walking.", signalTags: SIGNAL_TAGS["009"] } },
+  { id: "010", type: "semantic", position: { x: 0, y: 0 }, data: { node_type: "transition", timeStart: "12:19", timeEnd: "12:40", summary: "The episode pivots from bears to a broader fear ranking: sharks, alligators, and anything built to kill." } },
 ];
 
 const RAW_EDGES: Edge[] = [
@@ -293,8 +293,8 @@ function GraphInner() {
     <div className="flex flex-col" style={{ height: "100vh" }}>
       <RunContextBar
         runId={id ?? "demo"}
-        runName="Lex ep. 412 — Sam Altman"
-        videoUrl="youtube.com/watch?v=abc123"
+        runName="Joe Rogan × Flagrant"
+        videoUrl="Joe Rogan × Flagrant (demo)"
         currentPhase={3}
         completedPhases={2}
       />

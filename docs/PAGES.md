@@ -87,7 +87,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 ### Run Overview — `RunOverview.tsx`
 - **Route:** `/runs/:id`
 - **Features:** Phase status cards (1–6) with status indicators, elapsed time, artifacts
-- **Mock data:** `MOCK_PHASES` array, fallback run name "Lex ep. 412" and URL
+- **Mock data:** `MOCK_PHASES` array, fallback run name "Joe Rogan × Flagrant" and URL
 - **Hooks:** `useRunDetail`, `useRunStore`, `useRunSSE` (real-time phase updates)
 
 ### Run Timeline — `RunTimeline.tsx`

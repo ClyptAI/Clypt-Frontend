@@ -235,7 +235,7 @@ export default function RunOverview() {
 
   const runName = isLoading
     ? "Loading…"
-    : (runDetail?.display_name ?? "Lex ep. 412 — Sam Altman");
+    : (runDetail?.display_name ?? "Joe Rogan × Flagrant");
 
   const videoUrl = runDetail?.source_url
     ? formatSourceUrl(runDetail.source_url)

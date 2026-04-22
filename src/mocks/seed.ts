@@ -67,7 +67,7 @@ export function buildPhaseStatus(
   return phases
 }
 
-// ─── Demo run: "Lex ep. 412 — Sam Altman" (all phases complete) ──────────────
+// ─── Demo run: "Joe Rogan × Flagrant" (all phases complete) ──────────────────
 
 const DEMO_RUN_ID = 'demo'
 
@@ -92,10 +92,10 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_001',
     node_ids: ['node_007', 'node_008', 'node_009'],
-    start_ms: ts(0, 42),
-    end_ms: ts(1, 18),
+    start_ms: ts(0, 38),
+    end_ms: ts(1, 4),
     score: 8.4,
-    rationale: 'Strong hook-to-payoff arc with audience laughter at the peak.',
+    rationale: 'The moose-back story plus the cloth-tent punchline creates an instant bear-country hook.',
     source_prompt_ids: ['meta_prompt_1'],
     seed_node_id: 'node_007',
     subgraph_id: 'sg_014',
@@ -112,11 +112,11 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_002',
     node_ids: ['node_012', 'node_013'],
-    start_ms: ts(3, 22),
-    end_ms: ts(4, 5),
+    start_ms: ts(1, 40),
+    end_ms: ts(2, 5),
     score: 8.1,
     rationale:
-      'Direct answer to query with a surprising reveal that creates a natural clip boundary.',
+      'The polar-bear-box exchange has a clean setup, rebuttal, and quote-ready payoff.',
     source_prompt_ids: ['comment_cluster'],
     seed_node_id: 'node_012',
     subgraph_id: 'sg_018',
@@ -133,10 +133,10 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_003',
     node_ids: ['node_004', 'node_005'],
-    start_ms: ts(1, 50),
-    end_ms: ts(2, 31),
+    start_ms: ts(2, 27),
+    end_ms: ts(3, 10),
     score: 7.9,
-    rationale: 'High-tension pushback moment with clear rhetorical structure.',
+    rationale: 'The ice-raft story escalates beautifully and lands with a genuine shocked reaction.',
     source_prompt_ids: ['meta_prompt_2'],
     seed_node_id: 'node_004',
     subgraph_id: 'sg_009',
@@ -153,10 +153,10 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_004',
     node_ids: ['node_021', 'node_022'],
-    start_ms: ts(6, 10),
-    end_ms: ts(6, 48),
+    start_ms: ts(4, 18),
+    end_ms: ts(5, 9),
     score: 7.6,
-    rationale: 'Personal story lands with genuine emotional reaction from the host.',
+    rationale: 'The elk-camp bear rush is visual, chaotic, and easy to imagine as a short-form story.',
     source_prompt_ids: ['retention_cluster'],
     seed_node_id: 'node_021',
     subgraph_id: 'sg_025',
@@ -173,10 +173,10 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_005',
     node_ids: ['node_028', 'node_029'],
-    start_ms: ts(8, 5),
-    end_ms: ts(8, 44),
+    start_ms: ts(5, 56),
+    end_ms: ts(6, 24),
     score: 7.3,
-    rationale: 'Clean setup with a technical explanation payoff — good educational clip.',
+    rationale: 'The "human reset" explanation turns the bear talk into a broader worldview clip.',
     source_prompt_ids: ['meta_prompt_3'],
     seed_node_id: 'node_028',
     subgraph_id: 'sg_031',
@@ -193,10 +193,10 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_006',
     node_ids: ['node_035'],
-    start_ms: ts(11, 22),
-    end_ms: ts(12, 0),
+    start_ms: ts(7, 39),
+    end_ms: ts(8, 11),
     score: 7.0,
-    rationale: 'Surprise reveal followed by a bold claim — strong standalone moment.',
+    rationale: 'The macho "what animal could you beat up?" detour is fast, funny, and clip-friendly.',
     source_prompt_ids: ['meta_prompt_1'],
     seed_node_id: 'node_035',
     subgraph_id: 'sg_038',
@@ -213,11 +213,11 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_007',
     node_ids: ['node_042', 'node_043'],
-    start_ms: ts(14, 33),
-    end_ms: ts(15, 10),
+    start_ms: ts(10, 37),
+    end_ms: ts(11, 13),
     score: 6.8,
     rationale:
-      'Addresses the query with a concrete example — slightly lower energy than top clips.',
+      'The childhood bear-mask trauma lands as a clean, funny fear story with a strong ending.',
     source_prompt_ids: ['comment_cluster'],
     seed_node_id: 'node_042',
     subgraph_id: 'sg_045',
@@ -234,11 +234,11 @@ const DEMO_CLIPS: ClipCandidate[] = [
   {
     clip_id: 'clip_008',
     node_ids: ['node_050'],
-    start_ms: ts(17, 2),
-    end_ms: ts(17, 38),
+    start_ms: ts(12, 19),
+    end_ms: ts(13, 5),
     score: 6.5,
     rationale:
-      'Solid transition into a new topic with useful context — works as a segment opener.',
+      'Bears-versus-sharks is a simple debate prompt that works well as a social opener.',
     source_prompt_ids: ['meta_prompt_4'],
     seed_node_id: 'node_050',
     subgraph_id: 'sg_052',
@@ -259,35 +259,56 @@ const DEMO_CLIPS: ClipCandidate[] = [
 // Build a synthetic 27-node semantic graph. Shapes match SemanticGraphNode
 // so the RunGraph page and embedding scatter can consume these directly.
 
-const NODE_TYPE_ROTATION: NodeType[] = [
-  'claim',
-  'explanation',
-  'qa_exchange',
-  'reaction_beat',
-  'setup_payoff',
-  'reveal',
-  'challenge_exchange',
-  'anecdote',
-  'transition',
-  'example',
+const DEMO_NODE_BLUEPRINTS: Array<{
+  node_type: NodeType
+  summary: string
+  transcript_text: string
+}> = [
+  { node_type: 'claim', summary: 'Joe says fear of grizzlies is the rational default.', transcript_text: 'Everyone should have a fear of grizzly bears.' },
+  { node_type: 'explanation', summary: 'A grizzly is framed as a giant unfenced predator roaming open woods.', transcript_text: "It's like a 900-pound predatory wild dog with no fences." },
+  { node_type: 'qa_exchange', summary: 'Somebody offers the classic defense: just yell and scare the bear away.', transcript_text: 'But what if you scare them by yelling at them?' },
+  { node_type: 'reaction_beat', summary: 'The table laughs at the idea that a tree or a zig-zag solves this problem.', transcript_text: 'Oh, you want to climb a tree and get away?' },
+  { node_type: 'setup_payoff', summary: 'A friend spots a grizzly closing on a moose through a long-range scope.', transcript_text: 'My friend watched through a scope while the bear chased the moose.' },
+  { node_type: 'reveal', summary: 'The payoff is violent and immediate: the bear snaps the moose\'s back.', transcript_text: 'The bear caught up to the moose and broke its back.' },
+  { node_type: 'challenge_exchange', summary: 'The guest tries to call the polar bear curious instead of hungry.', transcript_text: "He's just kind of looking at it." },
+  { node_type: 'anecdote', summary: 'Joe rejects that and retells the box footage as a pure hunting sequence.', transcript_text: 'That polar bear smells meat and is trying to get in there.' },
+  { node_type: 'transition', summary: 'The talk shifts from grizzlies to polar bears and expedition footage.', transcript_text: 'This is the polar bear. This one is fucked.' },
+  { node_type: 'example', summary: 'The box footage becomes the cleanest example of human vulnerability in the segment.', transcript_text: 'He is trying to bite that box to eat that man.' },
+  { node_type: 'claim', summary: 'Polar bears are described as the most predatory bear because they only eat meat.', transcript_text: "They don't have any vegetables. All they eat is fucking seals or anything else." },
+  { node_type: 'explanation', summary: 'That diet is used to explain why there is no harmless interpretation of the behavior.', transcript_text: "This has nothing to do with curiosity." },
+  { node_type: 'qa_exchange', summary: 'Someone asks what you can actually do once a polar bear has you cornered.', transcript_text: 'So what do you do in that situation?' },
+  { node_type: 'reaction_beat', summary: 'The room braces for the answer before the story even lands.', transcript_text: 'Oh, fuck.' },
+  { node_type: 'setup_payoff', summary: 'Joe sets up the stranded-explorer story on an ice raft.', transcript_text: 'They have to get off the boat onto an ice raft and wait.' },
+  { node_type: 'reveal', summary: 'The bear moves from floe to floe, grabs one man, and starts eating him.', transcript_text: 'He comes up onto their ice raft, takes one of the guys, and starts eating him.' },
+  { node_type: 'challenge_exchange', summary: 'The table keeps looking for an escape route that never really exists.', transcript_text: 'Where do you think it was heading at?' },
+  { node_type: 'anecdote', summary: 'Joe transitions into friends who were charged by grizzlies and brown bears.', transcript_text: 'I do have friends that have been chased by grizzlies and attacked by grizzlies.' },
+  { node_type: 'transition', summary: 'The conversation broadens from one-off attacks to what wilderness does to human confidence.', transcript_text: "You gotta worry about everything, man." },
+  { node_type: 'example', summary: 'The woods are framed as a place where status disappears and only survival matters.', transcript_text: "It's a human reset because no one gives a fuck who you are." },
+  { node_type: 'claim', summary: 'Joe says elk and bulls are already in a constant arms race in the wild.', transcript_text: 'They grow weapons every year.' },
+  { node_type: 'explanation', summary: 'Animal conflict is used to underline how normal violence is outside human society.', transcript_text: 'They decided they both want to be the king shit of the herd.' },
+  { node_type: 'qa_exchange', summary: 'The macho hypothetical arrives: what animal could a human actually beat up?', transcript_text: "What's the biggest animal you could beat the shit out of?" },
+  { node_type: 'reaction_beat', summary: 'Joe immediately undercuts human bravado by saying even a monkey is dangerous.', transcript_text: "I don't think I could beat the shit out of a monkey." },
+  { node_type: 'setup_payoff', summary: 'The wolf argument becomes the next mini setup.', transcript_text: 'What about a wolf?' },
+  { node_type: 'reveal', summary: 'The payoff is that a wolf is basically a bone-crushing machine, not a dog.', transcript_text: "A wolf's bite is five times stronger than a pit bull's." },
+  { node_type: 'anecdote', summary: 'The segment lands in comedy with Florida bear trauma and prank stories.', transcript_text: 'Florida bears are like Florida people. Very, very unpredictable.' },
 ]
 
 function generateDemoNodes(runId: string): SemanticGraphNode[] {
   const out: SemanticGraphNode[] = []
   let cursor = 0
-  for (let i = 0; i < 27; i++) {
+  for (let i = 0; i < DEMO_NODE_BLUEPRINTS.length; i++) {
     const duration = 6000 + (i % 5) * 1500
-    const nodeType = NODE_TYPE_ROTATION[i % NODE_TYPE_ROTATION.length]
+    const blueprint = DEMO_NODE_BLUEPRINTS[i]
     out.push({
       node_id: `node_${String(i + 1).padStart(3, '0')}`,
-      node_type: nodeType,
+      node_type: blueprint.node_type,
       start_ms: cursor,
       end_ms: cursor + duration,
       source_turn_ids: [`turn_${i + 1}`],
       word_ids: [],
-      transcript_text: `Synthetic node ${i + 1}: ${nodeType} beat for demo run ${runId}.`,
+      transcript_text: `${blueprint.transcript_text} [demo ${runId}]`,
       node_flags: [],
-      summary: `Demo ${nodeType} node — position ${i + 1} of 27.`,
+      summary: blueprint.summary,
       evidence: {
         emotion_labels: ['neutral'],
         audio_events: [],
@@ -330,7 +351,7 @@ function generateDemoEdges(nodes: SemanticGraphNode[]): SemanticGraphEdge[] {
         source_node_id: nodes[from].node_id,
         target_node_id: nodes[to].node_id,
         edge_type: type,
-        rationale: `Mock rhetorical ${type} link`,
+        rationale: `Demo rhetorical ${type} link`,
         confidence: 0.75,
         support_count: 1,
         batch_ids: ['seed'],
@@ -448,11 +469,11 @@ export function generateTimeline(_runId: string): TimelineBundle {
 
   const EMOTIONS: EmotionLabel[] = ['neutral', 'happy', 'surprised', 'angry', 'sad', 'fearful', 'disgusted']
   const TRANSCRIPTS = [
-    'So the question really becomes, how do you scale that kind of reasoning across all of these different modalities?',
-    'I think the interesting thing about this approach is that it fundamentally changes how we think about the problem space.',
-    "The real challenge isn't the technology itself — it's convincing people to rethink their assumptions.",
-    "What we found is that once you remove the artificial constraints, the system starts doing things nobody predicted.",
-    "There's this moment in every creative process where you have to decide: are you building for the audience you have, or the one you want?",
+    'Everyone should have a fear of grizzly bears.',
+    "That polar bear smells meat. He's not curious.",
+    "There's no zagging with bears.",
+    "The woods are a human reset because no one gives a fuck who you are.",
+    "A wolf's bite is five times stronger than a pit bull's.",
   ]
 
   function buildSpeaker(speakerId: string, displayName: string, turnCount: number): TimelineSpeaker {
@@ -482,9 +503,9 @@ export function generateTimeline(_runId: string): TimelineBundle {
   }
 
   const speakers: TimelineSpeaker[] = [
-    buildSpeaker('spk_001', 'Speaker 01', 18),
-    buildSpeaker('spk_002', 'Speaker 02', 14),
-    buildSpeaker('spk_003', 'Speaker 03', 9),
+    buildSpeaker('spk_001', 'Joe Rogan', 18),
+    buildSpeaker('spk_002', 'Andrew Schulz', 14),
+    buildSpeaker('spk_003', 'Akaash Singh', 9),
   ]
 
   const emotions: TimelineEmotionSegment[] = [
