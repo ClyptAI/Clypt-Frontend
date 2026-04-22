@@ -22,7 +22,24 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ cursor: "none" }}>
+    <div className="min-h-screen relative" style={{ cursor: "none", background: "#09090B" }}>
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          zIndex: 0,
+          background:
+            "radial-gradient(circle at 50% -8%, rgba(167,139,250,0.12) 0%, rgba(10,9,11,0) 34%), radial-gradient(circle at 14% 30%, rgba(34,211,238,0.08) 0%, rgba(10,9,11,0) 26%), radial-gradient(circle at 86% 24%, rgba(167,139,250,0.08) 0%, rgba(10,9,11,0) 30%), linear-gradient(180deg, #0B0A10 0%, #09090B 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          zIndex: 1,
+          opacity: 0.36,
+          backgroundImage: "radial-gradient(rgba(196,181,253,0.45) 1px, transparent 1px)",
+          backgroundSize: "38px 38px",
+        }}
+      />
       {/* Scroll progress bar */}
       <motion.div
         style={{
@@ -38,14 +55,16 @@ const Index = () => {
           zIndex: 200,
         }}
       />
-      <CustomCursor />
-      <Navbar />
-      <Hero />
-      <HowItWorks />
-      <PipelineDemos />
-      <ClipShowcase />
-      <TryItBar />
-      <Footer />
+      <div className="relative z-10">
+        <CustomCursor />
+        <Navbar />
+        <Hero />
+        <HowItWorks />
+        <PipelineDemos />
+        <ClipShowcase />
+        <TryItBar />
+        <Footer />
+      </div>
     </div>
   );
 };

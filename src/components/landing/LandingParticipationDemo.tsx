@@ -23,7 +23,7 @@ const shotTimings = [0, 2500, 5000, 7000];
 const LOOP_DURATION = 9000;
 
 // Speaker positions as percentages from left
-const speakerPositions = [18, 50, 82];
+const speakerPositions = [20, 49, 78];
 
 export default function LandingParticipationDemo() {
   const [activeShot, setActiveShot] = useState(0);
@@ -47,12 +47,12 @@ export default function LandingParticipationDemo() {
   const activeSpeakerIdx = shotSpeaker[activeShot];
 
   return (
-    <div ref={ref}>
-      <DemoCardShell label="participation_grounding · 3 speakers · 4 shots">
+    <div ref={ref} style={{ width: "100%" }}>
+      <DemoCardShell label="participation_grounding · 3 speakers · 4 shots" className="w-full">
         {/* Zone 1 — Stage */}
         <div
           style={{
-            height: 210,
+            height: 196,
             position: "relative",
             overflow: "hidden",
             background: "rgba(255,255,255,0.01)",
@@ -139,8 +139,8 @@ export default function LandingParticipationDemo() {
               position: "absolute",
               top: "50%",
               transform: "translate(-50%, -50%)",
-              width: 120,
-              height: 140,
+              width: 108,
+              height: 132,
               borderRadius: 8,
               border: "2px solid rgba(167,139,250,0.8)",
               boxShadow: "0 0 20px rgba(167,139,250,0.2), inset 0 0 20px rgba(167,139,250,0.03)",
@@ -174,7 +174,7 @@ export default function LandingParticipationDemo() {
         {/* Zone 2 — Shot participation matrix */}
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           {/* Column headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "56px repeat(4, 1fr)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "48px repeat(4, 1fr)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
             <div />
             {[0, 1, 2, 3].map((si) => (
               <div
@@ -201,7 +201,7 @@ export default function LandingParticipationDemo() {
               key={s.letter}
               style={{
                 display: "grid",
-                gridTemplateColumns: "56px repeat(4, 1fr)",
+                gridTemplateColumns: "48px repeat(4, 1fr)",
                 height: 36,
                 alignItems: "center",
               }}

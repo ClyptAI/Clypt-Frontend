@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import type { EmbedPoint } from "@/hooks/api/useEmbeddings";
+import { PanelShader } from "@/components/shaders";
 
 export interface ScoredPoint extends EmbedPoint {
   score: number;
@@ -73,9 +74,6 @@ function ResultCard({
         position: "relative",
         flexShrink: 0,
         width: 210,
-        background: isSelected
-          ? `rgba(${hexToRgb(color)}, 0.12)`
-          : "rgba(255,255,255,0.04)",
         border: `1px solid ${isSelected ? `${color}55` : "rgba(255,255,255,0.08)"}`,
         borderRadius: 8,
         padding: "14px 12px 12px",
@@ -87,13 +85,20 @@ function ResultCard({
         if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.07)";
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+        if (!isSelected) e.currentTarget.style.background = "transparent";
       }}
     >
+      <PanelShader
+        variant="search-result"
+        accentColor={color}
+        intensity={isSelected ? "strong" : "subtle"}
+        className="absolute inset-0"
+      />
+
       <ScoreBar score={point.score} color={color} />
 
       {/* Rank + type row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8, position: "relative", zIndex: 1 }}>
         <span
           style={{
             width: 18,
@@ -148,6 +153,8 @@ function ResultCard({
           fontSize: 10,
           color: "rgba(255,255,255,0.35)",
           marginBottom: 7,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {formatTime(point.start_s)} → {formatTime(point.end_s)}
@@ -165,20 +172,14 @@ function ResultCard({
           WebkitLineClamp: 3,
           WebkitBoxOrient: "vertical" as const,
           overflow: "hidden",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {point.summary}
       </p>
     </div>
   );
-}
-
-// Hex → "R,G,B" helper for rgba()
-function hexToRgb(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `${r},${g},${b}`;
 }
 
 interface SearchResultsPanelProps {

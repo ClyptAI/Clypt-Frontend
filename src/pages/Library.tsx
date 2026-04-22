@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useRunList } from "@/hooks/api/useRuns";
 import { useAllClips, fmtClipDuration } from "@/hooks/api/useTimeline";
 import type { RunListItem } from "@/types/clypt";
+import { ThumbnailShader } from "@/components/shaders";
 
 type RunStatus = "analyzing" | "complete" | "grounding" | "failed";
 
@@ -122,6 +123,18 @@ function ActionLink({ status }: { status: RunStatus }) {
   );
 }
 
+function thumbnailVariantForStatus(status: RunStatus): "analyzing" | "complete" | "failed" | "default" {
+  switch (status) {
+    case "analyzing":
+      return "analyzing";
+    case "complete":
+    case "grounding":
+      return "complete";
+    case "failed":
+      return "failed";
+  }
+}
+
 function RunsTab({
   runs,
   isLoading,
@@ -163,8 +176,13 @@ function RunsTab({
             className="group rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-col cursor-pointer hover:border-[var(--color-violet)] transition-colors"
           >
             {/* Thumbnail */}
-            <div className="aspect-video bg-[var(--color-surface-2)] flex items-center justify-center">
-              <Play size={32} className="text-[var(--color-text-muted)]" />
+            <div className="aspect-video relative overflow-hidden flex items-center justify-center">
+              <ThumbnailShader
+                variant={thumbnailVariantForStatus(run.status)}
+                intensity="subtle"
+                className="absolute inset-0"
+              />
+              <Play size={32} className="text-[var(--color-text-muted)] relative z-10" />
             </div>
 
             {/* Content */}
@@ -245,10 +263,15 @@ function ClipsTab() {
           {allClips.map((clip) => (
             <div
               key={`${clip.run_id}:${clip.clip_id}`}
-              className="group relative rounded-[8px] overflow-hidden bg-[var(--color-surface-2)] cursor-pointer"
+              className="group relative rounded-[8px] overflow-hidden cursor-pointer"
               style={{ aspectRatio: "9/16" }}
               onClick={() => navigate(`/runs/${clip.run_id}/clips`)}
             >
+              <ThumbnailShader
+                variant="complete"
+                intensity="subtle"
+                className="absolute inset-0"
+              />
               {/* Play icon center */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <Play size={28} className="text-[var(--color-text-muted)] opacity-40 group-hover:opacity-80 transition-opacity" />

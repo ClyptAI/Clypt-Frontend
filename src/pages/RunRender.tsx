@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import RunContextBar from "@/components/app/RunContextBar";
+import { PanelShader } from "@/components/shaders";
 import { useClipList } from "@/hooks/api/useClips";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useRenderPresets, useRenderStatus, useSubmitRender } from "@/hooks/api/useRender";
@@ -184,11 +185,17 @@ function ReviewStage({
               clips.map((clip) => {
                 const isOpen = !!expanded[clip.id];
                 return (
-                  <div key={clip.id} style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface-1)", overflow: "hidden" }}>
+                  <PanelShader
+                    key={clip.id}
+                    variant="render-card"
+                    intensity={isOpen ? "strong" : "medium"}
+                    accentColor={clip.complete ? "#A78BFA" : "#FB7185"}
+                    className="rounded-[8px] border border-[var(--color-border)]"
+                  >
                     <div
                       onClick={() => toggle(clip.id)}
                       style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "background 100ms" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-2)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -222,7 +229,7 @@ function ReviewStage({
                     </div>
 
                     {isOpen && (
-                      <div style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)", display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)", display: "flex", flexDirection: "column", gap: 10, background: "rgba(10,9,9,0.34)" }}>
                         {!clip.complete && clip.incompleteNote && (
                           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--color-rose-muted)", borderRadius: 6 }}>
                             <TriangleAlert size={14} style={{ color: "var(--color-rose)", flexShrink: 0 }} />
@@ -271,14 +278,20 @@ function ReviewStage({
                         </div>
                       </div>
                     )}
-                  </div>
+                  </PanelShader>
                 );
               })
             )}
           </div>
 
           {/* Global render settings */}
-          <div style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-surface-1)", padding: 20, marginTop: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+          <PanelShader
+            variant="render-card"
+            intensity="medium"
+            accentColor="#22D3EE"
+            className="mt-6 rounded-[8px] border border-[var(--color-border)]"
+          >
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20, background: "rgba(10,9,9,0.38)" }}>
             <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 15, color: "var(--color-text-primary)", margin: 0, marginBottom: 4 }}>Render settings</h2>
 
             {/* Preset picker */}
@@ -325,7 +338,8 @@ function ReviewStage({
                 </select>
               </div>
             )}
-          </div>
+            </div>
+          </PanelShader>
         </div>
       </div>
 
@@ -438,6 +452,7 @@ function RenderClipRow({ runId, clip, selected, onSelect }: RenderClipRowProps) 
   const pct = job?.progress_pct ?? 0;
   const isDone = status === "completed";
   const isFailed = status === "failed";
+  const rowAccent = isFailed ? "#FB7185" : isDone ? "#22C55E" : "#22D3EE";
 
   const statusIcon = () => {
     switch (status) {
@@ -456,84 +471,100 @@ function RenderClipRow({ runId, clip, selected, onSelect }: RenderClipRowProps) 
   };
 
   return (
-    <div
-      onClick={() => isDone && onSelect()}
-      style={{
-        padding: "14px 16px", borderBottom: "1px solid var(--color-border-subtle)",
-        display: "flex", flexDirection: "column", gap: 8,
-        cursor: isDone ? "pointer" : "default",
-        background: selected ? "var(--color-surface-2)" : "transparent",
-      }}
+    <PanelShader
+      variant="render-row"
+      intensity={selected ? "strong" : "subtle"}
+      accentColor={rowAccent}
+      className="border-b border-[var(--color-border-subtle)]"
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div
+        onClick={() => isDone && onSelect()}
+        style={{
+          padding: "14px 16px",
+          display: "flex", flexDirection: "column", gap: 8,
+          cursor: isDone ? "pointer" : "default",
+          background: selected ? "rgba(255,255,255,0.06)" : isDone ? "rgba(255,255,255,0.02)" : "rgba(10,9,9,0.2)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {statusIcon()}
           <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--color-text-primary)" }}>{clip.label}</span>
         </div>
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, color: "var(--color-text-muted)" }}>{clip.duration}</span>
-      </div>
+        </div>
 
-      {(status === "queued" || status === "rendering") && (
-        <>
-          <div style={{ width: "100%", height: 4, background: "var(--color-surface-3)", borderRadius: 2 }}>
-            <div style={{ width: `${pct}%`, height: "100%", background: "var(--color-cyan)", borderRadius: 2, transition: "width 300ms" }} />
+        {(status === "queued" || status === "rendering") && (
+          <>
+            <div style={{ width: "100%", height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 999 }}>
+              <div
+                style={{
+                  width: `${pct}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg, rgba(167,139,250,0.95) 0%, rgba(34,211,238,0.95) 100%)",
+                  borderRadius: 999,
+                  transition: "width 300ms",
+                  boxShadow: "0 0 14px rgba(34,211,238,0.28)",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)" }}>
+                {status === "queued" ? "Queued…" : `Rendering · ${pct}%`}
+              </span>
+            </div>
+          </>
+        )}
+
+        {isDone && job?.output_url && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <a
+              href={job.output_url}
+              onClick={(e) => { e.stopPropagation(); onSelect(); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
+                border: "1px solid var(--color-border)", background: "rgba(10,9,9,0.36)",
+                fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
+                textDecoration: "none",
+              }}
+            >
+              <Play size={12} />Preview
+            </a>
+            <a
+              href={job.output_url}
+              download
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
+                border: "1px solid var(--color-border)", background: "rgba(10,9,9,0.36)",
+                fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
+                textDecoration: "none",
+              }}
+            >
+              <Download size={12} />Download
+            </a>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
+                border: "1px solid var(--color-border)", background: "rgba(10,9,9,0.36)", cursor: "pointer",
+                fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
+              }}
+            >
+              <LinkIcon size={12} />Copy link
+            </button>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-text-secondary)" }}>
-              {status === "queued" ? "Queued…" : `Rendering · ${pct}%`}
+        )}
+
+        {isFailed && (
+          <div>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-rose)" }}>
+              {job?.error ?? "Render failed"}
             </span>
           </div>
-        </>
-      )}
-
-      {isDone && job?.output_url && (
-        <div style={{ display: "flex", gap: 8 }}>
-          <a
-            href={job.output_url}
-            onClick={(e) => { e.stopPropagation(); onSelect(); }}
-            style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
-              border: "1px solid var(--color-border)", background: "transparent",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
-              textDecoration: "none",
-            }}
-          >
-            <Play size={12} />Preview
-          </a>
-          <a
-            href={job.output_url}
-            download
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
-              border: "1px solid var(--color-border)", background: "transparent",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
-              textDecoration: "none",
-            }}
-          >
-            <Download size={12} />Download
-          </a>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}
-            style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4,
-              border: "1px solid var(--color-border)", background: "transparent", cursor: "pointer",
-              fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 500, fontSize: 12, color: "var(--color-text-secondary)",
-            }}
-          >
-            <LinkIcon size={12} />Copy link
-          </button>
-        </div>
-      )}
-
-      {isFailed && (
-        <div>
-          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 12, color: "var(--color-rose)" }}>
-            {job?.error ?? "Render failed"}
-          </span>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </PanelShader>
   );
 }
 
@@ -543,22 +574,25 @@ function RenderPreviewPanel({ runId, clip }: { runId: string; clip: SubmittedCli
 
   if (!clip) {
     return (
-      <div style={{ flex: 1, background: "var(--color-bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
-        <Film size={48} style={{ color: "var(--color-surface-3)" }} />
-        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 15, color: "var(--color-text-muted)", marginTop: 12 }}>
-          Select a completed clip to preview
-        </span>
-      </div>
+      <PanelShader variant="render-preview" intensity="medium" className="flex-1">
+        <div style={{ flex: 1, minHeight: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, background: "rgba(10,9,9,0.44)" }}>
+          <Film size={48} style={{ color: "var(--color-surface-3)" }} />
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 400, fontSize: 15, color: "var(--color-text-muted)", marginTop: 12 }}>
+            Select a completed clip to preview
+          </span>
+        </div>
+      </PanelShader>
     );
   }
 
   const isDone = job?.status === "completed" && !!job.output_url;
 
   return (
-    <div style={{ flex: 1, background: "var(--color-bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <PanelShader variant="render-preview" intensity="strong" className="flex-1">
+      <div style={{ flex: 1, minHeight: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, background: "rgba(10,9,9,0.4)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         {/* 9:16 video player */}
-        <div style={{ width: 270, height: 480, borderRadius: 8, overflow: "hidden", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 270, height: 480, borderRadius: 8, overflow: "hidden", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 44px rgba(0,0,0,0.42)" }}>
           {isDone && job?.output_url ? (
             <video
               src={job.output_url}
@@ -573,6 +607,18 @@ function RenderPreviewPanel({ runId, clip }: { runId: string; clip: SubmittedCli
               <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
                 {job?.status === "queued" ? "Queued…" : `Rendering · ${job?.progress_pct ?? 0}%`}
               </span>
+              <div style={{ width: 160, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden", marginTop: 4 }}>
+                <div
+                  style={{
+                    width: `${job?.progress_pct ?? 18}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    background: "linear-gradient(90deg, rgba(167,139,250,0.95) 0%, rgba(34,211,238,0.95) 100%)",
+                    boxShadow: "0 0 14px rgba(34,211,238,0.28)",
+                    transition: "width 300ms",
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -614,7 +660,8 @@ function RenderPreviewPanel({ runId, clip }: { runId: string; clip: SubmittedCli
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </PanelShader>
   );
 }
 

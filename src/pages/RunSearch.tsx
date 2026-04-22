@@ -7,6 +7,7 @@ import type { EmbedType, ScoredPoint } from "@/components/embeds";
 import { useEmbeddings } from "@/hooks/api/useEmbeddings";
 import type { EmbedPoint } from "@/hooks/api/useEmbeddings";
 import { useRunDetail } from "@/hooks/api/useRuns";
+import { LandingAtmosphereShader } from "@/components/shaders";
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,11 @@ export default function RunSearch() {
           <EmptyState />
         ) : (
           <>
+            <LandingAtmosphereShader
+              variant="search"
+              intensity="subtle"
+              className="absolute inset-0"
+            />
             {/* Scatter — shrinks right when inspect panel open, top padded for search bar */}
             <div
               style={{

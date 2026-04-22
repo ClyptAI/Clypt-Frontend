@@ -5,6 +5,7 @@ import { ReactFlow, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ClyptEdge } from "@/components/graph/ClyptEdge";
 import { ClyptNode } from "@/components/graph/ClyptNode";
+import { LandingAtmosphereShader } from "@/components/shaders";
 
 const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
@@ -84,13 +85,18 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
         className="w-[40%] flex flex-col relative overflow-hidden"
         style={{ background: "#0A0909", borderRight: "1px solid var(--color-border)" }}
       >
+        <LandingAtmosphereShader
+          variant="auth"
+          intensity="subtle"
+          className="absolute inset-0"
+        />
         {/* React Flow graph background */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            zIndex: 0,
-            opacity: 0.75,
+            zIndex: 1,
+            opacity: 0.82,
             backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
           }}

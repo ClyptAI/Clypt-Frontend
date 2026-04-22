@@ -61,6 +61,17 @@ function formatSourceUrl(url: string): string {
   }
 }
 
+function previewBackground(status?: RunDetail["latest_status"]) {
+  switch (status) {
+    case "failed":
+      return "radial-gradient(circle at 50% 0%, rgba(251,113,133,0.14) 0%, rgba(10,9,11,0) 40%), linear-gradient(180deg, rgba(36,14,19,0.96) 0%, rgba(10,9,11,1) 100%)";
+    case "completed":
+      return "radial-gradient(circle at 50% 0%, rgba(167,139,250,0.14) 0%, rgba(10,9,11,0) 40%), linear-gradient(180deg, rgba(20,16,28,0.96) 0%, rgba(10,9,11,1) 100%)";
+    default:
+      return "radial-gradient(circle at 50% 0%, rgba(34,211,238,0.12) 0%, rgba(10,9,11,0) 40%), linear-gradient(180deg, rgba(15,22,28,0.96) 0%, rgba(10,9,11,1) 100%)";
+  }
+}
+
 /* ─── phase dot ─── */
 function PhaseDot({ status }: { status: PhaseStatus }) {
   const base = "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 relative";
@@ -170,9 +181,21 @@ function RunSummaryPanel({ runDetail }: { runDetail?: RunDetail | null }) {
       {/* thumbnail */}
       <div
         className="rounded-md overflow-hidden flex items-center justify-center"
-        style={{ aspectRatio: "16/9", background: "var(--color-surface-2)" }}
+        style={{
+          aspectRatio: "16/9",
+          position: "relative",
+          background: previewBackground(runDetail?.latest_status),
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
       >
-        <Play size={32} style={{ color: "var(--color-text-muted)" }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 32%), radial-gradient(circle at 18% 20%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 24%)",
+          }}
+        />
+        <Play size={32} style={{ color: "var(--color-text-muted)", position: "relative", zIndex: 1 }} />
       </div>
 
       {/* metadata */}

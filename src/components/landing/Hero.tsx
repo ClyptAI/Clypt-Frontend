@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useSpring } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import WaveformBand from "./WaveformBand";
+import { LandingAtmosphereShader } from "@/components/shaders";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 const entryEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -108,7 +109,6 @@ const clipCards = [
 function FloatingCard({ card }: { card: typeof clipCards[0] }) {
   const [entered, setEntered] = useState(false);
   const springX = useSpring(0, { stiffness: 60, damping: 20 });
-  const accentColor = nodeColors[card.nodes[0]] ?? "#A78BFA";
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -133,7 +133,6 @@ function FloatingCard({ card }: { card: typeof clipCards[0] }) {
         overflow: "hidden",
         border: "1px solid rgba(255,255,255,0.12)",
         boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-        background: card.gradient,
         rotate: card.rotate,
         x: springX,
       }}
@@ -151,8 +150,17 @@ function FloatingCard({ card }: { card: typeof clipCards[0] }) {
       onAnimationComplete={() => {
         if (!entered) setEntered(true);
       }}
-      whileHover={{ scale: 1.04, borderColor: `${accentColor}80` }}
+      whileHover={{ scale: 1.04, borderColor: "rgba(196,181,253,0.55)" }}
     >
+      <div className="absolute inset-0" style={{ background: card.gradient }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 22% 12%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 32%), linear-gradient(180deg, rgba(167,139,250,0.08) 0%, rgba(10,9,11,0) 48%)",
+        }}
+      />
+
       {/* Timestamp */}
       <div
         style={{
@@ -249,32 +257,10 @@ const Hero = () => {
       className="relative flex flex-col items-center justify-center overflow-hidden"
       style={{ minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}
     >
-      {/* LAYER 1 — Subtle grid */}
-      <div
+      <LandingAtmosphereShader
+        variant="hero"
+        intensity="strong"
         className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 0,
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          maskImage: "radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%)",
-        }}
-      />
-
-      {/* LAYER 2 — Violet ambient glow */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          zIndex: 0,
-          top: -60,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 800,
-          height: 600,
-          background: "radial-gradient(ellipse at center, rgba(167,139,250,0.12) 0%, transparent 68%)",
-          filter: "blur(48px)",
-        }}
       />
 
       {/* LAYER 3 — Waveform band */}
@@ -361,12 +347,12 @@ const Hero = () => {
         </motion.div>
 
         {/* Subheading */}
-        <motion.p
-          className="font-sans font-normal text-center"
-          style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", maxWidth: 560, lineHeight: 1.65, marginTop: 20 }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease, delay: 0.45 }}
+      <motion.p
+        className="font-sans font-normal text-center"
+        style={{ fontSize: 18, color: "rgba(255,255,255,0.78)", maxWidth: 560, lineHeight: 1.65, marginTop: 20 }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease, delay: 0.45 }}
         >
           Clypt maps semantic structure against <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;real&nbsp;&nbsp;</em>audience engagement and <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;live&nbsp;&nbsp;</em>trends, mining the moments worth clipping.
         </motion.p>

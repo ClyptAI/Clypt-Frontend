@@ -13,7 +13,17 @@ const brico = "'Bricolage Grotesque', sans-serif";
 
 function Overline({ children }: { children: string }) {
   return (
-    <div style={{ fontFamily: jakarta, fontSize: 11, letterSpacing: "0.1em", color: "#A78BFA", opacity: 0.8, marginBottom: 16 }}>
+    <div
+      style={{
+        fontFamily: jakarta,
+        fontSize: 11,
+        letterSpacing: "0.1em",
+        color: "var(--color-violet)",
+        textShadow: "0 0 18px rgba(167,139,250,0.18)",
+        opacity: 0.96,
+        marginBottom: 16,
+      }}
+    >
       {children}
     </div>
   );
@@ -29,7 +39,7 @@ function Heading({ children }: { children: string }) {
 
 function Subtext({ children }: { children: string }) {
   return (
-    <p style={{ fontFamily: jakarta, fontSize: 16, color: "rgba(255,255,255,0.6)", lineHeight: 1.65, maxWidth: 380, marginTop: 16 }}>
+    <p style={{ fontFamily: jakarta, fontSize: 16, color: "rgba(244,241,238,0.82)", lineHeight: 1.65, maxWidth: 390, marginTop: 16 }}>
       {children}
     </p>
   );
@@ -49,6 +59,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-01"
         layout="odd"
+        shaderVariant="section-timeline"
         copy={
           <>
             <Overline>PHASE 01 · TIMELINE FOUNDATION</Overline>
@@ -81,6 +92,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-02"
         layout="even"
+        shaderVariant="section-graph"
         copy={
           <>
             <Overline>PHASE 02 · NODE CONSTRUCTION</Overline>
@@ -95,6 +107,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-03"
         layout="full"
+        shaderVariant="section-graph"
         copy={
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
             <Overline>PHASE 03 · GRAPH CONSTRUCTION</Overline>
@@ -113,6 +126,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-04"
         layout="even"
+        shaderVariant="section-retrieval"
         copy={
           <>
             <Overline>PHASE 04 · CANDIDATE RETRIEVAL</Overline>
@@ -151,6 +165,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-05"
         layout="odd"
+        shaderVariant="section-grounding"
         copy={
           <>
             <Overline>PHASE 05 · PARTICIPATION GROUNDING</Overline>
@@ -193,6 +208,7 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-06"
         layout="even"
+        shaderVariant="section-render"
         copy={
           <>
             <Overline>PHASE 06 · CLIP RENDERING</Overline>

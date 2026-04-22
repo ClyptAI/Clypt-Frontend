@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingLayout from "@/components/onboarding/OnboardingLayout";
+import { LandingAtmosphereShader } from "@/components/shaders";
 
 const nodeColors = [
   "var(--node-claim)",
@@ -39,76 +40,92 @@ const OnboardAnalyzing = () => {
 
   return (
     <OnboardingLayout currentStep={2}>
-      <div className="flex flex-col items-center">
-        {/* SVG timeline animation */}
-        <svg width="320" height="32" viewBox="0 0 320 32" fill="none" className="mb-2">
-          {/* Timeline bar */}
-          <line x1="20" y1="20" x2="300" y2="20" stroke="var(--color-surface-3)" strokeWidth="2" />
-          {/* Nodes */}
-          {nodeColors.map((color, i) => {
-            const cx = 20 + i * 56;
-            return (
-              <g key={i}>
-                <circle
-                  cx={cx}
-                  cy={20}
-                  r={5}
-                  fill="var(--color-surface-3)"
-                  className="animate-node-pulse"
-                  style={{
-                    animationDelay: `${i * 0.4}s`,
-                    animationFillMode: "forwards",
-                  }}
-                >
-                  <animate
-                    attributeName="fill"
-                    from="var(--color-surface-3)"
-                    to={color}
-                    dur="0.6s"
-                    begin={`${i * 0.4}s`}
-                    fill="freeze"
-                  />
-                  <animate
-                    attributeName="r"
-                    values="5;7;5"
-                    dur="1.2s"
-                    begin={`${i * 0.4}s`}
-                    repeatCount="indefinite"
-                  />
-                </circle>
-              </g>
-            );
-          })}
-        </svg>
+      <div
+        className="relative overflow-hidden rounded-[28px] border border-[rgba(255,255,255,0.08)]"
+        style={{
+          padding: "36px 28px",
+          background: "rgba(20,18,19,0.72)",
+          boxShadow: "0 32px 64px rgba(0,0,0,0.32)",
+        }}
+      >
+        <LandingAtmosphereShader
+          variant="analyzer"
+          intensity="medium"
+          className="absolute inset-0"
+        />
+        <div className="relative z-10 flex flex-col items-center">
+          {/* SVG timeline animation */}
+          <svg width="320" height="32" viewBox="0 0 320 32" fill="none" className="mb-2">
+            {/* Timeline bar */}
+            <line x1="20" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.14)" strokeWidth="2" />
+            {/* Nodes */}
+            {nodeColors.map((color, i) => {
+              const cx = 20 + i * 56;
+              return (
+                <g key={i}>
+                  <circle
+                    cx={cx}
+                    cy={20}
+                    r={5}
+                    fill="var(--color-surface-3)"
+                    className="animate-node-pulse"
+                    style={{
+                      animationDelay: `${i * 0.4}s`,
+                      animationFillMode: "forwards",
+                    }}
+                  >
+                    <animate
+                      attributeName="fill"
+                      from="var(--color-surface-3)"
+                      to={color}
+                      dur="0.6s"
+                      begin={`${i * 0.4}s`}
+                      fill="freeze"
+                    />
+                    <animate
+                      attributeName="r"
+                      values="5;7;5"
+                      dur="1.2s"
+                      begin={`${i * 0.4}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                </g>
+              );
+            })}
+          </svg>
 
-        <h2 className="font-heading font-bold text-[var(--color-text-primary)] text-center mt-4" style={{ fontSize: 28 }}>
-          Building your creator profile
-        </h2>
+          <h2 className="font-heading font-bold text-[var(--color-text-primary)] text-center mt-4" style={{ fontSize: 28 }}>
+            Building your creator profile
+          </h2>
 
-        {/* Progress bar */}
-        <div className="w-80 mt-6">
-          <div className="h-[3px] rounded-sm bg-[var(--color-surface-2)] overflow-hidden">
-            <div
-              className="h-full rounded-sm bg-[var(--color-violet)]"
-              style={{
-                animation: "progressFill 8s ease-out forwards",
-              }}
-            />
+          {/* Progress bar */}
+          <div className="w-80 mt-6">
+            <div className="h-[4px] rounded-sm overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div
+                className="h-full rounded-sm"
+                style={{
+                  background: "linear-gradient(90deg, var(--color-cyan) 0%, var(--color-violet) 70%, var(--color-green) 100%)",
+                  boxShadow: "0 0 24px rgba(34,211,238,0.4)",
+                  animation: "progressFill 8s ease-out forwards",
+                }}
+              />
+            </div>
           </div>
+
+          {/* Status label */}
+          <p
+            className="font-heading font-medium text-[var(--color-text-secondary)] text-center mt-4 transition-opacity duration-300"
+            style={{ fontSize: 14 }}
+            key={statusIdx}
+          >
+            {statusLabels[statusIdx]}
+          </p>
+
+          <p className="font-sans text-[var(--color-text-muted)] text-center mt-3" style={{ fontSize: 13 }}>
+            Usually takes 30–90 seconds.
+          </p>
         </div>
-
-        {/* Status label */}
-        <p
-          className="font-heading font-medium text-[var(--color-text-secondary)] text-center mt-4 transition-opacity duration-300"
-          style={{ fontSize: 14 }}
-          key={statusIdx}
-        >
-          {statusLabels[statusIdx]}
-        </p>
-
-        <p className="font-sans text-[var(--color-text-muted)] text-center mt-3" style={{ fontSize: 13 }}>
-          Usually takes 30–90 seconds.
-        </p>
       </div>
 
       <style>{`

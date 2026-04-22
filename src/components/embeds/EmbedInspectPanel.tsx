@@ -1,6 +1,7 @@
 import { X, ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { EmbedPoint } from "@/hooks/api/useEmbeddings";
+import { PanelShader } from "@/components/shaders";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   claim:             "#A78BFA",
@@ -104,61 +105,80 @@ export default function EmbedInspectPanel({ node, runId, onClose }: EmbedInspect
               flex: 1,
             }}
           >
-            {/* Type pill + candidate badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  background: `${color}1f`,
-                  border: `1px solid ${color}4d`,
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: 10,
-                  color,
-                  padding: "3px 7px",
-                  borderRadius: 3,
-                }}
-              >
-                {node.node_type}
-              </span>
-              {node.is_candidate && (
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    background: "rgba(251,178,73,0.12)",
-                    border: "1px solid rgba(251,178,73,0.35)",
-                    fontFamily: "'Geist Mono', monospace",
-                    fontSize: 10,
-                    color: "#FBB249",
-                    padding: "3px 7px",
-                    borderRadius: 3,
-                  }}
-                >
-                  <Star size={9} fill="#FBB249" />
-                  candidate
-                </span>
-              )}
-            </div>
-
-            {/* Timestamp */}
-            <span
+            <div
               style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 13,
-                color: "var(--color-text-secondary)",
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 12,
+                border: "1px solid rgba(255,255,255,0.08)",
+                minHeight: 88,
+                padding: 14,
               }}
             >
-              {formatTime(node.start_s)} → {formatTime(node.end_s)}
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 11,
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                ({node.end_s - node.start_s}s)
-              </span>
-            </span>
+              <PanelShader
+                variant="inspect-header"
+                accentColor={color}
+                intensity="medium"
+                className="absolute inset-0"
+              />
+              <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+                {/* Type pill + candidate badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      background: `${color}1f`,
+                      border: `1px solid ${color}4d`,
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: 10,
+                      color,
+                      padding: "3px 7px",
+                      borderRadius: 3,
+                    }}
+                  >
+                    {node.node_type}
+                  </span>
+                  {node.is_candidate && (
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "rgba(251,178,73,0.12)",
+                        border: "1px solid rgba(251,178,73,0.35)",
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: 10,
+                        color: "#FBB249",
+                        padding: "3px 7px",
+                        borderRadius: 3,
+                      }}
+                    >
+                      <Star size={9} fill="#FBB249" />
+                      candidate
+                    </span>
+                  )}
+                </div>
+
+                {/* Timestamp */}
+                <span
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: 13,
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  {formatTime(node.start_s)} → {formatTime(node.end_s)}
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 11,
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    ({node.end_s - node.start_s}s)
+                  </span>
+                </span>
+              </div>
+            </div>
 
             {/* Summary */}
             <div style={{ borderBottom: "1px solid var(--color-border-subtle)", paddingBottom: 16 }}>
@@ -186,12 +206,19 @@ export default function EmbedInspectPanel({ node, runId, onClose }: EmbedInspect
               </span>
               <div
                 style={{
-                  background: "var(--color-surface-2)",
+                  position: "relative",
+                  overflow: "hidden",
                   borderRadius: 6,
                   padding: "10px 12px",
                   borderLeft: `2px solid ${color}55`,
                 }}
               >
+                <PanelShader
+                  variant="inspect-callout"
+                  accentColor={color}
+                  intensity="subtle"
+                  className="absolute inset-0"
+                />
                 <p
                   style={{
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -201,6 +228,8 @@ export default function EmbedInspectPanel({ node, runId, onClose }: EmbedInspect
                     color: "var(--color-text-secondary)",
                     lineHeight: 1.6,
                     margin: 0,
+                    position: "relative",
+                    zIndex: 1,
                   }}
                 >
                   "{node.transcript_excerpt}"

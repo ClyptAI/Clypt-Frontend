@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { MetallicSweepShader } from "@/components/shaders";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const signalColors: Record<string, string> = {
-  claim: "#A78BFA",
-  qa_exchange: "#60A5FA",
-  setup_payoff: "#FBB249",
-  anecdote: "#F0A64A",
-  reaction_beat: "#F87171",
-  explanation: "#7DD3FC",
-  example: "#4ADE80",
+  claim: "var(--node-claim)",
+  qa_exchange: "var(--node-explanation)",
+  setup_payoff: "var(--node-setup-payoff)",
+  anecdote: "var(--node-anecdote)",
+  reaction_beat: "var(--node-reaction-beat)",
+  explanation: "var(--node-explanation)",
+  example: "var(--node-example)",
 };
 
 const nodeDisplay: Record<string, string> = {
@@ -34,21 +35,24 @@ type Card = {
 
 const cards: Card[] = [
   {
-    gradient: "linear-gradient(170deg, #12091f 0%, #0a0a14 50%, #14090c 100%)",
+    gradient:
+      "linear-gradient(180deg, rgba(24,12,40,0.98) 0%, rgba(14,10,26,0.98) 48%, rgba(9,9,15,1) 100%)",
     nodes: ["claim", "explanation"],
     time: "0:18",
     title: "Why most editing tools get this wrong",
     duration: "22s",
   },
   {
-    gradient: "linear-gradient(170deg, #0f1a10 0%, #090f0a 50%, #0c0c0a 100%)",
+    gradient:
+      "linear-gradient(180deg, rgba(18,14,38,0.98) 0%, rgba(12,14,28,0.98) 48%, rgba(9,9,16,1) 100%)",
     nodes: ["qa_exchange", "reaction_beat"],
     time: "1:42",
     title: "The audience question that changed everything",
     duration: "18s",
   },
   {
-    gradient: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
+    gradient:
+      "linear-gradient(180deg, rgba(33,15,53,0.98) 0%, rgba(17,10,31,0.98) 44%, rgba(9,9,15,1) 100%)",
     nodes: ["setup_payoff", "reaction_beat"],
     time: "3:05",
     title: "Building tension before the reveal moment",
@@ -56,14 +60,16 @@ const cards: Card[] = [
     featured: true,
   },
   {
-    gradient: "linear-gradient(170deg, #1a1000 0%, #0f0c00 50%, #0a0908 100%)",
+    gradient:
+      "linear-gradient(180deg, rgba(26,14,40,0.98) 0%, rgba(14,10,24,0.98) 50%, rgba(9,9,15,1) 100%)",
     nodes: ["anecdote", "claim"],
     time: "4:28",
     title: "The story behind the original concept",
     duration: "26s",
   },
   {
-    gradient: "linear-gradient(170deg, #1a0a00 0%, #100800 50%, #0c0806 100%)",
+    gradient:
+      "linear-gradient(180deg, rgba(22,11,34,0.98) 0%, rgba(13,10,22,0.98) 48%, rgba(8,8,14,1) 100%)",
     nodes: ["claim", "example"],
     time: "5:51",
     title: "Pushing back on conventional wisdom",
@@ -72,11 +78,11 @@ const cards: Card[] = [
 ];
 
 const cardTransforms = [
-  { tx: -40, ry: 18, rz: -3, s: 0.88 },
-  { tx: -20, ry: 8, rz: -1.5, s: 0.94 },
+  { tx: -34, ry: 18, rz: -3, s: 0.88 },
+  { tx: -16, ry: 8, rz: -1.5, s: 0.94 },
   { tx: 0, ry: 0, rz: 0, s: 1.0 },
-  { tx: 20, ry: -8, rz: 1.5, s: 0.94 },
-  { tx: 40, ry: -18, rz: 3, s: 0.88 },
+  { tx: 16, ry: -8, rz: 1.5, s: 0.94 },
+  { tx: 34, ry: -18, rz: 3, s: 0.88 },
 ];
 
 const staggerOrder = [2, 1, 3, 0, 4];
@@ -175,7 +181,7 @@ const ClipShowcase = () => {
       {/* Card fan */}
       <div
         className="flex justify-center items-center gap-4 mx-auto"
-        style={{ perspective: "1200px", perspectiveOrigin: "50% 60%", maxWidth: 1000 }}
+        style={{ perspective: "1200px", perspectiveOrigin: "50% 60%", maxWidth: 1060 }}
         onMouseLeave={() => setHoveredCard(null)}
       >
         {cards.map((card, i) => {
@@ -196,12 +202,13 @@ const ClipShowcase = () => {
                 borderRadius: 14,
                 overflow: "hidden",
                 border: isCenter
-                  ? "1px solid rgba(167,139,250,0.5)"
-                  : "1px solid rgba(255,255,255,0.12)",
+                  ? "1px solid rgba(216,180,254,0.54)"
+                  : "1px solid rgba(196,181,253,0.22)",
                 boxShadow: isCenter
-                  ? "0 0 60px -8px rgba(167,139,250,0.35), 0 32px 64px rgba(0,0,0,0.6)"
+                  ? "0 0 60px -8px rgba(196,181,253,0.36), 0 32px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)"
                   : "0 32px 64px rgba(0,0,0,0.6)",
                 transformStyle: "preserve-3d",
+                background: "rgba(10,9,15,0.98)",
               }}
               initial={{
                 opacity: 0,
@@ -227,6 +234,25 @@ const ClipShowcase = () => {
               onMouseEnter={() => setHoveredCard(i)}
             >
               <div className="absolute inset-0" style={{ background: card.gradient }} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle at 50% 14%, rgba(196,181,253,0.22) 0%, rgba(167,139,250,0.08) 20%, rgba(10,9,15,0) 48%)",
+                }}
+              />
+              <MetallicSweepShader
+                variant={isCenter ? "card-strong" : "card"}
+                accentColor={isCenter ? "#E9D5FF" : "#C4B5FD"}
+                delayMs={i * 620}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 30%, rgba(10,9,15,0.12) 68%, rgba(6,5,10,0.42) 100%)",
+                }}
+              />
 
               {/* Timestamp */}
               <div
@@ -254,11 +280,12 @@ const ClipShowcase = () => {
               <div
                 className="absolute bottom-2 left-2 right-2 flex flex-col gap-1.5"
                 style={{
-                  background: "rgba(0,0,0,0.7)",
+                  background: "rgba(8,6,16,0.76)",
                   backdropFilter: "blur(4px)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(216,180,254,0.2)",
                   borderRadius: 8,
                   padding: "6px 10px",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                 }}
               >
                 <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
