@@ -15,32 +15,32 @@ type Card = {
 const cards: Card[] = [
   {
     gradient: "linear-gradient(170deg, #12091f 0%, #0a0a14 50%, #14090c 100%)",
-    timestamp: "0:18 - 0:40",
+    timestamp: "1:07 - 1:55",
     title: "Why most editing tools get this wrong",
     videoSrc: "/videos/landing/pete_sg_0008_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #0f1a10 0%, #090f0a 50%, #0c0c0a 100%)",
-    timestamp: "1:42 - 2:00",
+    timestamp: "3:34 - 4:10",
     title: "The audience question that changed everything",
     videoSrc: "/videos/landing/mrbeast_sg_0001_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
-    timestamp: "3:05 - 3:36",
+    timestamp: "1:09:21 - 1:10:42",
     title: "Building tension before the reveal moment",
     videoSrc: "/videos/landing/dwarkesh_sg_0007_cand_01_vertical_rfdetr_karaoke.mp4",
     featured: true,
   },
   {
     gradient: "linear-gradient(170deg, #1a1000 0%, #0f0c00 50%, #0a0908 100%)",
-    timestamp: "4:28 - 4:54",
+    timestamp: "1:36:40 - 1:37:44",
     title: "The story behind the original concept",
     videoSrc: "/videos/landing/dwarkesh_sg_0015_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #1a0a00 0%, #100800 50%, #0c0806 100%)",
-    timestamp: "5:51 - 6:05",
+    timestamp: "11:49 - 12:33",
     title: "Pushing back on conventional wisdom",
     videoSrc: "/videos/landing/pete_sg_0012_cand_01_vertical_rfdetr_karaoke.mp4",
   },
