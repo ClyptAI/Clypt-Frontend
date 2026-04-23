@@ -1,15 +1,23 @@
-# Demo videos
+# Video assets
 
-This folder is the local-only home for the demo video binaries. The files are
-**not** tracked in git — they're too large and they belong to specific devs.
+This folder holds two different kinds of media:
 
-## What goes here
+1. the large root demo run video (`public/videos/joeroganflagrant.mp4`), which stays local-only
+2. the smaller landing clips in `public/videos/landing/`, which are tracked in git and ship with the repo
+
+## What lives here
 
 | Filename | Used by | Where it's referenced |
 |----------|---------|-----------------------|
 | `joeroganflagrant.mp4` | The seeded `demo` run on `/runs/demo/timeline`, `ClipBoundaryEditor` default, `RunGrounding` background, `RunRender` preview | `src/pages/RunTimeline.tsx`, `src/pages/RunGrounding.tsx`, `src/pages/RunRender.tsx`, `src/components/app/ClipBoundaryEditor.tsx`, `src/mocks/api.ts` |
+| `landing/*.mp4` | Landing hero clip chips + lower clip showcase cards | `src/components/landing/HeroFragments/index.tsx`, `src/components/landing/ClipShowcase.tsx` |
 
-## How to set this up on a fresh checkout
+Related tracked assets:
+
+- `public/images/landing-posters/` — paused-state poster frames for the 8 landing clips
+- `public/images/hero/` — still images used by the hero timeline/grounded fragments
+
+## Root demo video setup on a fresh checkout
 
 1. Get a copy of `joeroganflagrant.mp4` (ask a teammate, or download from
    wherever the team is hosting demo assets).
@@ -20,7 +28,9 @@ If the video preview is **black**, you almost certainly forgot this step. The
 HTML5 `<video>` element silently shows a black frame when the source is
 missing or unreadable.
 
-## Why this is gitignored
+The landing clips do **not** need any manual setup — they are repo-owned assets and should be committed whenever the landing depends on them.
+
+## Why only the root demo video is gitignored
 
 `.mp4` files are large (the joe rogan demo is ~125 MB). Putting them in git
 would balloon the repo permanently — every clone, every CI run, every
@@ -31,6 +41,9 @@ checkout would have to pull them. The gitignore rule lives in the repo root
 public/videos/*.mp4
 !public/videos/.gitkeep
 ```
+
+That rule only covers root-level files in `public/videos/`. It does **not**
+ignore `public/videos/landing/*.mp4`, so the landing clips remain tracked.
 
 The `.gitkeep` exception is there so the empty folder still exists on a
 fresh clone — otherwise git wouldn't track the directory at all.

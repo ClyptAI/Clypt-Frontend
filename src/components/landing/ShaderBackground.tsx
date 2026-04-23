@@ -21,6 +21,7 @@ export type ShaderVariant =
   | "how-it-works"
   | "pipeline-cool"
   | "pipeline-warm"
+  | "pipeline-deep"
   | "showcase"
   | "try-it"
   | "onboard-aurora"
@@ -104,14 +105,14 @@ const ShaderBackground = ({
       return (
         <div aria-hidden className={className} style={baseStyle}>
           <MeshGradient
-            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            colors={[BG, VIOLET_DIM, VIOLET_DEEP, "#5B21B6", "#1a1035"]}
             distortion={0.9}
             swirl={0.6}
-            speed={0.35}
+            speed={0.32}
             style={fillStyle}
           />
           <Overlay
-            background="linear-gradient(180deg, rgba(10,9,9,0.3) 0%, rgba(10,9,9,0.45) 100%)"
+            background="linear-gradient(180deg, rgba(10,9,9,0.32) 0%, rgba(10,9,9,0.42) 100%)"
           />
         </div>
       );
@@ -146,7 +147,6 @@ const ShaderBackground = ({
             speed={0.18}
             style={{ ...fillStyle, opacity: 0.6 * opacityScale }}
           />
-          <Overlay background="linear-gradient(180deg, #0A0909 0%, transparent 18%, transparent 82%, #0A0909 100%)" />
           <Overlay background="rgba(10,9,9,0.45)" />
         </div>
       );
@@ -162,8 +162,38 @@ const ShaderBackground = ({
             speed={0.2}
             style={{ ...fillStyle, opacity: 0.55 * opacityScale }}
           />
-          <Overlay background="linear-gradient(180deg, #0A0909 0%, transparent 18%, transparent 82%, #0A0909 100%)" />
           <Overlay background="rgba(10,9,9,0.5)" />
+        </div>
+      );
+    }
+
+    case "pipeline-deep": {
+      return (
+        <div aria-hidden className={className} style={baseStyle}>
+          <MeshGradient
+            colors={[BG, BG, "#1a1035", "#2A1758", "#A78BFA"]}
+            distortion={0.85}
+            swirl={0.5}
+            speed={0.18}
+            style={{ ...fillStyle, opacity: 0.65 * opacityScale }}
+          />
+          <GrainGradient
+            colors={["#A78BFA", "#7C5CD9"]}
+            colorBack="#00000000"
+            softness={0.9}
+            intensity={0.2}
+            noise={0.4}
+            speed={0.18}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              mixBlendMode: "screen",
+              opacity: 0.22 * opacityScale,
+            }}
+          />
+          <Overlay background="radial-gradient(ellipse 90% 70% at 50% 50%, transparent 20%, rgba(10,9,9,0.7) 100%)" />
         </div>
       );
     }

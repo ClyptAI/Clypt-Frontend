@@ -150,7 +150,7 @@ Resolution:
 - Added `public/videos/*.mp4` + `!public/videos/.gitkeep` to `.gitignore`.
 - Added `public/videos/.gitkeep` so the empty folder still ships.
 - Added `public/videos/README.md` documenting the convention, the fresh-checkout setup, and the symlink history (so nobody re-commits one).
-- Locally: copied the real ~125 MB mp4 from `~/Downloads/` into `public/videos/`. Each dev now keeps their own copy.
+- At that point: copied the real ~125 MB mp4 from a local download into `public/videos/`. Today the large root demo file is still local-only, but the landing-specific clips/posters now live in tracked repo paths under `public/videos/landing/` and `public/images/landing-posters/`.
 
 ### 9.3 `1db1584` — `feat(grounding): manual bounding box editor with per-shot drag/resize/add/delete`
 

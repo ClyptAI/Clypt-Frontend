@@ -1,6 +1,8 @@
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const Footer = () => {
+  const scrollTop = () =>
+    window.scrollTo({ top: 0, behavior: "smooth" });
   return (
     <footer
       style={{
@@ -9,7 +11,21 @@ const Footer = () => {
       }}
     >
       <div className="flex items-center justify-between max-w-[1100px] mx-auto">
-        <ClyptLogo size="lg" />
+        <button
+          onClick={scrollTop}
+          aria-label="Scroll to top"
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            transformOrigin: "left center",
+            transition: "transform 120ms ease",
+          }}
+          className="active:scale-[0.97]"
+        >
+          <ClyptLogo size="lg" />
+        </button>
         <div className="flex items-center gap-6 font-sans" style={{ fontSize: 13 }}>
           <a
             href="#"

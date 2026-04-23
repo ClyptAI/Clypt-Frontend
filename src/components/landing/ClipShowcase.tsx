@@ -4,71 +4,45 @@ import ShaderBackground from "./ShaderBackground";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
-const signalColors: Record<string, string> = {
-  claim: "#A78BFA",
-  qa_exchange: "#60A5FA",
-  setup_payoff: "#FBB249",
-  anecdote: "#F0A64A",
-  reaction_beat: "#F87171",
-  explanation: "#7DD3FC",
-  example: "#4ADE80",
-};
-
-const nodeDisplay: Record<string, string> = {
-  claim: "claim",
-  qa_exchange: "Q&A",
-  setup_payoff: "payoff",
-  anecdote: "anecdote",
-  reaction_beat: "reaction",
-  explanation: "explain",
-  example: "example",
-};
-
 type Card = {
   gradient: string;
-  nodes: string[];
-  time: string;
+  timestamp: string;
   title: string;
-  duration: string;
+  videoSrc: string;
   featured?: boolean;
 };
 
 const cards: Card[] = [
   {
     gradient: "linear-gradient(170deg, #12091f 0%, #0a0a14 50%, #14090c 100%)",
-    nodes: ["claim", "explanation"],
-    time: "0:18",
+    timestamp: "0:18 - 0:40",
     title: "Why most editing tools get this wrong",
-    duration: "22s",
+    videoSrc: "/videos/landing/pete_sg_0008_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #0f1a10 0%, #090f0a 50%, #0c0c0a 100%)",
-    nodes: ["qa_exchange", "reaction_beat"],
-    time: "1:42",
+    timestamp: "1:42 - 2:00",
     title: "The audience question that changed everything",
-    duration: "18s",
+    videoSrc: "/videos/landing/mrbeast_sg_0001_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #1a0f28 0%, #0d0a1a 40%, #0a0a12 100%)",
-    nodes: ["setup_payoff", "reaction_beat"],
-    time: "3:05",
+    timestamp: "3:05 - 3:36",
     title: "Building tension before the reveal moment",
-    duration: "31s",
+    videoSrc: "/videos/landing/dwarkesh_sg_0007_cand_01_vertical_rfdetr_karaoke.mp4",
     featured: true,
   },
   {
     gradient: "linear-gradient(170deg, #1a1000 0%, #0f0c00 50%, #0a0908 100%)",
-    nodes: ["anecdote", "claim"],
-    time: "4:28",
+    timestamp: "4:28 - 4:54",
     title: "The story behind the original concept",
-    duration: "26s",
+    videoSrc: "/videos/landing/dwarkesh_sg_0015_cand_01_vertical_rfdetr_karaoke.mp4",
   },
   {
     gradient: "linear-gradient(170deg, #1a0a00 0%, #100800 50%, #0c0806 100%)",
-    nodes: ["claim", "example"],
-    time: "5:51",
+    timestamp: "5:51 - 6:05",
     title: "Pushing back on conventional wisdom",
-    duration: "14s",
+    videoSrc: "/videos/landing/pete_sg_0012_cand_01_vertical_rfdetr_karaoke.mp4",
   },
 ];
 
@@ -143,6 +117,36 @@ const AnimatedCounter = ({
 
 const ClipShowcase = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [activeCard, setActiveCard] = useState<number | null>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+
+  const resetVideo = (video: HTMLVideoElement | null) => {
+    if (!video) return;
+    video.pause();
+    video.muted = true;
+    try {
+      video.currentTime = 0;
+    } catch {
+      // Ignore reset failures while metadata is still loading.
+    }
+  };
+
+  useEffect(() => {
+    videoRefs.current.forEach((video, index) => {
+      if (!video) return;
+
+      const shouldPlay = activeCard === index && hoveredCard === index;
+      video.muted = !shouldPlay;
+      if (shouldPlay) {
+        void video.play().catch(() => {
+          setActiveCard((current) => (current === index ? null : current));
+        });
+        return;
+      }
+
+      video.pause();
+    });
+  }, [activeCard, hoveredCard]);
 
   return (
     <section
@@ -182,25 +186,34 @@ const ClipShowcase = () => {
       <div
         className="flex justify-center items-center gap-4 mx-auto content-layer"
         style={{ perspective: "1200px", perspectiveOrigin: "50% 60%", maxWidth: 1000 }}
-        onMouseLeave={() => setHoveredCard(null)}
+        onMouseLeave={() => {
+          videoRefs.current.forEach((video) => resetVideo(video));
+          setHoveredCard(null);
+          setActiveCard(null);
+        }}
       >
         {cards.map((card, i) => {
           const t = cardTransforms[i];
           const isCenter = i === 2;
           const isHovered = hoveredCard === i;
+          const isPlaying = activeCard === i && isHovered;
           const someHovered = hoveredCard !== null;
           const orderIdx = staggerOrder.indexOf(i);
+          const posterSrc = card.videoSrc.replace("/videos/landing/", "/images/landing-posters/").replace(/\.mp4$/, ".jpg");
 
           return (
             <motion.div
               key={i}
               data-cursor={card.featured ? "play" : undefined}
               className="relative flex-shrink-0"
+              role="button"
+              tabIndex={0}
+              aria-label={`Play clip preview: ${card.title}`}
               style={{
                 width: 160,
                 aspectRatio: "9/16",
                 borderRadius: 14,
-                overflow: "hidden",
+                overflow: "visible",
                 border: isCenter
                   ? "1px solid rgba(167,139,250,0.5)"
                   : "1px solid rgba(255,255,255,0.12)",
@@ -208,6 +221,9 @@ const ClipShowcase = () => {
                   ? "0 0 60px -8px rgba(167,139,250,0.35), 0 32px 64px rgba(0,0,0,0.6)"
                   : "0 32px 64px rgba(0,0,0,0.6)",
                 transformStyle: "preserve-3d",
+                cursor: "pointer",
+                outline: "none",
+                WebkitTapHighlightColor: "transparent",
               }}
               initial={{
                 opacity: 0,
@@ -231,62 +247,68 @@ const ClipShowcase = () => {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.9, ease, delay: orderIdx * 0.07 }}
               onMouseEnter={() => setHoveredCard(i)}
+              onMouseLeave={() => {
+                resetVideo(videoRefs.current[i]);
+                setHoveredCard((current) => (current === i ? null : current));
+                setActiveCard((current) => (current === i ? null : current));
+              }}
+              onClick={() => setActiveCard((current) => (current === i ? null : i))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveCard((current) => (current === i ? null : i));
+                }
+              }}
             >
-              <div className="absolute inset-0" style={{ background: card.gradient }} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  clipPath: "inset(0 round 14px)",
+                  transform: "translateZ(0)",
+                  WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+                }}
+              >
+                <div className="absolute inset-0" style={{ background: card.gradient }} />
+                <video
+                  ref={(element) => {
+                    videoRefs.current[i] = element;
+                  }}
+                  src={card.videoSrc}
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ pointerEvents: "none", borderRadius: 14 }}
+                />
+                {!isPlaying ? (
+                  <img
+                    src={posterSrc}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ pointerEvents: "none", borderRadius: 14 }}
+                  />
+                ) : null}
+              </div>
 
               {/* Timestamp */}
               <div
                 className="absolute font-mono"
                 style={{
                   top: 8,
-                  right: 8,
+                  left: 8,
                   fontSize: 9,
-                  color: "rgba(255,255,255,0.5)",
-                  background: "rgba(0,0,0,0.5)",
-                  padding: "2px 5px",
-                  borderRadius: 3,
+                  color: "rgba(255,255,255,0.85)",
+                  background: "rgba(10,9,9,0.65)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  letterSpacing: "0.06em",
+                  backdropFilter: "blur(6px)",
                 }}
               >
-                {card.time}
-              </div>
-
-              {/* Bottom gradient */}
-              <div
-                className="absolute bottom-0 left-0 right-0"
-                style={{ height: "50%", background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)" }}
-              />
-
-              {/* Composition tag — node chips + clip title */}
-              <div
-                className="absolute bottom-2 left-2 right-2 flex flex-col gap-1.5"
-                style={{
-                  background: "rgba(0,0,0,0.7)",
-                  backdropFilter: "blur(4px)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 8,
-                  padding: "6px 10px",
-                }}
-              >
-                <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
-                  {card.nodes.map((n, ni) => (
-                    <div key={ni} className="flex items-center gap-1">
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: signalColors[n] || "#A78BFA",
-                        }}
-                      />
-                      <span className="font-mono" style={{ fontSize: 9, color: "rgba(255,255,255,0.7)" }}>
-                        {nodeDisplay[n] ?? n}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <span className="font-sans font-medium" style={{ fontSize: 12, color: "#fff", lineHeight: 1.25 }}>
-                  {card.title}
-                </span>
+                {card.timestamp}
               </div>
             </motion.div>
           );

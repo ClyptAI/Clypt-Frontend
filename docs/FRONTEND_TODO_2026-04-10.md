@@ -58,11 +58,11 @@ There **is** an `onboarding-store.ts` ([src/stores/onboarding-store.ts](../src/s
 - [SettingsProfile.tsx](../src/pages/SettingsProfile.tsx) — Name and email default to "Rithvik" / "rithvik@example.com" with no save path.
 - [SettingsVoiceprints.tsx](../src/pages/SettingsVoiceprints.tsx) — reads a `MOCK` array, no add/edit persistence.
 
-### 2.5 Auth is non-functional
+### 2.5 Auth is still mock-only
 
 **Where:** [Login.tsx](../src/pages/Login.tsx), [Signup.tsx](../src/pages/Signup.tsx)
 
-No backend wired. The forms render and the Google button does nothing. There **is** an `auth-store.ts` ([src/stores/auth-store.ts](../src/stores/auth-store.ts)) but the form submit handlers aren't connected.
+No real backend is wired yet, but the forms are now connected to the local `auth-store.ts` ([src/stores/auth-store.ts](../src/stores/auth-store.ts)). Email/password and Google actions drive the mock auth flow and route into the app/onboarding correctly. The remaining gap is real authentication, not dead UI wiring.
 
 ---
 

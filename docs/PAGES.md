@@ -10,21 +10,21 @@ Detailed reference for every page in the application.
 - **Route:** `/`
 - **Layout:** Standalone (no sidebar)
 - **Sections:** `Navbar` → `Hero` → `HowItWorks` → `PipelineDemos` (6 demo cards) → `ClipShowcase` → `TryItBar` → `Footer`
-- **Features:** `CustomCursor` (animated cursor follower), Framer Motion scroll-based animations, `WaveformBand` hero decoration
-- **Mock data:** None (purely visual)
+- **Features:** `CustomCursor` (animated cursor follower), `ShaderBackground` section treatments, floating `HeroFragments`, Framer Motion scroll-based animations, interactive clip cards with timestamp-only overlays. The hero and lower showcase cards use tracked assets from `public/videos/landing/`, `public/images/landing-posters/`, and `public/images/hero/`.
+- **Mock data:** Visual-only outer marketing copy; the phase preview internals mirror the seeded Joe Rogan × Flagrant demo surfaces used inside the app.
 - **Notes:** "See a demo" link in `Hero` is a React Router `<Link to="/runs/demo/timeline">` — drops the user straight into the seeded demo run's timeline editor.
 
 ### Login — `Login.tsx`
 - **Route:** `/login`
 - **Layout:** `AuthLayout` (split: graph left, form right)
-- **Features:** Email/password fields, "Sign in with Google" button, link to signup
-- **Mock data:** None (form is non-functional — no auth backend)
+- **Features:** `AuthInput` fields, "Sign in with Google" button, forgot-password tooltip, link to signup, animated shader-backed brand panel on the left
+- **Mock data:** Uses the local `auth-store` mock auth flow; successful submit routes to `/library`
 
 ### Signup — `Signup.tsx`
 - **Route:** `/signup`
 - **Layout:** `AuthLayout` (same as login)
-- **Features:** Name, email, password fields, Google OAuth button, link to login
-- **Mock data:** None
+- **Features:** Name/email/password fields, Google OAuth button, password-length validation, link to login
+- **Mock data:** Uses the local `auth-store` mock signup flow; successful submit routes to `/onboard/channel`
 
 ---
 

@@ -28,7 +28,7 @@ It is designed to make Clypt’s reasoning visible instead of hiding everything 
 
 ### Landing experience
 
-The landing page introduces the product, the knowledge-graph concept, and the creator workflow in a more cinematic, demo-forward way.
+The landing page introduces the product through a cinematic hero, floating product fragments, shader-backed phase previews, and real clip cards that play repo-owned landing media on interaction.
 
 ![Clypt landing page](docs/readme-assets/frontend-landing-2026-04.png)
 
@@ -131,12 +131,20 @@ The frontend defaults to a realistic mock mode so the UI can be developed and de
 
 That means you can boot the app and immediately browse a working demo run such as `/runs/demo`.
 
+## Media Assets
+
+- tracked landing media lives in `public/videos/landing/`, `public/images/landing-posters/`, and `public/images/hero/`
+- the large seeded demo run video at `public/videos/joeroganflagrant.mp4` is still local-only on purpose
+- setup notes for that root demo video live in [public/videos/README.md](public/videos/README.md)
+
 ## Repository Map
 
 ```text
 src/App.tsx                         App providers and route tree
 src/pages/                          Route-level pages
 src/components/landing/            Marketing site sections
+src/components/landing/HeroFragments/ Floating hero media cards and mini product fragments
+src/components/landing/previews/   Full-width landing phase preview mocks
 src/components/graph/              Cortex graph nodes, edges, controls, inspector
 src/components/timeline/           Video player and timeline surfaces
 src/components/embeds/             Search, scatterplot, and embedding inspection UI
@@ -146,6 +154,9 @@ src/lib/api.ts                     Typed backend/mock API wrappers
 src/mocks/                         In-memory mock backend and lifecycle simulation
 src/stores/                        Zustand stores
 src/types/clypt.ts                 Frontend types aligned to backend models
+public/videos/landing/             Tracked landing clip media
+public/images/landing-posters/     Landing poster thumbnails for paused cards
+public/images/hero/                Hero fragment still images
 docs/                              Architecture, pages, components, styling, evals, error log
 ```
 
