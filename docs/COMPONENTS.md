@@ -21,7 +21,8 @@ Complete inventory of all components grouped by domain.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `AuthLayout` | `AuthLayout.tsx` | Split layout for login/signup. Left side: embedded React Flow graph (using `ClyptNode` + `ClyptEdge`) with logo, testimonial, and copyright overlays (all `pointer-events: none` to allow graph interaction). Right side: form slot via `children`. |
+| `AuthLayout` | `AuthLayout.tsx` | Split layout for login/signup. Left side: embedded React Flow graph (using `ClyptNode` + `ClyptEdge`) over a `ShaderBackground`, plus logo, testimonial, and copyright overlays. Right side: dark form panel slot via `children`. |
+| `AuthInput` | `AuthInput.tsx` | Auth-form input with explicit focus border/glow transitions, dark glass styling, and no `transition: all`. |
 | `GoogleIcon` | `GoogleIcon.tsx` | Google "G" SVG icon for OAuth button. |
 
 ## `src/components/embeds/` — Embedding Visualization & Search
@@ -54,9 +55,9 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `Navbar` | `Navbar.tsx` | Top nav with logo, links, login/signup buttons. |
-| `Hero` | `Hero.tsx` | Hero section with headline, "See a demo" Link (React Router → `/runs/demo/timeline`), waveform animation. |
-| `HowItWorks` | `HowItWorks.tsx` | Step-by-step pipeline explanation. |
-| `PipelineDemos` | `PipelineDemos.tsx` | Orchestrator for the six demo cards. |
+| `Hero` | `Hero.tsx` | Landing hero with layered `ShaderBackground`, animated two-line headline, CTA pair, and floating `HeroFragments` around the copy column. |
+| `HowItWorks` | `HowItWorks.tsx` | Six-phase overview grid with click-to-scroll cards that jump to the matching landing preview section. |
+| `PipelineDemos` | `PipelineDemos.tsx` | Orchestrator for the six landing phase sections. Outer copy stays general-marketing; the embedded previews carry the Joe Rogan × Flagrant demo internals. |
 | `LandingTimelineDemo` | `LandingTimelineDemo.tsx` | Animated timeline mockup. |
 | `LandingGraphDemo` | `LandingGraphDemo.tsx` | Embedded React Flow graph using `ClyptNode` + `ClyptEdge`. Mounts lazily via `IntersectionObserver`. Hover state is managed in a `LandingHoverCtx.Provider` that wraps `<ReactFlow>` — the `nodes` and `edges` props are static constants so React Flow never remounts its wrapper divs on hover. RAF-debounced `onHoverLeave` guards against residual same-frame spurious leave events. |
 | `LandingHoverCtx` | `LandingHoverCtx.ts` | React Context that delivers `{hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave}` to `ClyptNode` and `ClyptEdge` inside `LandingGraphDemo` without touching React Flow's data pipeline. |
@@ -64,7 +65,7 @@ Complete inventory of all components grouped by domain.
 | `LandingEmbeddingDemo` | `LandingEmbeddingDemo.tsx` | Scatter plot mockup. |
 | `LandingClipDemo` | `LandingClipDemo.tsx` | Clip candidate card. |
 | `LandingParticipationDemo` | `LandingParticipationDemo.tsx` | Speaker participation visualization. |
-| `ClipShowcase` | `ClipShowcase.tsx` | Showcase section for clip examples. |
+| `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses tracked MP4s plus poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
 | `Features` | `Features.tsx` | Feature grid. |
 | `TryItBar` | `TryItBar.tsx` | CTA bar with URL input. |
 | `Footer` | `Footer.tsx` | Page footer. |
@@ -72,6 +73,9 @@ Complete inventory of all components grouped by domain.
 | `WaveformBand` | `WaveformBand.tsx` | Animated waveform decoration for hero. |
 | `DemoCardShell` | `DemoCardShell.tsx` | Shared card wrapper for demo components. |
 | `DemoSectionLayout` | `DemoSectionLayout.tsx` | Layout wrapper for demo sections. |
+| `ShaderBackground` | `ShaderBackground.tsx` | Section-level Paper Design shader wrapper. Variant-based effect library with reduced-motion static fallbacks for hero, auth, how-it-works, pipeline, showcase, CTA, and onboarding surfaces. |
+| `HeroFragments/*` | `HeroFragments/` | Floating mini product cards around the hero: cortex, timeline, grounded crop, and three real clip chips backed by tracked landing media. |
+| `previews/*` | `previews/` | Full landing phase preview surfaces (`LandingTimelinePreview`, `LandingSearchPreview`, `LandingGroundingPreview`, `LandingRenderPreview`) wrapped in `AppFrameMock` so each section previews a real in-app workspace pane. |
 
 ## `src/components/onboarding/` — Onboarding
 

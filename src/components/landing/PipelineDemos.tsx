@@ -1,10 +1,10 @@
 import DemoSectionLayout from "./DemoSectionLayout";
-import LandingTimelineDemo from "./LandingTimelineDemo";
-import LandingNodeDemo from "./LandingNodeDemo";
 import LandingGraphDemo from "./LandingGraphDemo";
-import LandingEmbeddingDemo from "./LandingEmbeddingDemo";
-import LandingParticipationDemo from "./LandingParticipationDemo";
-import LandingClipDemo from "./LandingClipDemo";
+import LandingTimelinePreview from "./previews/LandingTimelinePreview";
+import LandingSearchPreview from "./previews/LandingSearchPreview";
+import LandingGroundingPreview from "./previews/LandingGroundingPreview";
+import LandingRenderPreview from "./previews/LandingRenderPreview";
+import ShaderBackground from "./ShaderBackground";
 import { TrendingUp, MessageSquare, BarChart2, Check } from "lucide-react";
 
 const mono = "'Geist Mono', monospace";
@@ -44,12 +44,17 @@ const typePills = [
 
 export default function PipelineDemos() {
   return (
-    <>
+    <div style={{ position: "relative", isolation: "isolate" }}>
+      {/* Single continuous shader spanning all phase sections */}
+      <ShaderBackground
+        variant="pipeline-deep"
+        intensity="normal"
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+      />
       {/* Section 1 — Timeline */}
       <DemoSectionLayout
         id="phase-01"
         layout="odd"
-        shader="pipeline-cool"
         copy={
           <>
             <Overline>PHASE 01 · TIMELINE FOUNDATION</Overline>
@@ -75,37 +80,21 @@ export default function PipelineDemos() {
             </div>
           </>
         }
-        ui={<LandingTimelineDemo />}
+        ui={<LandingTimelinePreview />}
       />
 
-      {/* Section 2 — Node */}
+      {/* Section 2/3 — Node + Graph (merged, full-width) */}
       <DemoSectionLayout
-        id="phase-02"
-        layout="even"
-        shader="pipeline-cool"
-        copy={
-          <>
-            <Overline>PHASE 02 · NODE CONSTRUCTION</Overline>
-            <Heading>Every moment, labeled.</Heading>
-            <Subtext>Your video gets broken into moments — a claim, a reaction, a payoff — each one tagged with who said it, when it happened, and how strong the signal is. You stop scrubbing and start pointing.</Subtext>
-          </>
-        }
-        ui={<LandingNodeDemo />}
-      />
-
-      {/* Section 3 — Graph (full-width) */}
-      <DemoSectionLayout
-        id="phase-03"
+        id="phase-02-03"
         layout="full"
-        shader="pipeline-warm"
         copy={
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
-            <Overline>PHASE 03 · GRAPH CONSTRUCTION</Overline>
+            <Overline>PHASE 02 / 03 · NODES & GRAPH</Overline>
             <h3 style={{ fontFamily: brico, fontWeight: 700, fontSize: 48, color: "white", lineHeight: 1.15, margin: 0 }}>
-              See the connections your video is built on.
+              Every moment, labeled — and connected.
             </h3>
             <p style={{ fontFamily: jakarta, fontSize: 17, color: "rgba(255,255,255,0.6)", lineHeight: 1.65, marginTop: 16 }}>
-              A claim supporting an anecdote. A question answered three minutes later. A callback to the setup from ten minutes ago. Clypt pulls every one of these connections into a graph — so you see the shape of your video, not just the timeline.
+              Your video gets broken into moments — a claim, a reaction, a payoff — each one tagged with who said it and how strong the signal is. Then Clypt connects them: a claim supporting an anecdote, a question answered three minutes later, a callback to the setup from ten minutes ago. The shape of your video, not just the timeline.
             </p>
           </div>
         }
@@ -116,7 +105,6 @@ export default function PipelineDemos() {
       <DemoSectionLayout
         id="phase-04"
         layout="even"
-        shader="pipeline-cool"
         copy={
           <>
             <Overline>PHASE 04 · CANDIDATE RETRIEVAL</Overline>
@@ -148,24 +136,23 @@ export default function PipelineDemos() {
             </div>
           </>
         }
-        ui={<LandingEmbeddingDemo />}
+        ui={<LandingSearchPreview />}
       />
 
       {/* Section 5 — Participation */}
       <DemoSectionLayout
         id="phase-05"
         layout="odd"
-        shader="pipeline-warm"
         copy={
           <>
             <Overline>PHASE 05 · PARTICIPATION GROUNDING</Overline>
-            <Heading>The camera knows who to follow.</Heading>
-            <Subtext>Clypt maps which speakers appear in each shot and assigns camera direction — so every clip frames the right person at the right moment, automatically.</Subtext>
+            <Heading>You choose who to follow.</Heading>
+            <Subtext>Clypt lets you map which speakers appear in each shot and assign camera direction, so every clip frames the right person at the right moment.</Subtext>
             <div style={{ display: "flex", gap: 16, marginTop: 32 }}>
               {[
-                { letter: "A", name: "Alex", shots: 2, color: "#A78BFA", bg: "rgba(167,139,250,0.2)" },
-                { letter: "B", name: "Jordan", shots: 2, color: "#FBB249", bg: "rgba(251,178,73,0.2)" },
-                { letter: "C", name: "Sam", shots: 2, color: "#60A5FA", bg: "rgba(96,165,250,0.2)" },
+                { letter: "A", name: "Joe", shots: 2, color: "#A78BFA", bg: "rgba(167,139,250,0.2)" },
+                { letter: "B", name: "Andrew", shots: 2, color: "#FBB249", bg: "rgba(251,178,73,0.2)" },
+                { letter: "C", name: "Akaash", shots: 2, color: "#60A5FA", bg: "rgba(96,165,250,0.2)" },
               ].map((s) => (
                 <div key={s.letter} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div
@@ -191,14 +178,13 @@ export default function PipelineDemos() {
             </div>
           </>
         }
-        ui={<LandingParticipationDemo />}
+        ui={<LandingGroundingPreview />}
       />
 
       {/* Section 6 — Clip */}
       <DemoSectionLayout
         id="phase-06"
         layout="even"
-        shader="pipeline-warm"
         copy={
           <>
             <Overline>PHASE 06 · CLIP RENDERING</Overline>
@@ -233,8 +219,8 @@ export default function PipelineDemos() {
             </div>
           </>
         }
-        ui={<LandingClipDemo />}
+        ui={<LandingRenderPreview />}
       />
-    </>
+    </div>
   );
 }

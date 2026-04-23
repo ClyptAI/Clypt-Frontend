@@ -3,9 +3,9 @@ import { motion, useInView } from "framer-motion";
 import DemoCardShell from "./DemoCardShell";
 
 const speakers = [
-  { letter: "A", name: "Alex", color: "#A78BFA", bg: "rgba(167,139,250,0.18)", border: "rgba(167,139,250,0.4)", cellBg: "rgba(167,139,250,0.15)", cellBorder: "rgba(167,139,250,0.3)" },
-  { letter: "B", name: "Jordan", color: "#FBB249", bg: "rgba(251,178,73,0.15)", border: "rgba(251,178,73,0.35)", cellBg: "rgba(251,178,73,0.15)", cellBorder: "rgba(251,178,73,0.3)" },
-  { letter: "C", name: "Sam", color: "#60A5FA", bg: "rgba(96,165,250,0.15)", border: "rgba(96,165,250,0.35)", cellBg: "rgba(96,165,250,0.15)", cellBorder: "rgba(96,165,250,0.3)" },
+  { letter: "A", name: "Joe", color: "#A78BFA", bg: "rgba(167,139,250,0.18)", border: "rgba(167,139,250,0.4)", cellBg: "rgba(167,139,250,0.15)", cellBorder: "rgba(167,139,250,0.3)" },
+  { letter: "B", name: "Andrew", color: "#FBB249", bg: "rgba(251,178,73,0.15)", border: "rgba(251,178,73,0.35)", cellBg: "rgba(251,178,73,0.15)", cellBorder: "rgba(251,178,73,0.3)" },
+  { letter: "C", name: "Akaash", color: "#60A5FA", bg: "rgba(96,165,250,0.15)", border: "rgba(96,165,250,0.35)", cellBg: "rgba(96,165,250,0.15)", cellBorder: "rgba(96,165,250,0.3)" },
 ];
 
 // Participation map: [A, B, C] for each shot

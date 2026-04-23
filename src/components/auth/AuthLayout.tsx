@@ -86,7 +86,7 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
         style={{ background: "#0A0909", borderRight: "1px solid var(--color-border)" }}
       >
         {/* Animated shader behind everything in the brand panel */}
-        <ShaderBackground variant="auth" className="shader-layer" />
+        <ShaderBackground variant="auth" className="shader-layer" style={{ zIndex: 0 }} />
 
         {/* React Flow graph background */}
         <div
@@ -148,9 +148,19 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="w-[60%] flex items-center justify-center" style={{ backgroundColor: "#F4F1EE" }}>
-        <div className="w-[380px] flex flex-col gap-6">{children}</div>
+      {/* Right panel — dark to match the product, frosted glass card */}
+      <div
+        className="w-[60%] flex items-center justify-center relative"
+        style={{
+          backgroundColor: "#0E0C12",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 60% at 70% 20%, rgba(167,139,250,0.08), transparent 60%), radial-gradient(ellipse 60% 60% at 30% 90%, rgba(34,211,238,0.05), transparent 60%)",
+          animation: "fadeIn 300ms ease-out both",
+        }}
+      >
+        <div className="w-[400px] flex flex-col gap-6">
+          {children}
+        </div>
       </div>
     </div>
   );
