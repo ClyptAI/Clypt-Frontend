@@ -39,7 +39,7 @@ interface GeneratedClip {
 }
 
 const analysisScanDuration = 1250;
-const graphPreviewDuration = 2000;
+const graphPreviewDuration = 1500;
 const rankingLiftDuration = 1800;
 
 const phaseTimeline: Array<{ phase: HeroPhase; duration: number }> = [
@@ -306,8 +306,9 @@ const edgeTypes = {
 
 const stageWidth = 1152;
 const stageHeight = 1100;
-const graphTop = 252;
+const graphTop = 262;
 const graphHeight = 500;
+const graphHorizontalBleed = 150;
 
 function useSequencedPhase(reducedMotion: boolean | null): HeroPhase {
   const [phase, setPhase] = useState<HeroPhase>(reducedMotion ? "settled" : "idle");
@@ -531,7 +532,7 @@ function HeroSemanticGraph({ phase }: { phase: HeroPhase }) {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.14 }}
+        fitViewOptions={{ padding: 0.08 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
@@ -666,15 +667,18 @@ export default function ClyptHeroAnimation({ className = "" }: { className?: str
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none relative z-20 isolate mx-auto w-full overflow-visible [--hero-animation-scale:0.27] sm:[--hero-animation-scale:0.41] lg:[--hero-animation-scale:0.48] xl:[--hero-animation-scale:0.54] 2xl:[--hero-animation-scale:0.6] ${className}`}
+      className={`pointer-events-none relative z-20 isolate mx-auto w-full overflow-visible [--hero-animation-scale:0.31] sm:[--hero-animation-scale:0.47] lg:[--hero-animation-scale:0.56] xl:[--hero-animation-scale:0.63] 2xl:[--hero-animation-scale:0.7] ${className}`}
       style={{
         maxWidth: `calc(${stageWidth}px * var(--hero-animation-scale))`,
         height: `calc(${stageHeight}px * var(--hero-animation-scale))`,
+        transform: "translateY(18px)",
       }}
     >
       <div
-        className="pointer-events-none absolute left-0 z-20 w-full transition-all duration-700"
+        className="pointer-events-none absolute z-20 transition-all duration-700"
         style={{
+          left: `calc(-${graphHorizontalBleed}px * var(--hero-animation-scale))`,
+          width: `calc(100% + ${graphHorizontalBleed * 2}px * var(--hero-animation-scale))`,
           top: `calc(${graphTop}px * var(--hero-animation-scale))`,
           height: `calc(${graphHeight}px * var(--hero-animation-scale))`,
         }}

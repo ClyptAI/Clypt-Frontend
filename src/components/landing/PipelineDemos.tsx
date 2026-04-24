@@ -85,7 +85,7 @@ const phases = [
     ),
     ui: <LandingGraphDemo />,
     compact: true,
-    rightBleed: 144,
+    rightBleed: 240,
   },
   {
     id: "phase-04",
@@ -312,7 +312,7 @@ export default function PipelineDemos() {
                   width: rightBleed > 0 ? `calc(100% + ${rightBleed}px)` : "100%",
                   marginRight: rightBleed > 0 ? -rightBleed : 0,
                   transformOrigin: rightBleed > 0 ? "left center" : "center",
-                  scale: phase.compact ? 0.97 : 1,
+                  scale: 1,
                 }}
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}

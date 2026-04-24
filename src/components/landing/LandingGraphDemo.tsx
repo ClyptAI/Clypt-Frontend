@@ -19,6 +19,10 @@ const TYPE_STYLES: Record<string, { pillBg: string; pillText: string }> = {
 
 const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
+const graphFrameMaxWidth = 1120;
+const graphViewportLeftBleed = 48;
+const graphViewportRightBleed = 80;
+const graphFitPadding = 0.28;
 
 const demoNodes: Node[] = [
   { id: "1", type: "clyptNode", position: { x: 10, y: 158 }, data: { label: "Fear grizzlies by default", type: "claim", signals: ["trend"] } },
@@ -116,74 +120,81 @@ export default function LandingGraphDemo() {
   );
 
   return (
-    <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="mx-auto">
-      <div ref={sentinelRef} style={{ maxWidth: 1100 }}>
-        <div
-          style={{
-            height: 400,
-            position: "relative",
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        >
-          {mounted && (
-            <div style={{ position: "absolute", inset: "0 -10px 0 34px" }}>
-              <LandingHoverCtx.Provider value={ctxValue}>
-                <ReactFlow
-                  nodes={demoNodes}
-                  edges={demoEdges}
-                  nodeTypes={nodeTypes}
-                  edgeTypes={edgeTypes}
-                  nodesDraggable={false}
-                  nodesConnectable={false}
-                  zoomOnScroll={false}
-                  panOnScroll={false}
-                  panOnDrag={false}
-                  preventScrolling={false}
-                  proOptions={{ hideAttribution: true }}
-                  fitView
-                  fitViewOptions={{ padding: 0.02 }}
-                  style={{ background: "transparent" }}
-                  className="rf-landing"
-                />
-              </LandingHoverCtx.Provider>
-            </div>
-          )}
-        </div>
-        {/* Legend */}
-        <div
-          style={{
-            height: 40,
-            background: "rgba(10,9,9,0.7)",
-            backdropFilter: "blur(8px)",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          {legendTypes.map((t) => {
-            const s = TYPE_STYLES[t];
-            return (
-              <span
-                key={t}
+    <div className="mx-auto w-full" style={{ maxWidth: graphFrameMaxWidth }}>
+      <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="w-full">
+        <div ref={sentinelRef}>
+          <div
+            style={{
+              height: 400,
+              position: "relative",
+              backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          >
+            {mounted && (
+              <div
                 style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: "0.05em",
-                  background: s.pillBg,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  color: s.pillText,
+                  position: "absolute",
+                  inset: `0 -${graphViewportRightBleed}px 0 -${graphViewportLeftBleed}px`,
                 }}
               >
-                {t}
-              </span>
-            );
-          })}
+                <LandingHoverCtx.Provider value={ctxValue}>
+                  <ReactFlow
+                    nodes={demoNodes}
+                    edges={demoEdges}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    zoomOnScroll={false}
+                    panOnScroll={false}
+                    panOnDrag={false}
+                    preventScrolling={false}
+                    proOptions={{ hideAttribution: true }}
+                    fitView
+                    fitViewOptions={{ padding: graphFitPadding }}
+                    style={{ background: "transparent" }}
+                    className="rf-landing"
+                  />
+                </LandingHoverCtx.Provider>
+              </div>
+            )}
+          </div>
+          {/* Legend */}
+          <div
+            style={{
+              height: 40,
+              background: "rgba(10,9,9,0.7)",
+              backdropFilter: "blur(8px)",
+              borderTop: "1px solid rgba(255,255,255,0.07)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            {legendTypes.map((t) => {
+              const s = TYPE_STYLES[t];
+              return (
+                <span
+                  key={t}
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: 9,
+                    letterSpacing: "0.05em",
+                    background: s.pillBg,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    color: s.pillText,
+                  }}
+                >
+                  {t}
+                </span>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </DemoCardShell>
+      </DemoCardShell>
+    </div>
   );
 }

@@ -116,7 +116,7 @@ Geist Mono: wght@400;500
 
 `ShaderBackground` wraps Paper Design shader primitives for public surfaces. The landing hero uses the `GemSmoke` variant with purple, violet, and lavender tones only, plus a reduced-motion static fallback. The previous separate purple ambient glow behind the hero animation has been removed so the one-shot animation remains the foreground layer over the shader.
 
-`PipelineDemos` uses shader-backed sections with app-frame previews. The phase 02/03 cortex graph preview is allowed to bleed to the right so the rightmost React Flow node does not clip at the card edge on wide layouts.
+`PipelineDemos` uses shader-backed sections with app-frame previews. The phase 02/03 cortex graph preview uses bounded right bleed and an internally padded React Flow viewport so the graph can show its rightmost node without overflowing the page or relying on parent transforms that would desync edge positions.
 
 ### CSS Keyframes (defined in `index.css`)
 

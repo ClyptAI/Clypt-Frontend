@@ -117,12 +117,13 @@ const Hero = () => {
           {/* Subheading */}
           <motion.p
             className="text-left font-sans font-normal"
-            style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", maxWidth: 480, lineHeight: 1.65, marginTop: 24 }}
+            style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", maxWidth: 640, lineHeight: 1.6, marginTop: 24 }}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease, delay: 0.45 }}
           >
-            Clypt maps semantic structure against real audience engagement and live trends, mining the moments worth clipping.
+            Clypt maps semantic structure against real audience engagement and live trends, mining the moments worth
+            clipping.
           </motion.p>
 
           {/* URL paste bar + CTA buttons */}
