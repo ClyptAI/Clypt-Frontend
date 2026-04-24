@@ -10,7 +10,7 @@ Detailed reference for every page in the application.
 - **Route:** `/`
 - **Layout:** Standalone (no sidebar)
 - **Sections:** `Navbar` → `Hero` → `HowItWorks` → `PipelineDemos` (sticky 6-phase scrollytelling) → `ClipShowcase` → `Footer`
-- **Features:** `CustomCursor` (brand-violet animated cursor follower), `ShaderBackground` section treatments, a hero paste-link CTA bar, `ClyptHeroAnimation` (one-shot video analysis -> graph -> clip fanout), Framer Motion scroll-based animations, and interactive clip cards with timestamp-only overlays. The hero and lower showcase cards use tracked assets from `public/videos/landing/`, `public/images/landing-posters/`, and `public/images/hero/`.
+- **Features:** `CustomCursor` (brand-violet animated cursor follower), `ShaderBackground` section treatments, a hero paste-link CTA bar, `ClyptHeroAnimation` (one-shot video analysis -> symmetric semantic graph -> clip fanout), Framer Motion scroll-based animations, and interactive clip cards with timestamp-only overlays. The hero and lower showcase cards use tracked assets from `public/videos/landing/`, `public/images/landing-posters/`, and `public/images/hero/`.
 - **Mock data:** Visual-only outer marketing copy; the phase preview internals mirror the seeded Joe Rogan × Flagrant demo surfaces used inside the app.
 - **Notes:** `Try free now` links to `/signup`; `See demo` in `Hero` is a React Router `<Link to="/runs/demo/timeline">` that drops the user straight into the seeded demo run's timeline editor. The hero animation runs once per page load and settles on the ranked clip fanout. `TryItBar.tsx` remains in the source tree as a legacy standalone CTA component but is not rendered by `Index.tsx`.
 

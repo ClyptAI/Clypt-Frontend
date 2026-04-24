@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Disc3,
@@ -10,14 +10,21 @@ import {
   Twitter,
   Youtube,
 } from "lucide-react";
-import { ReactFlow, ReactFlowProvider, type Edge, type Node } from "@xyflow/react";
+import {
+  BaseEdge,
+  getBezierPath,
+  ReactFlow,
+  ReactFlowProvider,
+  type Edge,
+  type EdgeProps,
+  type Node,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import SemanticNode from "@/components/graph/SemanticNode";
 import {
   LongRangeEdge,
   ModerateRhetoricalEdge,
   StrongRhetoricalEdge,
-  StructuralEdge,
 } from "@/components/graph/edges";
 
 type HeroPhase = "idle" | "analysis" | "generation" | "fanout" | "ranking" | "settled";
@@ -85,7 +92,7 @@ const graphNodes: Node[] = [
   {
     id: "1",
     type: "semantic",
-    position: { x: 26, y: 132 },
+    position: { x: 18, y: 150 },
     data: {
       node_type: "claim",
       summary: "Fear grizzlies by default",
@@ -97,10 +104,10 @@ const graphNodes: Node[] = [
   {
     id: "2",
     type: "semantic",
-    position: { x: 224, y: 48 },
+    position: { x: 238, y: 62 },
     data: {
       node_type: "explanation",
-      summary: "A grizzly is a 900-pound wild dog",
+      summary: "A 900-pound wild dog",
       signalTags: [],
       timeStart: "00:43",
       timeEnd: "01:06",
@@ -109,7 +116,7 @@ const graphNodes: Node[] = [
   {
     id: "3",
     type: "semantic",
-    position: { x: 238, y: 216 },
+    position: { x: 238, y: 262 },
     data: {
       node_type: "setup_payoff",
       summary: "Fresh bear sign by the elk",
@@ -121,10 +128,10 @@ const graphNodes: Node[] = [
   {
     id: "4",
     type: "semantic",
-    position: { x: 486, y: 48 },
+    position: { x: 486, y: 162 },
     data: {
       node_type: "anecdote",
-      summary: "The ice-raft story turns fatal",
+      summary: "Ice-raft story turns fatal",
       signalTags: ["retention"],
       timeStart: "01:35",
       timeEnd: "02:05",
@@ -133,10 +140,10 @@ const graphNodes: Node[] = [
   {
     id: "5",
     type: "semantic",
-    position: { x: 486, y: 212 },
+    position: { x: 734, y: 262 },
     data: {
       node_type: "reaction_beat",
-      summary: "The camp erupts when it charges",
+      summary: "Camp erupts when it charges",
       signalTags: ["comment", "retention"],
       clipWorthy: true,
       timeStart: "02:06",
@@ -146,10 +153,10 @@ const graphNodes: Node[] = [
   {
     id: "7",
     type: "semantic",
-    position: { x: 740, y: 50 },
+    position: { x: 734, y: 62 },
     data: {
       node_type: "insight",
-      summary: "We are no longer top of the food chain",
+      summary: "Not top of the food chain",
       signalTags: ["retention"],
       timeStart: "02:29",
       timeEnd: "02:58",
@@ -158,10 +165,10 @@ const graphNodes: Node[] = [
   {
     id: "8",
     type: "semantic",
-    position: { x: 750, y: 222 },
+    position: { x: 976, y: 162 },
     data: {
       node_type: "topic_shift",
-      summary: "Switching focus back to elk hunting",
+      summary: "Back to elk hunting",
       signalTags: ["trend"],
       timeStart: "02:59",
       timeEnd: "03:17",
@@ -197,16 +204,26 @@ const graphEdges: Edge[] = [
     type: "structural",
     sourceHandle: "source-right",
     targetHandle: "target-left",
-    label: "supports",
+    label: "grounds",
   },
   {
     id: "e2-4",
     source: "2",
     target: "4",
-    type: "structural",
+    type: "moderate",
     sourceHandle: "source-right",
     targetHandle: "target-left",
-    label: "example",
+    label: "escalates",
+  },
+  {
+    id: "e3-4",
+    source: "3",
+    target: "4",
+    type: "longrange",
+    sourceHandle: "source-right",
+    targetHandle: "target-left",
+    label: "sets_up",
+    data: { dashed: true },
   },
   {
     id: "e3-5",
@@ -224,7 +241,7 @@ const graphEdges: Edge[] = [
     type: "strong",
     sourceHandle: "source-right",
     targetHandle: "target-left",
-    label: "leads_to",
+    label: "reframes",
   },
   {
     id: "e5-8",
@@ -242,23 +259,46 @@ const graphEdges: Edge[] = [
     type: "moderate",
     sourceHandle: "source-right",
     targetHandle: "target-left",
-    label: "parallels",
+    label: "pays_off",
   },
   {
-    id: "e8-1",
-    source: "8",
-    target: "1",
-    type: "longrange",
+    id: "e7-8",
+    source: "7",
+    target: "8",
+    type: "structural",
     sourceHandle: "source-right",
     targetHandle: "target-left",
-    label: "callback_to",
-    data: { dashed: true, animated: true },
+    label: "narrows",
   },
 ];
 
 const nodeTypes = { semantic: SemanticNode };
+const HeroStructuralEdge = memo(function HeroStructuralEdge(props: EdgeProps) {
+  const [path] = getBezierPath({
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+    curvature: 0.24,
+  });
+
+  return (
+    <BaseEdge
+      {...props}
+      path={path}
+      style={{
+        stroke: "rgba(214,211,220,0.5)",
+        strokeWidth: 1.35,
+        filter: "drop-shadow(0 0 3px rgba(214,211,220,0.16))",
+      }}
+    />
+  );
+});
+
 const edgeTypes = {
-  structural: StructuralEdge,
+  structural: HeroStructuralEdge,
   strong: StrongRhetoricalEdge,
   moderate: ModerateRhetoricalEdge,
   longrange: LongRangeEdge,
@@ -491,7 +531,7 @@ function HeroSemanticGraph({ phase }: { phase: HeroPhase }) {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.25 }}
+        fitViewOptions={{ padding: 0.14 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
