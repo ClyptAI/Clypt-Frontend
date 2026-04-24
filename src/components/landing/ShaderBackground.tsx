@@ -4,6 +4,7 @@ import {
   GrainGradient,
   Warp,
   GodRays,
+  GemSmoke,
   PulsingBorder,
   DotGrid,
   NeuroNoise,
@@ -330,44 +331,39 @@ const ShaderBackground = ({
     default: {
       return (
         <div aria-hidden className={className} style={baseStyle}>
-          <MeshGradient
-            colors={["hsl(var(--background))", "hsl(280 62% 9%)", "hsl(264 74% 14%)", "hsl(271 76% 35%)", "hsl(262 83% 76%)"]}
-            distortion={1.05}
-            swirl={0.62}
-            speed={0.34}
-            style={fillStyle}
-          />
-          <GodRays
-            colorBack="#00000000"
-            colorBloom="hsl(var(--primary))"
-            colors={["hsl(262 83% 76%)", "hsl(271 76% 35%)", "hsl(280 62% 9%)"]}
-            bloom={0.52}
-            intensity={0.42}
-            density={0.58}
-            spotty={0.38}
-            midSize={0.5}
-            midIntensity={0.48}
-            offsetY={-0.25}
-            speed={0.28}
-            style={{ ...fillStyle, position: "absolute", inset: 0, mixBlendMode: "screen", opacity: 0.74 * opacityScale }}
+          <GemSmoke
+            colorBack={BG}
+            colorInner="#09050F"
+            colors={[VIOLET_DEEP, VIOLET_DIM, "#5B21B6", "#7C3AED", VIOLET, "#DDD6FE"]}
+            outerGlow={0.78}
+            innerGlow={0.86}
+            innerDistortion={0.56}
+            outerDistortion={0.74}
+            offset={0.12}
+            angle={-18}
+            size={0.92}
+            shape="diamond"
+            scale={1.45}
+            speed={0.18}
+            style={{ ...fillStyle, opacity: 0.82 * opacityScale }}
           />
           <GrainGradient
-            colors={["hsl(262 83% 76%)", "hsl(270 72% 36%)"]}
+            colors={[VIOLET_DEEP, "#5B21B6", VIOLET, "#DDD6FE"]}
             colorBack="#00000000"
-            softness={0.9}
-            intensity={0.46}
-            noise={0.58}
-            speed={0.24}
+            softness={0.88}
+            intensity={0.26}
+            noise={0.46}
+            speed={0.16}
             style={{
               position: "absolute",
               inset: 0,
               width: "100%",
               height: "100%",
               mixBlendMode: "screen",
-              opacity: 0.68 * opacityScale,
+              opacity: 0.32 * opacityScale,
             }}
           />
-          <Overlay background="radial-gradient(ellipse 90% 70% at 50% 30%, transparent 22%, hsl(var(--background) / 0.28) 70%, hsl(var(--background) / 0.84) 100%)" />
+          <Overlay background="linear-gradient(90deg, hsl(var(--background) / 0.76) 0%, hsl(var(--background) / 0.48) 42%, hsl(var(--background) / 0.2) 100%), radial-gradient(ellipse 86% 72% at 72% 42%, transparent 0%, hsl(var(--background) / 0.22) 58%, hsl(var(--background) / 0.82) 100%)" />
         </div>
       );
     }
@@ -408,7 +404,7 @@ function staticFallback(variant: ShaderVariant): string {
       return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.28) 0%, transparent 55%), radial-gradient(ellipse at 60% 70%, rgba(34,211,238,0.18) 0%, transparent 60%), #0A0909";
     case "hero":
     default:
-      return "radial-gradient(ellipse at 46% 4%, hsl(var(--primary) / 0.24) 0%, transparent 62%), radial-gradient(ellipse at 82% 72%, hsl(270 72% 36% / 0.18) 0%, transparent 58%), hsl(var(--background))";
+      return "radial-gradient(ellipse 72% 62% at 72% 42%, rgba(167,139,250,0.3) 0%, rgba(124,58,237,0.2) 36%, rgba(91,33,182,0.12) 52%, transparent 72%), radial-gradient(ellipse at 42% 20%, rgba(36,20,82,0.44) 0%, transparent 64%), hsl(var(--background))";
   }
 }
 

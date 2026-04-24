@@ -85,7 +85,7 @@ const phases = [
     ),
     ui: <LandingGraphDemo />,
     compact: true,
-    rightBleed: 112,
+    rightBleed: 144,
   },
   {
     id: "phase-04",

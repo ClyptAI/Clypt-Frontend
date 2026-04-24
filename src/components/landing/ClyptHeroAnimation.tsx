@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Disc3,
-  MessageCircle,
   MoreVertical,
   Play,
   ThumbsDown,
@@ -21,7 +20,7 @@ import {
   StructuralEdge,
 } from "@/components/graph/edges";
 
-type HeroPhase = "idle" | "analysis" | "generation" | "fanout" | "ranking" | "reset";
+type HeroPhase = "idle" | "analysis" | "generation" | "fanout" | "ranking" | "settled";
 type ClipPlatform = "youtube" | "tiktok" | "x";
 
 interface GeneratedClip {
@@ -32,13 +31,16 @@ interface GeneratedClip {
   isTopMatch: boolean;
 }
 
+const analysisScanDuration = 1250;
+const graphPreviewDuration = 2000;
+const rankingLiftDuration = 1800;
+
 const phaseTimeline: Array<{ phase: HeroPhase; duration: number }> = [
   { phase: "idle", duration: 1000 },
-  { phase: "analysis", duration: 3000 },
-  { phase: "generation", duration: 3500 },
+  { phase: "analysis", duration: analysisScanDuration },
+  { phase: "generation", duration: graphPreviewDuration },
   { phase: "fanout", duration: 800 },
-  { phase: "ranking", duration: 5000 },
-  { phase: "reset", duration: 1000 },
+  { phase: "ranking", duration: rankingLiftDuration },
 ];
 
 const generatedClips: GeneratedClip[] = [
@@ -60,21 +62,21 @@ const generatedClips: GeneratedClip[] = [
     id: "clip-3",
     score: 99,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0005_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: "/images/landing-posters/hero-fanout-center.png",
     isTopMatch: true,
   },
   {
     id: "clip-4",
     score: 91,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0002_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: "/images/landing-posters/sg_0005_cand_01_vertical_rfdetr_karaoke.jpg",
     isTopMatch: false,
   },
   {
     id: "clip-5",
     score: 85,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0003_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: "/images/landing-posters/hero-fanout-side.png",
     isTopMatch: false,
   },
 ];
@@ -167,6 +169,17 @@ const graphNodes: Node[] = [
   },
 ];
 
+const heroGraphNodes: Node[] = graphNodes.map((node) => ({
+  ...node,
+  data: {
+    ...node.data,
+    surfaceOpacity: 0.78,
+    tintOpacity: 0.24,
+    tintFadeOpacity: 0.1,
+    backdropBlur: 2,
+  },
+}));
+
 const graphEdges: Edge[] = [
   {
     id: "e1-2",
@@ -257,30 +270,27 @@ const graphTop = 252;
 const graphHeight = 500;
 
 function useSequencedPhase(reducedMotion: boolean | null): HeroPhase {
-  const [phase, setPhase] = useState<HeroPhase>(reducedMotion ? "ranking" : "idle");
+  const [phase, setPhase] = useState<HeroPhase>(reducedMotion ? "settled" : "idle");
 
   useEffect(() => {
     if (reducedMotion) {
-      setPhase("ranking");
+      setPhase("settled");
       return;
     }
 
-    let phaseIndex = 0;
-    let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+    setPhase("idle");
 
-    const advance = () => {
-      const next = phaseTimeline[phaseIndex];
-      setPhase(next.phase);
-      timeoutId = window.setTimeout(() => {
-        phaseIndex = (phaseIndex + 1) % phaseTimeline.length;
-        advance();
-      }, next.duration);
-    };
+    const timeoutIds: Array<ReturnType<typeof window.setTimeout>> = [];
+    let elapsed = 0;
 
-    advance();
+    phaseTimeline.forEach(({ duration }, index) => {
+      elapsed += duration;
+      const nextPhase = phaseTimeline[index + 1]?.phase ?? "settled";
+      timeoutIds.push(window.setTimeout(() => setPhase(nextPhase), elapsed));
+    });
 
     return () => {
-      if (timeoutId) window.clearTimeout(timeoutId);
+      timeoutIds.forEach(window.clearTimeout);
     };
   }, [reducedMotion]);
 
@@ -288,7 +298,6 @@ function useSequencedPhase(reducedMotion: boolean | null): HeroPhase {
 }
 
 function InputCluster({ phase }: { phase: HeroPhase }) {
-  const isVisible = phase !== "reset";
   const isAnalysis = phase === "analysis";
 
   return (
@@ -298,8 +307,8 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
           className="relative z-20 aspect-video w-full overflow-hidden rounded-xl border bg-[var(--color-surface-2)] shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
           initial={{ opacity: 0, y: -20 }}
           animate={{
-            opacity: isVisible ? 1 : 0,
-            y: isVisible ? 0 : -20,
+            opacity: 1,
+            y: 0,
             boxShadow: isAnalysis
               ? "0 0 50px color-mix(in srgb, var(--color-violet) 25%, transparent)"
               : "0 8px 30px rgba(0,0,0,0.5)",
@@ -321,7 +330,7 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
             </div>
           </div>
           <div className="absolute bottom-3 right-3 z-10 rounded border border-white/10 bg-black/70 px-2 py-1 font-mono text-[13px] tracking-wide text-[var(--color-text-primary)] backdrop-blur-md">
-            1:40:35
+            13:08
           </div>
 
           <AnimatePresence>
@@ -335,8 +344,8 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
               >
                 <motion.div
                   className="absolute left-0 right-0 h-[2px] bg-[var(--color-violet)] shadow-[0_0_20px_4px_rgba(167,139,250,0.6)]"
-                  animate={{ top: ["0%", "100%", "0%"] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                  animate={{ top: ["0%", "100%"] }}
+                  transition={{ duration: analysisScanDuration / 1000, ease: "linear" }}
                 />
                 <div className="absolute left-4 top-4 flex items-center gap-2 rounded-md border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur-md">
                   <div className="flex h-3 items-end gap-1">
@@ -370,10 +379,10 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
         <motion.div
           initial={{ opacity: 0, x: -120, y: 0, rotate: -5 }}
           animate={{
-            opacity: isVisible ? 1 : 0,
-            x: isVisible ? -60 : -120,
-            y: isVisible ? 30 : 0,
-            rotate: isVisible ? -4 : -5,
+            opacity: 1,
+            x: -60,
+            y: 30,
+            rotate: -4,
           }}
           transition={{ type: "spring", stiffness: 180, damping: 20, delay: 0.3 }}
         >
@@ -394,10 +403,6 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
                   <span className="mt-1 text-[10px] text-[var(--color-text-secondary)]">3 yrs ago</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 whitespace-nowrap rounded bg-[var(--color-comment-muted)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--color-comment)]">
-                <MessageCircle className="h-2.5 w-2.5" />
-                Signal
-              </div>
             </div>
             <p className="mt-0.5 font-sans text-[13px] leading-relaxed text-[var(--color-text-primary)]">
               "Joe's animal impressions should be stored in a time capsule so future generations can really understand what it was like during this era"
@@ -415,10 +420,10 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
         <motion.div
           initial={{ opacity: 0, x: 120, y: 0, rotate: 5 }}
           animate={{
-            opacity: isVisible ? 1 : 0,
-            x: isVisible ? 60 : 120,
-            y: isVisible ? 50 : 0,
-            rotate: isVisible ? 4 : 5,
+            opacity: 1,
+            x: 60,
+            y: 50,
+            rotate: 4,
           }}
           transition={{ type: "spring", stiffness: 180, damping: 20, delay: 0.5 }}
         >
@@ -469,7 +474,8 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
 }
 
 function HeroSemanticGraph({ phase }: { phase: HeroPhase }) {
-  const isVisible = phase === "generation" || phase === "fanout" || phase === "ranking";
+  const isVisible =
+    phase === "generation" || phase === "fanout" || phase === "ranking" || phase === "settled";
 
   return (
     <div
@@ -480,7 +486,7 @@ function HeroSemanticGraph({ phase }: { phase: HeroPhase }) {
       }}
     >
       <ReactFlow
-        nodes={graphNodes}
+        nodes={heroGraphNodes}
         edges={graphEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -516,8 +522,9 @@ function getPlatformIcon(platform: ClipPlatform) {
 }
 
 function ClipFan({ phase }: { phase: HeroPhase }) {
-  const isFanoutOrLater = phase === "fanout" || phase === "ranking";
-  const isRanking = phase === "ranking";
+  const isFanoutOrLater = phase === "fanout" || phase === "ranking" || phase === "settled";
+  const isTopMatchVisible = phase === "ranking" || phase === "settled";
+  const isTopMatchLifted = phase === "ranking";
 
   return (
     <div className="relative z-40 mt-28 flex min-h-[300px] w-full flex-grow items-end justify-center pb-8">
@@ -528,8 +535,9 @@ function ClipFan({ phase }: { phase: HeroPhase }) {
         const xTranslate = offset * 90;
         const yTranslate = Math.abs(offset) * 20 - 36;
         const zIndex = 50 - Math.abs(offset);
-        const isTopMatchMode = isRanking && clip.isTopMatch;
-        const nonMatchDimmed = isRanking && !clip.isTopMatch;
+        const isTopMatchMode = isTopMatchVisible && clip.isTopMatch;
+        const shouldLiftTopMatch = isTopMatchLifted && clip.isTopMatch;
+        const nonMatchDimmed = isTopMatchVisible && !clip.isTopMatch;
 
         return (
           <motion.div
@@ -543,8 +551,8 @@ function ClipFan({ phase }: { phase: HeroPhase }) {
             animate={
               isFanoutOrLater
                 ? {
-                    opacity: nonMatchDimmed ? 0.4 : 1,
-                    y: isTopMatchMode ? -24 + yTranslate : yTranslate,
+                    opacity: nonMatchDimmed ? 0.62 : 1,
+                    y: shouldLiftTopMatch ? -24 + yTranslate : yTranslate,
                     x: xTranslate,
                     rotate,
                     scale: isTopMatchMode ? 1 : 0.95,
@@ -573,44 +581,34 @@ function ClipFan({ phase }: { phase: HeroPhase }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
 
-              <AnimatePresence>
-                {isTopMatchMode && (
-                  <motion.div
-                    className="absolute inset-x-0 top-3 z-20 flex justify-center"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <div className="rounded-full border border-[var(--color-violet)]/50 bg-[var(--color-violet-dim)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-[0_4px_12px_rgba(124,58,237,0.5)]">
-                      Top Match
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <div className="absolute inset-x-3 top-3 z-20 flex h-10 items-center justify-between">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-md transition-all duration-500">
+                  {getPlatformIcon(clip.platform)}
+                </div>
 
-              <div
-                className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-md transition-all duration-500"
-              >
-                {getPlatformIcon(clip.platform)}
-              </div>
+                <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 justify-center">
+                  <AnimatePresence>
+                    {isTopMatchMode && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <div className="whitespace-nowrap rounded-full border border-[var(--color-violet)]/50 bg-[var(--color-violet-dim)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-[0_4px_12px_rgba(124,58,237,0.5)]">
+                          Top Hit
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              <div className="absolute bottom-4 left-1/2 z-10 w-fit -translate-x-1/2">
                 <div
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg backdrop-blur-xl ${
+                  className={`rounded-full border px-2.5 py-1 font-mono text-[13px] font-bold leading-none shadow-lg backdrop-blur-xl ${
                     isTopMatchMode
-                      ? "border-[var(--color-violet)]/50 bg-[var(--color-surface-1)]/90"
-                      : "border-white/10 bg-black/60"
+                      ? "border-white/10 bg-black/70 text-[var(--color-violet)]"
+                      : "border-white/10 bg-black/60 text-[var(--color-green)]"
                   }`}
                 >
-                  <span className="pt-px text-[10px] font-medium uppercase leading-none tracking-wide text-[var(--color-text-secondary)]">
-                    Score
-                  </span>
-                  <span
-                    className={`font-mono text-[13px] font-bold leading-none ${
-                      isTopMatchMode ? "text-[var(--color-violet)]" : "text-[var(--color-green)]"
-                    }`}
-                  >
-                    {clip.score}
-                  </span>
+                  {clip.score}
                 </div>
               </div>
             </div>
@@ -628,7 +626,7 @@ export default function ClyptHeroAnimation({ className = "" }: { className?: str
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none relative mx-auto w-full overflow-visible [--hero-animation-scale:0.27] sm:[--hero-animation-scale:0.41] lg:[--hero-animation-scale:0.48] xl:[--hero-animation-scale:0.54] 2xl:[--hero-animation-scale:0.6] ${className}`}
+      className={`pointer-events-none relative z-20 isolate mx-auto w-full overflow-visible [--hero-animation-scale:0.27] sm:[--hero-animation-scale:0.41] lg:[--hero-animation-scale:0.48] xl:[--hero-animation-scale:0.54] 2xl:[--hero-animation-scale:0.6] ${className}`}
       style={{
         maxWidth: `calc(${stageWidth}px * var(--hero-animation-scale))`,
         height: `calc(${stageHeight}px * var(--hero-animation-scale))`,
@@ -657,10 +655,7 @@ export default function ClyptHeroAnimation({ className = "" }: { className?: str
       >
         <motion.div
           className="relative flex h-full w-full flex-col items-center overflow-visible px-4 pt-6"
-          animate={{
-            scale: phase === "reset" ? 0.98 : 1,
-            opacity: phase === "reset" ? 0.7 : 1,
-          }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,var(--color-violet-muted),transparent_60%)]" />

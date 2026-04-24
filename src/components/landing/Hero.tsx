@@ -38,20 +38,6 @@ const Hero = () => {
       {/* LAYER 0 — Animated shader background (slightly softened so fragments read crisply) */}
       <ShaderBackground variant="hero" className="shader-layer" style={{ opacity: 0.85 }} />
 
-      {/* LAYER 1 — Violet ambient glow */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          zIndex: 1,
-          top: "20%",
-          right: "-10%",
-          width: 800,
-          height: 600,
-          background: "radial-gradient(ellipse at center, rgba(167,139,250,0.18) 0%, transparent 70%)",
-          filter: "blur(48px)",
-        }}
-      />
-
       <div className="relative z-10 mx-auto grid w-full max-w-[1640px] items-center gap-10 px-6 sm:px-8 lg:grid-cols-[minmax(500px,0.95fr)_minmax(560px,1.05fr)] lg:px-[max(5vw,32px)]">
         {/* ── CONTENT (left-aligned column) ── */}
         <div className="flex w-full max-w-[760px] flex-col items-start text-left" data-cursor="text">
@@ -201,7 +187,7 @@ const Hero = () => {
         </div>
 
         <motion.div
-          className="w-full justify-self-center lg:self-center"
+          className="relative z-20 w-full justify-self-center lg:self-center"
           initial={{ opacity: 0, x: 28, filter: "blur(10px)" }}
           animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.8, ease, delay: 0.25 }}

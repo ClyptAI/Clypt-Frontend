@@ -79,6 +79,10 @@ export interface SemanticNodeData {
   speaker?: string;
   score?: number;
   dimmed?: boolean;
+  surfaceOpacity?: number;
+  tintOpacity?: number;
+  tintFadeOpacity?: number;
+  backdropBlur?: number;
   _isHoverTarget?: boolean;
   _isHoverConnected?: boolean;
   _hasHover?: boolean;
@@ -113,9 +117,14 @@ function SemanticNode({ data, selected }: NodeProps) {
     ? `0 0 18px ${base}0.45), 0 0 6px ${base}0.25)`
     : "none";
 
+  const surfaceOpacity = typeof d.surfaceOpacity === "number" ? d.surfaceOpacity : 0.45;
+  const tintOpacity = typeof d.tintOpacity === "number" ? d.tintOpacity : 0.18;
+  const tintFadeOpacity = typeof d.tintFadeOpacity === "number" ? d.tintFadeOpacity : 0.06;
+  const backdropBlur = typeof d.backdropBlur === "number" ? d.backdropBlur : 4;
+
   // Match reference: bg-type/10 + backdrop-blur creates the frosted glass node body.
   // Edges behind show as blurred smears through the translucent background — that IS the intended effect.
-  const nodeBg = `linear-gradient(135deg, ${hexToRgba(color, 0.18)}, ${hexToRgba(color, 0.06)} 60%), rgba(10,9,9,0.45)`;
+  const nodeBg = `linear-gradient(135deg, ${hexToRgba(color, tintOpacity)}, ${hexToRgba(color, tintFadeOpacity)} 60%), rgba(10,9,9,${surfaceOpacity})`;
   // Border at 65% opacity at rest, full on active states
   const borderColor = (isHoverTarget || isHoverConnected || selected) ? color : `${color}A8`;
 
@@ -136,8 +145,8 @@ function SemanticNode({ data, selected }: NodeProps) {
         borderRadius: 10,
         opacity: isDimmed ? 0.2 : 1,
         background: nodeBg,
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
+        backdropFilter: `blur(${backdropBlur}px)`,
+        WebkitBackdropFilter: `blur(${backdropBlur}px)`,
         border: `1.5px solid ${borderColor}`,
         padding: "10px 12px 10px 12px",
         boxShadow,

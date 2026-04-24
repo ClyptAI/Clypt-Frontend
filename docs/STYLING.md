@@ -112,6 +112,12 @@ Geist Mono: wght@400;500
 
 `CustomCursor` hides the native cursor on the landing route and renders a brand-violet dot/ring pair using Framer Motion. The cursor color is fixed to the same violet family as the `Break` / `gems` hero words. Elements can still opt into interaction states with `data-cursor="pointer"`, `data-cursor="play"`, or `data-cursor="text"`.
 
+### Landing Shader Backgrounds
+
+`ShaderBackground` wraps Paper Design shader primitives for public surfaces. The landing hero uses the `GemSmoke` variant with purple, violet, and lavender tones only, plus a reduced-motion static fallback. The previous separate purple ambient glow behind the hero animation has been removed so the one-shot animation remains the foreground layer over the shader.
+
+`PipelineDemos` uses shader-backed sections with app-frame previews. The phase 02/03 cortex graph preview is allowed to bleed to the right so the rightmost React Flow node does not clip at the card edge on wide layouts.
+
 ### CSS Keyframes (defined in `index.css`)
 
 | Animation | Usage |
