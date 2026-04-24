@@ -146,17 +146,22 @@ export const mockEdgesApi = {
 
 // ─── Mock clips API ──────────────────────────────────────────────────────────
 
+function withApproval(clip: ClipCandidate, runId: string): ClipCandidate {
+  const status = mockDB.get().approvals[runId]?.[clip.clip_id ?? ''] ?? 'pending'
+  return { ...clip, approval_status: status }
+}
+
 export const mockClipsApi = {
   list(runId: string): Promise<ClipCandidate[]> {
     const clips = mockDB.get().clips[runId] ?? []
-    return delay(clips)
+    return delay(clips.map((c) => withApproval(c, runId)))
   },
 
   get(runId: string, clipId: string): Promise<ClipCandidate> {
     const clips = mockDB.get().clips[runId] ?? []
     const clip = clips.find((c) => c.clip_id === clipId)
     if (!clip) return Promise.reject(new Error(`[mock] clip not found: ${clipId}`))
-    return delay(clip)
+    return delay(withApproval(clip, runId))
   },
 
   approve(runId: string, clipId: string): Promise<ClipCandidate> {
@@ -167,7 +172,7 @@ export const mockClipsApi = {
     const clips = mockDB.get().clips[runId] ?? []
     const clip = clips.find((c) => c.clip_id === clipId)
     if (!clip) return Promise.reject(new Error(`[mock] clip not found: ${clipId}`))
-    return delay(clip, 120)
+    return delay(withApproval(clip, runId), 120)
   },
 
   reject(runId: string, clipId: string): Promise<ClipCandidate> {
@@ -178,7 +183,7 @@ export const mockClipsApi = {
     const clips = mockDB.get().clips[runId] ?? []
     const clip = clips.find((c) => c.clip_id === clipId)
     if (!clip) return Promise.reject(new Error(`[mock] clip not found: ${clipId}`))
-    return delay(clip, 120)
+    return delay(withApproval(clip, runId), 120)
   },
 }
 
@@ -219,7 +224,7 @@ export const mockAllClipsApi = {
     for (const runId of db.runOrder) {
       const clips = db.clips[runId] ?? []
       for (const clip of clips) {
-        all.push({ ...clip, run_id: runId })
+        all.push({ ...withApproval(clip, runId), run_id: runId })
       }
     }
     return delay(all)

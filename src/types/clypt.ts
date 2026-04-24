@@ -191,6 +191,8 @@ export interface LocalSubgraph {
   nodes: LocalSubgraphNode[]
 }
 
+export type ClipApprovalStatus = 'pending' | 'approved' | 'rejected'
+
 export interface ClipCandidate {
   clip_id: string | null
   node_ids: string[]
@@ -204,6 +206,7 @@ export interface ClipCandidate {
   query_aligned: boolean | null
   pool_rank: number | null
   score_breakdown: Record<string, number> | null
+  approval_status: ClipApprovalStatus
 }
 
 // ─── API / UI utility types ───────────────────────────────────────────────────

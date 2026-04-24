@@ -101,6 +101,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_014',
     query_aligned: false,
     pool_rank: 1,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 8.7,
       query_alignment: 0,
@@ -122,6 +123,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_018',
     query_aligned: true,
     pool_rank: 2,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 8.0,
       query_alignment: 8.5,
@@ -142,6 +144,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_009',
     query_aligned: false,
     pool_rank: 3,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 8.2,
       query_alignment: 0,
@@ -162,6 +165,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_025',
     query_aligned: false,
     pool_rank: 4,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 7.4,
       query_alignment: 0,
@@ -182,6 +186,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_031',
     query_aligned: false,
     pool_rank: 5,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 7.5,
       query_alignment: 0,
@@ -202,6 +207,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_038',
     query_aligned: false,
     pool_rank: 6,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 7.1,
       query_alignment: 0,
@@ -223,6 +229,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_045',
     query_aligned: true,
     pool_rank: 7,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 6.9,
       query_alignment: 7.2,
@@ -244,6 +251,7 @@ const DEMO_CLIPS: ClipCandidate[] = [
     subgraph_id: 'sg_052',
     query_aligned: false,
     pool_rank: 8,
+    approval_status: 'pending',
     score_breakdown: {
       overall_clip_quality: 6.6,
       query_alignment: 0,
