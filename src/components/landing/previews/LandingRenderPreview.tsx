@@ -69,7 +69,7 @@ export default function LandingRenderPreview() {
           }}
         >
           <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 12.5, color: "rgba(255,255,255,0.92)" }}>
-            Joe Rogan × Flagrant
+            joeroganflagrant.mp4
           </span>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, color: "#67E8F9", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Phase 6 of 6 — Running

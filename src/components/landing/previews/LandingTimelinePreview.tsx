@@ -89,7 +89,7 @@ export default function LandingTimelinePreview() {
     <AppFrameMock windowLabel="Joe Rogan × Flagrant — Timeline" height={640}>
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0A0909" }}>
         {/* RunContextBar */}
-        <ContextBar runName="Joe Rogan × Flagrant" />
+        <ContextBar runName="joeroganflagrant.mp4" />
 
         {/* Video player — 16:9 letterboxed in a black container */}
         <div

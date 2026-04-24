@@ -248,6 +248,7 @@ function SemanticNode({ data, selected }: NodeProps) {
       <Handle
         type="target"
         position={Position.Left}
+        id="target-left"
         style={{
           width: 8,
           height: 8,
@@ -259,6 +260,7 @@ function SemanticNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
+        id="source-right"
         style={{
           width: 8,
           height: 8,

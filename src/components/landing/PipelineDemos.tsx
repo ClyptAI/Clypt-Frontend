@@ -85,6 +85,7 @@ const phases = [
     ),
     ui: <LandingGraphDemo />,
     compact: true,
+    rightBleed: 112,
   },
   {
     id: "phase-04",
@@ -159,6 +160,7 @@ const phases = [
       </>
     ),
     ui: <LandingGroundingPreview />,
+    rightBleed: 64,
   },
   {
     id: "phase-06",
@@ -292,7 +294,9 @@ export default function PipelineDemos() {
           ))}
         </div>
         <div style={{ minWidth: 0 }}>
-          {phases.map((phase) => (
+          {phases.map((phase) => {
+            const rightBleed = phase.rightBleed ?? 0;
+            return (
             <section
               key={phase.id}
               id={phase.id}
@@ -300,13 +304,14 @@ export default function PipelineDemos() {
                 minHeight: "100vh",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: rightBleed > 0 ? "flex-start" : "center",
               }}
             >
               <motion.div
                 style={{
-                  width: "100%",
-                  transformOrigin: "center",
+                  width: rightBleed > 0 ? `calc(100% + ${rightBleed}px)` : "100%",
+                  marginRight: rightBleed > 0 ? -rightBleed : 0,
+                  transformOrigin: rightBleed > 0 ? "left center" : "center",
                   scale: phase.compact ? 0.97 : 1,
                 }}
                 initial={{ opacity: 0, y: 18 }}
@@ -317,7 +322,8 @@ export default function PipelineDemos() {
                 {phase.ui}
               </motion.div>
             </section>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
