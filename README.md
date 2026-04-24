@@ -28,7 +28,7 @@ It is designed to make Clypt’s reasoning visible instead of hiding everything 
 
 ### Landing experience
 
-The landing page introduces the product through a cinematic hero, floating product fragments, shader-backed phase previews, and real clip cards that play repo-owned landing media on interaction.
+The landing page introduces the product through a cinematic hero, a paste-link CTA bar, floating product fragments, sticky shader-backed phase previews, and real clip cards that play repo-owned landing media on interaction.
 
 ![Clypt landing page](docs/readme-assets/frontend-landing-2026-04.png)
 
@@ -142,9 +142,9 @@ That means you can boot the app and immediately browse a working demo run such a
 ```text
 src/App.tsx                         App providers and route tree
 src/pages/                          Route-level pages
-src/components/landing/            Marketing site sections
+src/components/landing/            Landing sections, shaders, cursor, and media showcase
 src/components/landing/HeroFragments/ Floating hero media cards and mini product fragments
-src/components/landing/previews/   Full-width landing phase preview mocks
+src/components/landing/previews/   App-frame landing phase preview mocks
 src/components/graph/              Cortex graph nodes, edges, controls, inspector
 src/components/timeline/           Video player and timeline surfaces
 src/components/embeds/             Search, scatterplot, and embedding inspection UI

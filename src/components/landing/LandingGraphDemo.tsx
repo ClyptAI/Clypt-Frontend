@@ -21,14 +21,14 @@ const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
 
 const demoNodes: Node[] = [
-  { id: "1", type: "clyptNode", position: { x: 40, y: 140 }, data: { label: "Fear grizzlies by default", type: "claim", signals: ["trend"] } },
-  { id: "2", type: "clyptNode", position: { x: 260, y: 60 }, data: { label: "A grizzly is a 900-pound wild dog", type: "explanation", signals: [] } },
-  { id: "3", type: "clyptNode", position: { x: 260, y: 220 }, data: { label: "Maybe the polar bear is just curious?", type: "challenge_exchange", signals: ["comment"] } },
-  { id: "4", type: "clyptNode", position: { x: 480, y: 40 }, data: { label: "No — it smells meat", type: "example", signals: ["comment"] } },
-  { id: "5", type: "clyptNode", position: { x: 480, y: 180 }, data: { label: "What do you even do there?", type: "qa_exchange", signals: [] } },
-  { id: "6", type: "clyptNode", position: { x: 700, y: 110 }, data: { label: "The ice-raft story turns fatal", type: "anecdote", signals: ["retention"] } },
-  { id: "7", type: "clyptNode", position: { x: 700, y: 270 }, data: { label: "Fresh bear sign by the elk", type: "setup_payoff", signals: ["trend", "retention"] } },
-  { id: "8", type: "clyptNode", position: { x: 920, y: 160 }, data: { label: "The camp erupts when it charges", type: "reaction_beat", signals: ["comment", "retention"] } },
+  { id: "1", type: "clyptNode", position: { x: 10, y: 158 }, data: { label: "Fear grizzlies by default", type: "claim", signals: ["trend"] } },
+  { id: "2", type: "clyptNode", position: { x: 190, y: 54 }, data: { label: "A grizzly is a 900-pound wild dog", type: "explanation", signals: [] } },
+  { id: "3", type: "clyptNode", position: { x: 190, y: 246 }, data: { label: "Maybe the polar bear is just curious?", type: "challenge_exchange", signals: ["comment"] } },
+  { id: "4", type: "clyptNode", position: { x: 395, y: 32 }, data: { label: "No — it smells meat", type: "example", signals: ["comment"] } },
+  { id: "5", type: "clyptNode", position: { x: 395, y: 178 }, data: { label: "What do you even do there?", type: "qa_exchange", signals: [] } },
+  { id: "6", type: "clyptNode", position: { x: 600, y: 100 }, data: { label: "The ice-raft story turns fatal", type: "anecdote", signals: ["retention"] } },
+  { id: "7", type: "clyptNode", position: { x: 600, y: 288 }, data: { label: "Fresh bear sign by the elk", type: "setup_payoff", signals: ["trend", "retention"] } },
+  { id: "8", type: "clyptNode", position: { x: 790, y: 198 }, data: { label: "The camp erupts when it charges", type: "reaction_beat", signals: ["comment", "retention"] } },
 ];
 
 const demoEdges: Edge[] = [
@@ -120,14 +120,14 @@ export default function LandingGraphDemo() {
       <div ref={sentinelRef} style={{ maxWidth: 1100 }}>
         <div
           style={{
-            height: 420,
+            height: 400,
             position: "relative",
             backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
           }}
         >
           {mounted && (
-            <div style={{ position: "absolute", inset: 0 }}>
+            <div style={{ position: "absolute", inset: "0 -10px 0 34px" }}>
               <LandingHoverCtx.Provider value={ctxValue}>
                 <ReactFlow
                   nodes={demoNodes}
@@ -142,7 +142,7 @@ export default function LandingGraphDemo() {
                   preventScrolling={false}
                   proOptions={{ hideAttribution: true }}
                   fitView
-                  fitViewOptions={{ padding: 0.25 }}
+                  fitViewOptions={{ padding: 0.02 }}
                   style={{ background: "transparent" }}
                   className="rf-landing"
                 />

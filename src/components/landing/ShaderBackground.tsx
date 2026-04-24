@@ -331,29 +331,43 @@ const ShaderBackground = ({
       return (
         <div aria-hidden className={className} style={baseStyle}>
           <MeshGradient
-            colors={[BG, VIOLET_DEEP, "#7C5CD9", SKY, BG]}
-            distortion={0.9}
-            swirl={0.4}
-            speed={0.25}
+            colors={["hsl(var(--background))", "hsl(280 62% 9%)", "hsl(264 74% 14%)", "hsl(271 76% 35%)", "hsl(262 83% 76%)"]}
+            distortion={1.05}
+            swirl={0.62}
+            speed={0.34}
             style={fillStyle}
           />
+          <GodRays
+            colorBack="#00000000"
+            colorBloom="hsl(var(--primary))"
+            colors={["hsl(262 83% 76%)", "hsl(271 76% 35%)", "hsl(280 62% 9%)"]}
+            bloom={0.52}
+            intensity={0.42}
+            density={0.58}
+            spotty={0.38}
+            midSize={0.5}
+            midIntensity={0.48}
+            offsetY={-0.25}
+            speed={0.28}
+            style={{ ...fillStyle, position: "absolute", inset: 0, mixBlendMode: "screen", opacity: 0.74 * opacityScale }}
+          />
           <GrainGradient
-            colors={["#7C5CD9", CYAN]}
+            colors={["hsl(262 83% 76%)", "hsl(270 72% 36%)"]}
             colorBack="#00000000"
             softness={0.9}
-            intensity={0.32}
-            noise={0.4}
-            speed={0.2}
+            intensity={0.46}
+            noise={0.58}
+            speed={0.24}
             style={{
               position: "absolute",
               inset: 0,
               width: "100%",
               height: "100%",
               mixBlendMode: "screen",
-              opacity: 0.4 * opacityScale,
+              opacity: 0.68 * opacityScale,
             }}
           />
-          <Overlay background="radial-gradient(ellipse 90% 70% at 50% 30%, transparent 30%, rgba(10,9,9,0.55) 75%, #0A0909 100%)" />
+          <Overlay background="radial-gradient(ellipse 90% 70% at 50% 30%, transparent 22%, hsl(var(--background) / 0.28) 70%, hsl(var(--background) / 0.84) 100%)" />
         </div>
       );
     }
@@ -394,7 +408,7 @@ function staticFallback(variant: ShaderVariant): string {
       return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.28) 0%, transparent 55%), radial-gradient(ellipse at 60% 70%, rgba(34,211,238,0.18) 0%, transparent 60%), #0A0909";
     case "hero":
     default:
-      return "radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.22) 0%, transparent 65%), radial-gradient(ellipse at 80% 100%, rgba(34,211,238,0.15) 0%, transparent 60%), #0A0909";
+      return "radial-gradient(ellipse at 46% 4%, hsl(var(--primary) / 0.24) 0%, transparent 62%), radial-gradient(ellipse at 82% 72%, hsl(270 72% 36% / 0.18) 0%, transparent 58%), hsl(var(--background))";
   }
 }
 

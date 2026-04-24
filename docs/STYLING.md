@@ -108,6 +108,10 @@ Geist Mono: wght@400;500
 
 ## Animations
 
+### Landing Cursor
+
+`CustomCursor` hides the native cursor on the landing route and renders a brand-violet dot/ring pair using Framer Motion. The cursor color is fixed to the same violet family as the `Break` / `gems` hero words. Elements can still opt into interaction states with `data-cursor="pointer"`, `data-cursor="play"`, or `data-cursor="text"`.
+
 ### CSS Keyframes (defined in `index.css`)
 
 | Animation | Usage |

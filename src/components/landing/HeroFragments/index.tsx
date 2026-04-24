@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useSpring } from "framer-motion";
 import CortexFragment from "./CortexFragment";
-import GroundedFragment from "./GroundedFragment";
 import TimelineFragment from "./TimelineFragment";
 import ClipChip from "./ClipChip";
 
@@ -19,24 +18,18 @@ type FragmentDef = {
 
 /* Baked-in layout from drag editor session. */
 const fragments: FragmentDef[] = [
-  { id: "cortex",   Render: CortexFragment,   position: { left: -148, top:  90 }, rotate: -1.4, pxFactor:  0.022, delay: 0.55, z: 3 },
+  { id: "cortex",   Render: CortexFragment,   position: { left: -96, top:  86 }, rotate: -0.8, pxFactor:  0.014, delay: 0.55, z: 3 },
   { id: "clip-a",   Render: () => (
       <ClipChip title="The pivot moment that changes everything." range="0:00 - 0:20"
         bgFrom="rgba(70,40,30,0.9)" bgTo="rgba(20,10,18,0.95)"
         videoSrc="/videos/landing/sg_0002_cand_01_vertical_rfdetr_karaoke.mp4" />
-    ),                                         position: { left:  619, top: 102 }, rotate:  3.2, pxFactor: -0.026, delay: 0.70, z: 6 },
-  { id: "grounded", Render: GroundedFragment, position: { left: -153, top: 481 }, rotate: -0.8, pxFactor:  0.028, delay: 0.78, z: 7 },
+    ),                                         position: { left:  560, top: 124 }, rotate:  1.8, pxFactor: -0.014, delay: 0.70, z: 6 },
   { id: "clip-b",   Render: () => (
       <ClipChip title="That's the unlock right there." range="2:27 - 3:43"
         bgFrom="rgba(28,32,52,0.9)" bgTo="rgba(12,12,22,0.95)"
         videoSrc="/videos/landing/sg_0003_cand_01_vertical_rfdetr_karaoke.mp4" />
-    ),                                         position: { left:  397, top:  74 }, rotate: -3.0, pxFactor:  0.030, delay: 0.86, z: 8 },
-  { id: "clip-c",   Render: () => (
-      <ClipChip title="Wait, say that again." range="4:18 - 5:39"
-        bgFrom="rgba(40,30,60,0.9)" bgTo="rgba(15,10,25,0.95)"
-        videoSrc="/videos/landing/sg_0005_cand_01_vertical_rfdetr_karaoke.mp4" />
-    ),                                         position: { left: -360, top: 587 }, rotate:  2.4, pxFactor: -0.028, delay: 0.98, z: 9 },
-  { id: "timeline", Render: TimelineFragment, position: { left:  350, top: 415 }, rotate:  1.4, pxFactor: -0.030, delay: 0.92, z: 5 },
+    ),                                         position: { left:  376, top:  108 }, rotate: -1.6, pxFactor:  0.016, delay: 0.78, z: 8 },
+  { id: "timeline", Render: TimelineFragment, position: { left:  332, top: 430 }, rotate:  0.9, pxFactor: -0.016, delay: 0.86, z: 5 },
 ];
 
 const LS_KEY = "clypt:hero-layout";

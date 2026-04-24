@@ -55,9 +55,9 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `Navbar` | `Navbar.tsx` | Top nav with logo, links, login/signup buttons. |
-| `Hero` | `Hero.tsx` | Landing hero with layered `ShaderBackground`, animated two-line headline, CTA pair, and floating `HeroFragments` around the copy column. |
+| `Hero` | `Hero.tsx` | Landing hero with layered `ShaderBackground`, animated two-line headline, paste-link CTA bar, `Try free now` signup link, and `See demo` link into `/runs/demo/timeline`. The CTA shell gets a slightly wider desktop parent so the right-side demo button stays inside the outline. |
 | `HowItWorks` | `HowItWorks.tsx` | Six-phase overview grid with click-to-scroll cards that jump to the matching landing preview section. |
-| `PipelineDemos` | `PipelineDemos.tsx` | Orchestrator for the six landing phase sections. Outer copy stays general-marketing; the embedded previews carry the Joe Rogan × Flagrant demo internals. |
+| `PipelineDemos` | `PipelineDemos.tsx` | Sticky scrollytelling orchestrator for the six landing phase sections. A left-side progress rail tracks the active phase while the right pane swaps app-frame previews. Outer copy stays general-marketing; embedded previews carry the Joe Rogan × Flagrant demo internals. |
 | `LandingTimelineDemo` | `LandingTimelineDemo.tsx` | Animated timeline mockup. |
 | `LandingGraphDemo` | `LandingGraphDemo.tsx` | Embedded React Flow graph using `ClyptNode` + `ClyptEdge`. Mounts lazily via `IntersectionObserver`. Hover state is managed in a `LandingHoverCtx.Provider` that wraps `<ReactFlow>` — the `nodes` and `edges` props are static constants so React Flow never remounts its wrapper divs on hover. RAF-debounced `onHoverLeave` guards against residual same-frame spurious leave events. |
 | `LandingHoverCtx` | `LandingHoverCtx.ts` | React Context that delivers `{hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave}` to `ClyptNode` and `ClyptEdge` inside `LandingGraphDemo` without touching React Flow's data pipeline. |
@@ -67,14 +67,14 @@ Complete inventory of all components grouped by domain.
 | `LandingParticipationDemo` | `LandingParticipationDemo.tsx` | Speaker participation visualization. |
 | `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses tracked MP4s plus poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
 | `Features` | `Features.tsx` | Feature grid. |
-| `TryItBar` | `TryItBar.tsx` | CTA bar with URL input. |
+| `TryItBar` | `TryItBar.tsx` | Legacy standalone CTA bar with URL input. The current landing route does not render it; the active paste-link CTA lives inside `Hero`. |
 | `Footer` | `Footer.tsx` | Page footer. |
-| `CustomCursor` | `CustomCursor.tsx` | Custom cursor effect (follows mouse). |
+| `CustomCursor` | `CustomCursor.tsx` | Brand-violet custom cursor effect. Follows the pointer with a direct dot and springy ring, and switches size/state for `data-cursor="pointer"`, `play`, and `text`. |
 | `WaveformBand` | `WaveformBand.tsx` | Animated waveform decoration for hero. |
 | `DemoCardShell` | `DemoCardShell.tsx` | Shared card wrapper for demo components. |
 | `DemoSectionLayout` | `DemoSectionLayout.tsx` | Layout wrapper for demo sections. |
 | `ShaderBackground` | `ShaderBackground.tsx` | Section-level Paper Design shader wrapper. Variant-based effect library with reduced-motion static fallbacks for hero, auth, how-it-works, pipeline, showcase, CTA, and onboarding surfaces. |
-| `HeroFragments/*` | `HeroFragments/` | Floating mini product cards around the hero: cortex, timeline, grounded crop, and three real clip chips backed by tracked landing media. |
+| `HeroFragments/*` | `HeroFragments/` | Floating mini product cards around the hero. The active layout mounts cortex, timeline, and two real clip chips backed by tracked landing media; the fragment editor can persist local layout overrides in `localStorage`. |
 | `previews/*` | `previews/` | Full landing phase preview surfaces (`LandingTimelinePreview`, `LandingSearchPreview`, `LandingGroundingPreview`, `LandingRenderPreview`) wrapped in `AppFrameMock` so each section previews a real in-app workspace pane. |
 
 ## `src/components/onboarding/` — Onboarding

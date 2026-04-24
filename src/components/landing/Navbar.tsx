@@ -78,7 +78,7 @@ const Navbar = () => {
               e.currentTarget.style.boxShadow = "0 0 24px -4px rgba(167,139,250,0.5)";
             }}
           >
-            Get started free
+            Get started today
           </a>
         </div>
       </div>

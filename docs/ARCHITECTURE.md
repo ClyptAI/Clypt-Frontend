@@ -33,7 +33,7 @@ src/
 │   ├── auth/                # AuthLayout (login/signup wrapper with embedded graph)
 │   ├── embeds/              # Embedding scatter plot, search bar, results panel, inspector
 │   ├── graph/               # React Flow nodes, edges, toolbar, legend, inspector, timeline strip
-│   ├── landing/             # Landing page sections (hero, demos, features, footer)
+│   ├── landing/             # Landing page sections (hero, phase demos, clip showcase, footer)
 │   ├── onboarding/          # OnboardingLayout (step indicator wrapper)
 │   ├── settings/            # SettingsLayout + SettingsNav
 │   ├── timeline/            # VideoPlayer, WaveformLane, TimeRuler, Playhead

@@ -11,17 +11,10 @@ const TONE_COLOR: Record<CursorTone, string> = {
   amber: "#FBB249",
 };
 
-/** Pick a contrasting accent for the local background tone. */
-const contrastFor = (tone: CursorTone): CursorTone => {
-  if (tone === "violet") return "cyan";
-  if (tone === "cyan") return "violet";
-  return "violet"; // amber → violet
-};
-
 const CustomCursor = () => {
   const [cursorState, setCursorState] = useState<CursorState>("default");
   const [isClicking, setIsClicking] = useState(false);
-  const [tone, setTone] = useState<CursorTone>("cyan");
+  const [tone] = useState<CursorTone>("violet");
 
   // Dot position — direct, no lag
   const dotX = useMotionValue(0);
@@ -48,10 +41,6 @@ const CustomCursor = () => {
       setCursorState("default");
     }
 
-    // Walk up looking for a section that declares its dominant tone.
-    const toneEl = target.closest("[data-cursor-bg]");
-    const localTone = (toneEl?.getAttribute("data-cursor-bg") as CursorTone) || "violet";
-    setTone(contrastFor(localTone));
   }, []);
 
   const handleMouseDown = useCallback(() => setIsClicking(true), []);

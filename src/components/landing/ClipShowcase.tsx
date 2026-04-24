@@ -164,11 +164,11 @@ const ClipShowcase = () => {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease }}
         >
-          Clips{" "}
-          <span style={{ color: "#A78BFA", filter: "drop-shadow(0 0 20px rgba(167,139,250,0.5))" }}>
-            cut
-          </span>{" "}
-          from what matters.
+          Clips cut from what{" "}
+          <span style={{ color: "hsl(var(--primary))" }}>
+            matters
+          </span>
+          .
         </motion.h2>
         <motion.p
           className="font-sans mx-auto"

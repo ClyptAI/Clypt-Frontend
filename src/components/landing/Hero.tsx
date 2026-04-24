@@ -1,9 +1,8 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Link as LinkIcon } from "lucide-react";
 import ShaderBackground from "./ShaderBackground";
-import HeroFragments from "./HeroFragments";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -38,20 +37,7 @@ const Hero = () => {
       {/* LAYER 0 — Animated shader background (slightly softened so fragments read crisply) */}
       <ShaderBackground variant="hero" className="shader-layer" style={{ opacity: 0.85 }} />
 
-      {/* LAYER 1 — Subtle grid */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 1,
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          maskImage: "radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 100%)",
-        }}
-      />
-
-      {/* LAYER 2 — Violet ambient glow */}
+      {/* LAYER 1 — Violet ambient glow */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -65,16 +51,13 @@ const Hero = () => {
         }}
       />
 
-      {/* LAYER 3 — Floating product fragments */}
-      <HeroFragments />
-
       {/* ── CONTENT (left-aligned column) ── */}
       <div
-        className="relative z-10 flex flex-col items-start text-left"
+        className="relative z-10 flex flex-col items-start text-left lg:w-[52vw]"
         style={{
           paddingLeft: "max(5vw, 32px)",
           paddingRight: "max(5vw, 32px)",
-          maxWidth: 620,
+          maxWidth: 760,
           width: "100%",
         }}
         data-cursor="text"
@@ -160,84 +143,67 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.45 }}
         >
-          Clypt maps semantic structure against <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;real&nbsp;&nbsp;</em>audience engagement and <em style={{ color: "#fff", fontStyle: "italic" }}>&nbsp;live&nbsp;&nbsp;</em>trends, mining the moments worth clipping.
+          Clypt maps semantic structure against real audience engagement and live trends, mining the moments worth clipping.
         </motion.p>
 
-        {/* CTA buttons */}
+        {/* URL paste bar + CTA buttons */}
         <motion.div
-          className="flex items-center"
-          style={{ gap: 12, marginTop: 36 }}
-          initial={{ opacity: 0, y: 12 }}
+          className="flex w-full flex-col items-stretch gap-3 sm:w-[calc(100%+32px)] sm:flex-row sm:items-center"
+          style={{
+            maxWidth: 852,
+            marginTop: 36,
+            border: "1px solid hsl(var(--border) / 0.72)",
+            background: "hsl(var(--card) / 0.78)",
+            borderRadius: 28,
+            padding: 12,
+            boxShadow: "0 32px 90px hsl(0 0% 0% / 0.35)",
+            backdropFilter: "blur(22px)",
+          }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.55 }}
+          transition={{ duration: 0.65, ease, delay: 0.55 }}
         >
+          <div
+            className="flex min-h-12 flex-1 items-center gap-3 whitespace-nowrap px-4 text-left font-sans"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            <LinkIcon size={18} color="hsl(var(--primary))" />
+            Paste a YouTube or podcast link
+          </div>
           <a
             href="/signup"
-          className="font-heading font-semibold flex items-center active:scale-[0.97]"
+            className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 font-heading font-semibold transition-transform active:scale-[0.98]"
             style={{
               fontSize: 15,
-              color: "#0A0909",
-              backgroundColor: "#A78BFA",
-              padding: "13px 14px 13px 24px",
-              borderRadius: 9999,
-              boxShadow: "0 0 32px -4px rgba(167,139,250,0.5)",
-              gap: 10,
-            transition: "background-color 160ms ease, box-shadow 200ms ease, transform 120ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#C4B5FD";
-              e.currentTarget.style.boxShadow = "0 0 48px -4px rgba(167,139,250,0.65)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#A78BFA";
-              e.currentTarget.style.boxShadow = "0 0 32px -4px rgba(167,139,250,0.5)";
+              color: "hsl(var(--primary-foreground))",
+              backgroundColor: "hsl(var(--primary))",
             }}
             data-cursor="pointer"
           >
-            Get started free
-            <span
-              className="flex items-center justify-center"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: "rgba(0,0,0,0.2)",
-              }}
-            >
-              <ArrowRight size={16} />
-            </span>
+            Try free now
+            <ArrowRight size={16} />
           </a>
           <Link
             to="/runs/demo/timeline"
-          className="font-sans active:scale-[0.97]"
-          style={{ fontSize: 15, color: "rgba(255,255,255,0.7)", transition: "color 160ms ease, transform 120ms ease" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
+            className="inline-flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-5 font-heading font-semibold transition-colors"
+            style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))", fontSize: 15 }}
             data-cursor="pointer"
           >
-            See a demo →
+            See demo
           </Link>
         </motion.div>
 
-        {/* Tagline */}
         <motion.div
-          className="flex items-center gap-2"
-          style={{ marginTop: 36 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.7 }}
+          className="flex items-center gap-3 font-display italic"
+          style={{ color: "hsl(var(--primary))", fontSize: 24, marginTop: 28 }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease, delay: 0.68 }}
         >
-          <span style={{ color: "#A78BFA", fontSize: 14 }}>✦</span>
-          <span
-            className="font-display italic"
-            style={{
-              fontSize: 17,
-              color: "#C4B5FD",
-              letterSpacing: "0.01em",
-            }}
-          >
-            Clypt is how creators think.
+          <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>
+            ✦
           </span>
+          <span>Clypt is how creators think.</span>
         </motion.div>
       </div>
     </section>
