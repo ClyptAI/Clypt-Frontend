@@ -141,8 +141,9 @@ const Hero = () => {
 
           {/* URL paste bar + CTA buttons */}
           <motion.div
-            className="flex w-full max-w-[640px] flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
+            className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center"
             style={{
+              maxWidth: 780,
               marginTop: 36,
               border: "1px solid hsl(var(--border) / 0.72)",
               background: "hsl(var(--card) / 0.78)",
@@ -175,29 +176,27 @@ const Hero = () => {
               Try free now
               <ArrowRight size={16} />
             </a>
-          </motion.div>
-
-          <motion.div
-            className="flex flex-col items-start gap-4"
-            style={{ color: "hsl(var(--primary))", fontSize: 24, marginTop: 28 }}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease, delay: 0.68 }}
-          >
-            <div className="flex items-center gap-3 font-display italic">
-              <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>
-                ✦
-              </span>
-              <span>Clypt is how creators think.</span>
-            </div>
             <Link
               to="/runs/demo/timeline"
-              className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full border px-5 font-heading font-semibold transition-colors"
+              className="inline-flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-5 font-heading font-semibold transition-colors"
               style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))", fontSize: 15 }}
               data-cursor="pointer"
             >
               See demo
             </Link>
+          </motion.div>
+
+          <motion.div
+            className="flex items-center gap-3 font-display italic"
+            style={{ color: "hsl(var(--primary))", fontSize: 24, marginTop: 28 }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease, delay: 0.68 }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>
+              ✦
+            </span>
+            <span>Clypt is how creators think.</span>
           </motion.div>
         </div>
 
