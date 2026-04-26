@@ -1,11 +1,12 @@
-import { ReactNode, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
 import { ReactFlow, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ClyptEdge } from "@/components/graph/ClyptEdge";
 import { ClyptNode } from "@/components/graph/ClyptNode";
 import ShaderBackground from "@/components/landing/ShaderBackground";
+import { LandingHoverCtx } from "@/components/landing/LandingHoverCtx";
 
 const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
@@ -29,9 +30,23 @@ const authEdges: Edge[] = [
 ];
 
 const AuthLayout = ({ children }: { children: ReactNode }) => {
-  const navigate = useNavigate();
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const leaveRAF = useRef<number | null>(null);
+
+  const onHoverEnter = useCallback((id: string) => {
+    if (leaveRAF.current !== null) {
+      cancelAnimationFrame(leaveRAF.current);
+      leaveRAF.current = null;
+    }
+    setHoveredNodeId(id);
+  }, []);
+
+  const onHoverLeave = useCallback(() => {
+    leaveRAF.current = requestAnimationFrame(() => {
+      leaveRAF.current = null;
+      setHoveredNodeId(null);
+    });
+  }, []);
 
   const connectedNodeIds = useMemo(() => {
     if (!hoveredNodeId) return new Set<string>();
@@ -54,29 +69,10 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
     return ids;
   }, [hoveredNodeId]);
 
-  const displayNodes = useMemo(() => {
-    return authNodes.map((n) => ({
-      ...n,
-      data: {
-        ...n.data,
-        _isHoverTarget: hoveredNodeId === n.id,
-        _isHoverConnected: hoveredNodeId ? connectedNodeIds.has(n.id) && hoveredNodeId !== n.id : false,
-        _hasHover: !!hoveredNodeId,
-      },
-    }));
-  }, [hoveredNodeId, connectedNodeIds]);
-
-  const displayEdges = useMemo(() => {
-    return authEdges.map((e) => ({
-      ...e,
-      data: {
-        ...e.data,
-        _isHoverHighlighted: hoveredNodeId ? connectedEdgeIds.has(e.id) : false,
-        _isEdgeHovered: hoveredEdgeId === e.id,
-        _hasHover: !!hoveredNodeId || !!hoveredEdgeId,
-      },
-    }));
-  }, [hoveredNodeId, hoveredEdgeId, connectedEdgeIds]);
+  const hoverContext = useMemo(
+    () => ({ hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave }),
+    [hoveredNodeId, connectedNodeIds, connectedEdgeIds, onHoverEnter, onHoverLeave],
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -99,33 +95,41 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
             backgroundSize: "24px 24px",
           }}
         >
-          <ReactFlow
-            nodes={displayNodes}
-            edges={displayEdges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            zoomOnScroll={false}
-            panOnScroll={false}
-            panOnDrag={false}
-            preventScrolling={false}
-            proOptions={{ hideAttribution: true }}
-            onNodeMouseEnter={(_evt, node) => setHoveredNodeId(node.id)}
-            onNodeMouseLeave={() => setHoveredNodeId(null)}
-            onEdgeMouseEnter={(_evt, edge) => setHoveredEdgeId(edge.id)}
-            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
-            fitView
-            fitViewOptions={{ padding: 0.25 }}
-            style={{ background: "transparent" }}
-          />
+          <LandingHoverCtx.Provider value={hoverContext}>
+            <ReactFlow
+              nodes={authNodes}
+              edges={authEdges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              nodesFocusable={false}
+              edgesFocusable={false}
+              zoomOnScroll={false}
+              panOnScroll={false}
+              panOnDrag={false}
+              preventScrolling={false}
+              proOptions={{ hideAttribution: true }}
+              onNodeMouseEnter={() => undefined}
+              onNodeMouseLeave={() => undefined}
+              onEdgeClick={() => undefined}
+              fitView
+              fitViewOptions={{ padding: 0.25 }}
+              style={{ background: "transparent" }}
+            />
+          </LandingHoverCtx.Provider>
         </div>
 
         {/* Logo — above graph */}
-        <div style={{ position: "relative", zIndex: 10, padding: 40 }}>
-          <div className="cursor-pointer" onClick={() => navigate("/")}>
+        <div style={{ position: "relative", zIndex: 10, padding: 40, pointerEvents: "none" }}>
+          <Link
+            to="/"
+            aria-label="Go to Clypt landing page"
+            className="pointer-events-auto inline-flex w-fit no-underline"
+          >
             <ClyptLogo size="xl" />
-          </div>
+          </Link>
         </div>
 
         {/* Spacer — must not block graph pointer events */}

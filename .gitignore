@@ -24,6 +24,8 @@ dist-ssr
 *.sw?
 .worktrees/
 .gstack/
+.playwright-mcp/
+auth-logo-hit-area-patch.png
 
 # Root demo run video stays local-only — see public/videos/README.md.
 # Tracked landing clips live under public/videos/landing/.
