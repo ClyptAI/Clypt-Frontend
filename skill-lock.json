@@ -21,6 +21,11 @@
       "sourceType": "github",
       "computedHash": "fa9e058828bb65fe87cb0b9d7cc880a34dee0538ec0bb3869283b3f98300ec81"
     },
+    "mattpocock-skills": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "ebf91987ebbf13489869e6790aad8463e1ec96610ecfdd92aec08f3373fa9bcd"
+    },
     "react-best-practices": {
       "source": ".agents/skills/react-best-practices",
       "sourceType": "local",
