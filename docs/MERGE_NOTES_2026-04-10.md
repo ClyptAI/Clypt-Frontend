@@ -41,9 +41,9 @@ Codex's fix for the glitchy timeline divider. Reviewed and merged after verifyin
 
 File touched: `src/pages/RunTimeline.tsx`. Type-checks clean.
 
-### 2.3 `95fa226` — `docs: drop stale Lovable preview URL from README`
+### 2.3 `95fa226` — `docs: drop stale generated preview URL from README`
 
-Collaborator flagged via Discord screenshot that `README.md` still had a stale `https://clypt-v3.lovable.app` URL pointing at the old Lovable preview. Removed the URL line. File touched: `README.md`.
+Collaborator flagged via Discord screenshot that `README.md` still had a stale generated preview URL pointing at an old preview deployment. Removed the URL line. File touched: `README.md`.
 
 ## 3. Demo video verification
 
@@ -122,7 +122,7 @@ The docs that landed via `9e79b24` were written against `main`'s state, not `fea
 |------|--------|------|-------------|
 | `3ffcf6b` | me | fix | Wire Cortex Graph edges through the API (4 files). |
 | `8f1a6fe` | Codex (reviewed/merged) | fix | Pointer-events timeline divider drag. |
-| `95fa226` | me | docs | Drop stale Lovable preview URL from README. |
+| `95fa226` | me | docs | Drop stale generated preview URL from README. |
 | `43475e5` | me | merge | Merge `origin/main` into `feat/functional-dummy-data`. No conflicts. |
 | `8b4e334` | me | docs | Reconcile AGENTS/ARCHITECTURE/COMPONENTS with merged feat state + log edges bug. |
 | `29b7e3b` | me | docs | Add this `MERGE_NOTES_2026-04-10` file. |
@@ -298,7 +298,7 @@ manual_crop?: GroundingCropPosition
 |------|------|-------------|
 | `3ffcf6b` | fix | Wire Cortex Graph edges through the API. |
 | `8f1a6fe` | fix | Pointer-events timeline divider drag (Codex, reviewed). |
-| `95fa226` | docs | Drop stale Lovable preview URL from README. |
+| `95fa226` | docs | Drop stale generated preview URL from README. |
 | `43475e5` | merge | Merge `origin/main` into `feat/functional-dummy-data`. |
 | `8b4e334` | docs | Reconcile AGENTS/ARCHITECTURE/COMPONENTS + log edges bug. |
 | `29b7e3b` | docs | Add `MERGE_NOTES_2026-04-10` file (this file). |
