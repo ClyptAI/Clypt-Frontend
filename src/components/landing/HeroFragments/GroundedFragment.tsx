@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { landingHeroImageSrc } from "../landingMedia";
 
 /**
  * Mini Grounded fragment — modeled after src/pages/RunGrounding.tsx.
@@ -76,7 +77,7 @@ export default function GroundedFragment() {
             overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.08)",
             backgroundColor: "#0a0909",
-            backgroundImage: "url(/images/hero/grounded-rogan.jpg)",
+            backgroundImage: `url(${landingHeroImageSrc.groundedRogan})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

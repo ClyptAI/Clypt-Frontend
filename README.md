@@ -133,7 +133,7 @@ That means you can boot the app and immediately browse a working demo run such a
 
 ## Media Assets
 
-- landing clip videos live in Vercel Blob; poster/still images live in `public/images/landing-posters/` and `public/images/hero/`
+- app-facing landing media lives in Vercel Blob; README/docs media stays in Git
 - the large seeded demo run video at `public/videos/joeroganflagrant.mp4` is still local-only on purpose
 - setup notes for that root demo video live in [public/videos/README.md](public/videos/README.md)
 
@@ -154,9 +154,7 @@ src/lib/api.ts                     Typed backend/mock API wrappers
 src/mocks/                         In-memory mock backend and lifecycle simulation
 src/stores/                        Zustand stores
 src/types/clypt.ts                 Frontend types aligned to backend models
-src/components/landing/landingMedia.ts  Vercel Blob URLs for landing clips
-public/images/landing-posters/     Landing poster thumbnails for paused cards
-public/images/hero/                Hero fragment still images
+src/components/landing/landingMedia.ts  Vercel Blob URLs for landing media
 docs/                              Architecture, pages, components, styling, evals, error log
 ```
 

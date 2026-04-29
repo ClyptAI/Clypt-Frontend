@@ -1,6 +1,6 @@
 import { Pause, Crop, Check, Lock } from "lucide-react";
 import AppFrameMock from "./AppFrameMock";
-import phase5Frame from "@/assets/landing-phase5-frame.png";
+import { landingPhaseFrameSrc } from "../landingMedia";
 
 /**
  * Faithful preview of the RunGrounding page. Top-level structure:
@@ -112,7 +112,7 @@ export default function LandingGroundingPreview() {
           }}
         >
           <img
-            src={phase5Frame}
+            src={landingPhaseFrameSrc.phase5}
             alt=""
             style={{
               height: "100%",

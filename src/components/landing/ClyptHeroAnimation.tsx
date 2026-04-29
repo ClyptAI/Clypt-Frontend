@@ -26,6 +26,7 @@ import {
   ModerateRhetoricalEdge,
   StrongRhetoricalEdge,
 } from "@/components/graph/edges";
+import { getLandingClipPosterSrc, landingHeroImageSrc, landingPosterSrc } from "./landingMedia";
 
 type HeroPhase = "idle" | "analysis" | "generation" | "fanout" | "ranking" | "settled";
 type ClipPlatform = "youtube" | "tiktok" | "x";
@@ -55,35 +56,35 @@ const generatedClips: GeneratedClip[] = [
     id: "clip-1",
     score: 88,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0002_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: getLandingClipPosterSrc("sg_0002_cand_01_vertical_rfdetr_karaoke"),
     isTopMatch: false,
   },
   {
     id: "clip-2",
     score: 94,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0003_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: getLandingClipPosterSrc("sg_0003_cand_01_vertical_rfdetr_karaoke"),
     isTopMatch: false,
   },
   {
     id: "clip-3",
     score: 99,
     platform: "youtube",
-    image: "/images/landing-posters/hero-fanout-center.png",
+    image: landingPosterSrc.heroFanoutCenter,
     isTopMatch: true,
   },
   {
     id: "clip-4",
     score: 91,
     platform: "youtube",
-    image: "/images/landing-posters/sg_0005_cand_01_vertical_rfdetr_karaoke.jpg",
+    image: getLandingClipPosterSrc("sg_0005_cand_01_vertical_rfdetr_karaoke"),
     isTopMatch: false,
   },
   {
     id: "clip-5",
     score: 85,
     platform: "youtube",
-    image: "/images/landing-posters/hero-fanout-side.png",
+    image: landingPosterSrc.heroFanoutSide,
     isTopMatch: false,
   },
 ];
@@ -360,7 +361,7 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <img
-            src="/images/hero/grounded-rogan.jpg"
+            src={landingHeroImageSrc.groundedRogan}
             alt=""
             className="h-full w-full object-cover opacity-80"
             draggable={false}
@@ -432,7 +433,7 @@ function InputCluster({ phase }: { phase: HeroPhase }) {
             <div className="mb-1 flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <img
-                  src="/images/hero/jay-ventura-avatar.png"
+                  src={landingHeroImageSrc.jayVenturaAvatar}
                   alt=""
                   className="h-7 w-7 flex-shrink-0 rounded-full border border-white/10 object-cover"
                   draggable={false}

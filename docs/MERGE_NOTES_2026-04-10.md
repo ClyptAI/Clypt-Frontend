@@ -150,7 +150,7 @@ Resolution:
 - Added `public/videos/*.mp4` + `!public/videos/.gitkeep` to `.gitignore`.
 - Added `public/videos/.gitkeep` so the empty folder still ships.
 - Added `public/videos/README.md` documenting the convention, the fresh-checkout setup, and the symlink history (so nobody re-commits one).
-- At that point: copied the real ~125 MB mp4 from a local download into `public/videos/`. Today the large root demo file is still local-only, landing clip videos live in Vercel Blob, and landing posters remain tracked under `public/images/landing-posters/`.
+- At that point: copied the real ~125 MB mp4 from a local download into `public/videos/`. Today the large root demo file is still local-only, and app-facing landing media lives in Vercel Blob via `src/components/landing/landingMedia.ts`.
 
 ### 9.3 `1db1584` — `feat(grounding): manual bounding box editor with per-shot drag/resize/add/delete`
 

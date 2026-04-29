@@ -3,19 +3,16 @@
 This folder holds two different kinds of media:
 
 1. the large root demo run video (`public/videos/joeroganflagrant.mp4`), which stays local-only
-2. landing clip videos, which live in Vercel Blob and are referenced from `src/components/landing/landingMedia.ts`
+2. app-facing landing media, which lives in Vercel Blob and is referenced from `src/components/landing/landingMedia.ts`
 
 ## What lives here
 
 | Filename | Used by | Where it's referenced |
 |----------|---------|-----------------------|
 | `joeroganflagrant.mp4` | The seeded `demo` run on `/runs/demo/timeline`, `ClipBoundaryEditor` default, `RunGrounding` background, `RunRender` preview | `src/pages/RunTimeline.tsx`, `src/pages/RunGrounding.tsx`, `src/pages/RunRender.tsx`, `src/components/app/ClipBoundaryEditor.tsx`, `src/mocks/api.ts` |
-| Vercel Blob `landing/*.mp4` URLs | Landing hero clip chips + lower clip showcase cards | `src/components/landing/landingMedia.ts`, `src/components/landing/HeroFragments/index.tsx`, `src/components/landing/ClipShowcase.tsx` |
+| Vercel Blob landing media URLs | Landing hero clip chips, lower clip showcase cards, hero stills, posters, and phase preview frames | `src/components/landing/landingMedia.ts` |
 
-Related tracked assets:
-
-- `public/images/landing-posters/` — paused-state poster frames for the 8 Blob-hosted landing clips
-- `public/images/hero/` — still images used by the hero timeline/grounded fragments
+README/docs images remain tracked in Git because GitHub renders them directly. App-facing landing media should not be added to `public/` or `src/assets/`; upload it to Blob and update `src/components/landing/landingMedia.ts`.
 
 ## Root demo video setup on a fresh checkout
 
@@ -28,19 +25,23 @@ If the video preview is **black**, you almost certainly forgot this step. The
 HTML5 `<video>` element silently shows a black frame when the source is
 missing or unreadable.
 
-The landing clips do **not** need any manual setup — they are hosted in the public `clypt-assets` Vercel Blob store. Update `src/components/landing/landingMedia.ts` when a landing video is replaced or added.
+The landing media does **not** need any manual setup — it is hosted in the public `clypt-assets` Vercel Blob store. Update `src/components/landing/landingMedia.ts` when a landing video, poster, still, or preview frame is replaced or added.
 
 ## Why video files are gitignored
 
-`.mp4` files are large. Putting them in git
+Media files can grow quickly. Putting app media in git
 would balloon the repo permanently — every clone, every CI run, every
 checkout would have to pull them. Vite also copies every file in `public/`
-into `dist`, so tracked videos would bloat every Vercel deployment. The
-gitignore rules live in the repo root `.gitignore`:
+into `dist`, and imported files in `src/assets/` are bundled too, so tracked
+landing media would bloat every Vercel deployment. The gitignore rules live
+in the repo root `.gitignore`:
 
 ```
 public/videos/*.mp4
 public/videos/**/*.mp4
+public/images/landing-posters/
+public/images/hero/
+src/assets/landing-phase*-frame.png
 !public/videos/.gitkeep
 ```
 

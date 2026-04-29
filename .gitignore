@@ -32,6 +32,9 @@ auth-logo-hit-area-patch.png
 public/videos/*.mp4
 public/videos/**/*.mp4
 !public/videos/.gitkeep
+public/images/landing-posters/
+public/images/hero/
+src/assets/landing-phase*-frame.png
 .gitnexus
 .vercel
 .env*.local

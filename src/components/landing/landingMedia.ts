@@ -1,5 +1,4 @@
-const BLOB_BASE_URL = "https://nifcdkmrbw3cwvgh.public.blob.vercel-storage.com/landing";
-const POSTER_BASE_PATH = "/images/landing-posters";
+const BLOB_BASE_URL = "https://nifcdkmrbw3cwvgh.public.blob.vercel-storage.com";
 
 export const landingClipIds = [
   "dwarkesh_sg_0007_cand_01_vertical_rfdetr_karaoke",
@@ -15,9 +14,25 @@ export const landingClipIds = [
 export type LandingClipId = (typeof landingClipIds)[number];
 
 export function getLandingClipVideoSrc(id: LandingClipId): string {
-  return `${BLOB_BASE_URL}/${id}.mp4`;
+  return `${BLOB_BASE_URL}/landing/${id}.mp4`;
 }
 
 export function getLandingClipPosterSrc(id: LandingClipId): string {
-  return `${POSTER_BASE_PATH}/${id}.jpg`;
+  return `${BLOB_BASE_URL}/landing-posters/${id}.jpg`;
 }
+
+export const landingPosterSrc = {
+  heroFanoutCenter: `${BLOB_BASE_URL}/landing-posters/hero-fanout-center.png`,
+  heroFanoutSide: `${BLOB_BASE_URL}/landing-posters/hero-fanout-side.png`,
+} as const;
+
+export const landingHeroImageSrc = {
+  groundedRogan: `${BLOB_BASE_URL}/hero/grounded-rogan.jpg`,
+  timelineRogan: `${BLOB_BASE_URL}/hero/timeline-rogan.jpg`,
+  jayVenturaAvatar: `${BLOB_BASE_URL}/hero/jay-ventura-avatar.png`,
+} as const;
+
+export const landingPhaseFrameSrc = {
+  phase1: `${BLOB_BASE_URL}/landing-assets/landing-phase1-frame.png`,
+  phase5: `${BLOB_BASE_URL}/landing-assets/landing-phase5-frame.png`,
+} as const;

@@ -1,7 +1,7 @@
 import { Pause } from "lucide-react";
 import { useMemo } from "react";
 import AppFrameMock from "./AppFrameMock";
-import phase1Frame from "@/assets/landing-phase1-frame.png";
+import { landingPhaseFrameSrc } from "../landingMedia";
 
 /**
  * Faithful preview of the RunTimeline page. Mirrors the real layout:
@@ -105,7 +105,7 @@ export default function LandingTimelinePreview() {
           }}
         >
           <img
-            src={phase1Frame}
+            src={landingPhaseFrameSrc.phase1}
             alt=""
             style={{
               height: "100%",

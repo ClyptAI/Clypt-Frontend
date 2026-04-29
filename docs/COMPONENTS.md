@@ -56,7 +56,7 @@ Complete inventory of all components grouped by domain.
 |-----------|------|-------------|
 | `Navbar` | `Navbar.tsx` | Top nav with logo, links, login/signup buttons. |
 | `Hero` | `Hero.tsx` | Landing hero with a violet `GemSmoke` `ShaderBackground`, animated two-line headline, two-line supporting copy, paste-link CTA bar, `Try free now` signup link, `See demo` link into `/runs/demo/timeline`, and the right-side `ClyptHeroAnimation`. |
-| `ClyptHeroAnimation` | `ClyptHeroAnimation.tsx` | First-viewport hero animation. Runs once per page load through video analysis, a symmetric seven-node semantic graph reveal, clip fanout, and a settled `Top Hit` center card. The graph layer uses symmetric horizontal React Flow viewport bleed, not CSS transform scaling, so the wide node layout can render larger while keeping edge endpoints attached. Uses tracked poster assets in `public/images/landing-posters/`, keeps the fanout score chips in the top-right of each clip card, and respects reduced motion by jumping to the settled state. |
+| `ClyptHeroAnimation` | `ClyptHeroAnimation.tsx` | First-viewport hero animation. Runs once per page load through video analysis, a symmetric seven-node semantic graph reveal, clip fanout, and a settled `Top Hit` center card. The graph layer uses symmetric horizontal React Flow viewport bleed, not CSS transform scaling, so the wide node layout can render larger while keeping edge endpoints attached. Uses landing media from the Blob-backed `landingMedia` manifest, keeps the fanout score chips in the top-right of each clip card, and respects reduced motion by jumping to the settled state. |
 | `HowItWorks` | `HowItWorks.tsx` | Six-phase overview grid with click-to-scroll cards that jump to the matching landing preview section. |
 | `PipelineDemos` | `PipelineDemos.tsx` | Sticky scrollytelling orchestrator for the six landing phase sections. A left-side progress rail tracks the active phase while the right pane swaps app-frame previews. Supports bounded per-phase right bleed for wide previews, including the cortex graph stage, while avoiding parent scale transforms around React Flow so edge coordinates stay aligned. Outer copy stays general-marketing; embedded previews carry the Joe Rogan x Flagrant demo internals. |
 | `LandingTimelineDemo` | `LandingTimelineDemo.tsx` | Animated timeline mockup. |
@@ -66,7 +66,7 @@ Complete inventory of all components grouped by domain.
 | `LandingEmbeddingDemo` | `LandingEmbeddingDemo.tsx` | Scatter plot mockup. |
 | `LandingClipDemo` | `LandingClipDemo.tsx` | Clip candidate card. |
 | `LandingParticipationDemo` | `LandingParticipationDemo.tsx` | Speaker participation visualization. |
-| `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses Vercel Blob MP4s plus repo-tracked poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
+| `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses Vercel Blob MP4s plus Blob poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
 | `Features` | `Features.tsx` | Feature grid. |
 | `TryItBar` | `TryItBar.tsx` | Legacy standalone CTA bar with URL input. The current landing route does not render it; the active paste-link CTA lives inside `Hero`. |
 | `Footer` | `Footer.tsx` | Page footer. |

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { landingHeroImageSrc } from "../landingMedia";
 
 /**
  * Mini Timeline fragment — mirrors the real RunTimeline UI:
@@ -133,7 +134,7 @@ export default function TimelineFragment() {
             border: "1px solid rgba(255,255,255,0.08)",
             position: "relative",
             backgroundColor: "#0a0909",
-            backgroundImage: "url(/images/hero/timeline-rogan.jpg)",
+            backgroundImage: `url(${landingHeroImageSrc.timelineRogan})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

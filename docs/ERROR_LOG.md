@@ -187,12 +187,7 @@ Move the animation into a dedicated `ClyptHeroAnimation` scene with a fixed inte
 **Affected files**
 - `src/components/landing/ClyptHeroAnimation.tsx`
 - `src/components/landing/Hero.tsx`
-- `public/images/hero/jay-ventura-avatar.png`
-- `public/images/landing-posters/hero-fanout-center.png`
-- `public/images/landing-posters/hero-fanout-side.png`
-- `public/images/landing-posters/sg_0002_cand_01_vertical_rfdetr_karaoke.jpg`
-- `public/images/landing-posters/sg_0003_cand_01_vertical_rfdetr_karaoke.jpg`
-- `public/images/landing-posters/sg_0005_cand_01_vertical_rfdetr_karaoke.jpg`
+- Landing media entries now live in `src/components/landing/landingMedia.ts`.
 
 **Preventive rule**
 **When porting a composed visual animation, preserve its source coordinate space and scale the whole stage proportionally.** Do not "make it fit" by nudging each major section independently unless the source animation was built as a responsive layout from the start. If a scene contains repeated media cards, verify the assets are unique before shipping.
@@ -262,11 +257,7 @@ Move the icon, center label, and score into a single top overlay row with shared
 
 **Affected files**
 - `src/components/landing/ClyptHeroAnimation.tsx`
-- `public/images/landing-posters/hero-fanout-center.png`
-- `public/images/landing-posters/hero-fanout-side.png`
-- `public/images/landing-posters/sg_0002_cand_01_vertical_rfdetr_karaoke.jpg`
-- `public/images/landing-posters/sg_0003_cand_01_vertical_rfdetr_karaoke.jpg`
-- `public/images/landing-posters/sg_0005_cand_01_vertical_rfdetr_karaoke.jpg`
+- Landing media entries now live in `src/components/landing/landingMedia.ts`.
 
 **Preventive rule**
 **Group related overlay controls in one positioning context.** Do not separately absolute-position icon, status, and score badges if they must remain aligned across animated card states. For fanout/ranking visuals, scores belong in small stable corner chips; avoid bottom overlays that compete with captions.
