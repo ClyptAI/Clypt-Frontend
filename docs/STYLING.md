@@ -116,7 +116,9 @@ Geist Mono: wght@400;500
 
 `ShaderBackground` wraps Paper Design shader primitives for public surfaces. The landing hero uses the `GemSmoke` variant with purple, violet, and lavender tones only, plus a reduced-motion static fallback. The previous separate purple ambient glow behind the hero animation has been removed so the one-shot animation remains the foreground layer over the shader. The grain-gradient pass has also been removed from landing shaders.
 
-Only the hero shader should animate continuously on first paint. Lower landing shader sections (`HowItWorks`, `PipelineDemos`, and `ClipShowcase`) use `pauseWhenOffscreen`, constrained `viewportMargin`, `animated={false}`, `minPixelRatio={2}`, and a 4K pixel-count cap so they wake near the viewport and render a single high-resolution frozen frame. Avoid adding animated full-section WebGL layers below the fold unless the motion itself is product-critical.
+Only the hero shader should animate continuously on first paint. Lower landing shader sections (`HowItWorks`, `PipelineDemos`, and `ClipShowcase`) use `pauseWhenOffscreen`, constrained `viewportMargin`, `prewarmMargin`, delayed offscreen unmounting, `animated={false}`, `minPixelRatio={2}`, and a 4K pixel-count cap so they mount before they are needed, wake near the viewport, and render a single high-resolution frozen frame. Avoid adding animated full-section WebGL layers below the fold unless the motion itself is product-critical.
+
+Do not hard-swap a paused shader canvas with its CSS fallback exactly at a section boundary. Keep the fallback as the root background, pre-mount the shader while the section is near the viewport, and delay unmounting after it leaves. That preserves the GPU savings while avoiding blank-frame flicker when users scroll between adjacent shader-backed sections.
 
 Decorative Framer Motion loops in landing preview cards must respect both `useReducedMotion` and `useInView`. For compact hoverable landing cards, avoid broad CSS `transition-all`; use explicit short Framer transitions so hover exit does not visually trail behind rapid pointer movement.
 

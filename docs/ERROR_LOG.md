@@ -4,6 +4,26 @@ Breaking behaviors encountered during development and their fixes. Documented to
 
 ---
 
+## 2026-04-28 — Paused landing shaders flickered at section boundaries
+
+**Symptoms**
+- Scrolling between landing sections sometimes produced a small visual flicker at the moment the previous section paused and the next section woke.
+- The issue was most noticeable around adjacent shader-backed sections where one canvas unmounted while another mounted.
+
+**Root cause**
+`ShaderBackground` used one visibility threshold for both mounting and active animation. When a section crossed that threshold, React swapped the CSS fallback and Paper shader canvas immediately. The new WebGL canvas could need a frame to initialize and render its frozen frame, so fast scroll transitions occasionally exposed the fallback/canvas swap.
+
+**Fix**
+Split shader lifecycle into "near viewport" and "active viewport" states. `prewarmMargin` mounts shader canvases before the section is active, while the existing `viewportMargin` still controls whether animated shaders run. Offscreen unmounts are delayed briefly with `unmountDelayMs`, and the CSS fallback stays as the shader root background so initialization has a stable backdrop.
+
+**Affected files**
+- `src/components/landing/ShaderBackground.tsx`
+
+**Preventive rule**
+**Paused visual effects need lifecycle hysteresis.** Do not use the same observer edge for mount, animation, and unmount. Prewarm expensive canvases before they are visible, pause motion at the active viewport boundary, and delay teardown so fast scrolls do not produce hard visual swaps.
+
+---
+
 ## 2026-04-28 — Landing shaders caused high GPU usage immediately on page load
 
 **Symptoms**
@@ -15,7 +35,7 @@ Breaking behaviors encountered during development and their fixes. Documented to
 Every landing shader layer mounted and animated immediately, including sections below the fold. The page started seven Paper WebGL canvases on first paint: two in the hero, one in How It Works, two across the tall pipeline scrollytelling section, and two in the showcase. The pipeline shader was especially expensive because it inherited the full multi-viewport section height. Paper shaders default to a high pixel budget and keep a recurring animation loop whenever `speed` is nonzero.
 
 **Fix**
-Teach `ShaderBackground` to pause offscreen layers with `IntersectionObserver`, rendering the existing static fallback until the layer is visible. Expose Paper shader performance knobs through `minPixelRatio` and `maxPixelCount`, default the pixel-ratio floor to `1`, and cap landing shader canvas budgets. Remove the extra grain-gradient shader pass from the landing shader stack. Keep the hero shader animated at its original high-resolution budget, but make How It Works, Pipeline, and Showcase wake only when they enter the viewport and render frozen high-resolution frames with `speed={0}`. Gate decorative pulse loops in the landing search/render previews with reduced-motion and in-view checks.
+Teach `ShaderBackground` to pause offscreen layers with `IntersectionObserver`, rendering the existing static fallback until the layer is near the viewport. Expose Paper shader performance knobs through `minPixelRatio` and `maxPixelCount`, default the pixel-ratio floor to `1`, and cap landing shader canvas budgets. Remove the extra grain-gradient shader pass from the landing shader stack. Keep the hero shader animated at its original high-resolution budget, but make How It Works, Pipeline, and Showcase prewarm near the viewport, pause motion outside their active viewport, and render frozen high-resolution frames with `speed={0}`. Gate decorative pulse loops in the landing search/render previews with reduced-motion and in-view checks.
 
 **Affected files**
 - `src/components/landing/ShaderBackground.tsx`

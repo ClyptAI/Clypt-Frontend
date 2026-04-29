@@ -38,6 +38,10 @@ interface ShaderBackgroundProps {
   pauseWhenOffscreen?: boolean;
   /** IntersectionObserver root margin used when pauseWhenOffscreen is enabled. */
   viewportMargin?: string;
+  /** Larger IntersectionObserver margin used to pre-mount shader canvases before they are active. */
+  prewarmMargin?: string;
+  /** Delay before unmounting an offscreen shader, preventing boundary flicker during scroll. */
+  unmountDelayMs?: number;
   /** When false, render one high-resolution shader frame and stop the animation loop. */
   animated?: boolean;
   /** Static shader frame to render when animated is false. */
@@ -75,6 +79,8 @@ const ShaderBackground = ({
   className,
   pauseWhenOffscreen = false,
   viewportMargin = "0px",
+  prewarmMargin = "35% 0px 35% 0px",
+  unmountDelayMs = 450,
   animated = true,
   frame = 0,
   minPixelRatio = 1,
@@ -84,6 +90,7 @@ const ShaderBackground = ({
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [reduced, setReduced] = useState(false);
   const [inView, setInView] = useState(!pauseWhenOffscreen);
+  const [shouldRenderShader, setShouldRenderShader] = useState(!pauseWhenOffscreen);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -96,6 +103,7 @@ const ShaderBackground = ({
   useEffect(() => {
     if (!pauseWhenOffscreen) {
       setInView(true);
+      setShouldRenderShader(true);
       return;
     }
 
@@ -114,6 +122,46 @@ const ShaderBackground = ({
     return () => observer.disconnect();
   }, [pauseWhenOffscreen, rootEl, viewportMargin]);
 
+  useEffect(() => {
+    if (!pauseWhenOffscreen) {
+      setShouldRenderShader(true);
+      return;
+    }
+
+    if (!rootEl) return;
+
+    let unmountTimeout: ReturnType<typeof window.setTimeout> | undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (unmountTimeout) {
+            window.clearTimeout(unmountTimeout);
+            unmountTimeout = undefined;
+          }
+          setShouldRenderShader(true);
+          return;
+        }
+
+        unmountTimeout = window.setTimeout(() => {
+          setShouldRenderShader(false);
+          unmountTimeout = undefined;
+        }, unmountDelayMs);
+      },
+      {
+        root: null,
+        rootMargin: prewarmMargin,
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(rootEl);
+    return () => {
+      if (unmountTimeout) window.clearTimeout(unmountTimeout);
+      observer.disconnect();
+    };
+  }, [pauseWhenOffscreen, prewarmMargin, rootEl, unmountDelayMs]);
+
   const opacityScale = intensityMap[intensity];
 
   const baseStyle: CSSProperties = {
@@ -126,25 +174,29 @@ const ShaderBackground = ({
     ...style,
   };
 
+  const fallbackBg = staticFallback(variant);
+  const shaderRootStyle: CSSProperties = {
+    ...baseStyle,
+    background: fallbackBg,
+  };
   const fillStyle: CSSProperties = { width: "100%", height: "100%" };
   const shaderPerfProps = {
     minPixelRatio,
     maxPixelCount,
   };
   const shaderMotionProps = (speed: number) => ({
-    speed: animated ? speed : 0,
+    speed: animated && inView ? speed : 0,
     frame: animated ? undefined : frame,
   });
 
-  // ── Static fallbacks: reduced motion or offscreen paused state ──
-  if (reduced || !inView) {
-    const staticBg = staticFallback(variant);
+  // ── Static fallbacks: reduced motion or fully offscreen paused state ──
+  if (reduced || !shouldRenderShader) {
     return (
       <div
         ref={setRootEl}
         aria-hidden
         className={className}
-        style={{ ...baseStyle, background: staticBg, opacity: opacityScale }}
+        style={{ ...baseStyle, background: fallbackBg, opacity: opacityScale }}
       />
     );
   }
@@ -153,7 +205,7 @@ const ShaderBackground = ({
   switch (variant) {
     case "auth": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET_DEEP, "#5B21B6", "#1a1035"]}
@@ -171,7 +223,7 @@ const ShaderBackground = ({
 
     case "how-it-works": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <Warp
             {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, BG]}
@@ -191,7 +243,7 @@ const ShaderBackground = ({
 
     case "pipeline-cool": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, CYAN, BG]}
@@ -207,7 +259,7 @@ const ShaderBackground = ({
 
     case "pipeline-warm": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, AMBER, BG]}
@@ -223,7 +275,7 @@ const ShaderBackground = ({
 
     case "pipeline-deep": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, BG, "#1a1035", "#2A1758", "#A78BFA"]}
@@ -239,7 +291,7 @@ const ShaderBackground = ({
 
     case "showcase": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <GodRays
             {...shaderPerfProps}
             colorBack={BG}
@@ -262,7 +314,7 @@ const ShaderBackground = ({
 
     case "try-it": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <DotGrid
             {...shaderPerfProps}
             colorBack="#00000000"
@@ -305,7 +357,7 @@ const ShaderBackground = ({
 
     case "onboard-aurora": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
@@ -321,7 +373,7 @@ const ShaderBackground = ({
 
     case "onboard-analyzing": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
             colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
@@ -337,7 +389,7 @@ const ShaderBackground = ({
 
     case "onboard-ready": {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <Spiral
             {...shaderPerfProps}
             colorBack={BG}
@@ -358,7 +410,7 @@ const ShaderBackground = ({
     case "hero":
     default: {
       return (
-        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <GemSmoke
             {...shaderPerfProps}
             colorBack={BG}
