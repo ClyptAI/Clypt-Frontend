@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { Search } from "lucide-react";
 import AppFrameMock from "./AppFrameMock";
 
@@ -71,9 +72,14 @@ const RESULTS = [
 const PANEL_H = 116;
 
 export default function LandingSearchPreview() {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const isInView = useInView(previewRef, { margin: "-20% 0px -20% 0px" });
+  const animateDecor = !reduceMotion && isInView;
+
   return (
     <AppFrameMock windowLabel="Joe Rogan × Flagrant — Search" height={580}>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0A0909" }}>
+      <div ref={previewRef} style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0A0909" }}>
         {/* RunContextBar */}
         <div
           style={{
@@ -146,7 +152,7 @@ export default function LandingSearchPreview() {
                     boxShadow: p.highlight ? `0 0 0 2px ${c}33, 0 0 12px ${c}55` : undefined,
                   }}
                 >
-                  {p.highlight && (
+                  {p.highlight && animateDecor && (
                     <>
                       {/* Two staggered rings — while one fades out the other
                           fades in, hiding the keyframe-loop reset. */}

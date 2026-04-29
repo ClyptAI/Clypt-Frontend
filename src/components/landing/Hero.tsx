@@ -8,11 +8,10 @@ import ClyptHeroAnimation from "./ClyptHeroAnimation";
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const wordVariants = {
-  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: { duration: 0.7, ease },
   },
 };
@@ -36,7 +35,15 @@ const Hero = () => {
       data-cursor-bg="violet"
     >
       {/* LAYER 0 — Animated shader background (slightly softened so fragments read crisply) */}
-      <ShaderBackground variant="hero" className="shader-layer" style={{ opacity: 0.85 }} />
+      <ShaderBackground
+        variant="hero"
+        className="shader-layer"
+        pauseWhenOffscreen
+        viewportMargin="-15% 0px -15% 0px"
+        minPixelRatio={2}
+        maxPixelCount={1920 * 1080 * 4}
+        style={{ opacity: 0.85 }}
+      />
 
       <div className="relative z-10 mx-auto grid w-full max-w-[1640px] items-center gap-10 px-6 sm:px-8 lg:grid-cols-[minmax(500px,0.95fr)_minmax(560px,1.05fr)] lg:px-[max(5vw,32px)]">
         {/* ── CONTENT (left-aligned column) ── */}
@@ -189,8 +196,8 @@ const Hero = () => {
 
         <motion.div
           className="relative z-20 w-full justify-self-center lg:self-center"
-          initial={{ opacity: 0, x: 28, filter: "blur(10px)" }}
-          animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+          initial={{ opacity: 0, x: 28 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.25 }}
         >
           <ClyptHeroAnimation />

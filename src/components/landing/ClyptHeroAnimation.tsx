@@ -39,9 +39,9 @@ interface GeneratedClip {
   isTopMatch: boolean;
 }
 
-const analysisScanDuration = 1250;
+const analysisScanDuration = 1150;
 const graphPreviewDuration = 1500;
-const rankingLiftDuration = 1800;
+const rankingLiftDuration = 1000;
 
 const phaseTimeline: Array<{ phase: HeroPhase; duration: number }> = [
   { phase: "idle", duration: 1000 },

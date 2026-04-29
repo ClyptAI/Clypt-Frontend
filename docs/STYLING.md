@@ -114,9 +114,15 @@ Geist Mono: wght@400;500
 
 ### Landing Shader Backgrounds
 
-`ShaderBackground` wraps Paper Design shader primitives for public surfaces. The landing hero uses the `GemSmoke` variant with purple, violet, and lavender tones only, plus a reduced-motion static fallback. The previous separate purple ambient glow behind the hero animation has been removed so the one-shot animation remains the foreground layer over the shader.
+`ShaderBackground` wraps Paper Design shader primitives for public surfaces. The landing hero uses the `GemSmoke` variant with purple, violet, and lavender tones only, plus a reduced-motion static fallback. The previous separate purple ambient glow behind the hero animation has been removed so the one-shot animation remains the foreground layer over the shader. The grain-gradient pass has also been removed from landing shaders.
+
+Only the hero shader should animate continuously on first paint. Lower landing shader sections (`HowItWorks`, `PipelineDemos`, and `ClipShowcase`) use `pauseWhenOffscreen`, constrained `viewportMargin`, `animated={false}`, `minPixelRatio={2}`, and a 4K pixel-count cap so they wake near the viewport and render a single high-resolution frozen frame. Avoid adding animated full-section WebGL layers below the fold unless the motion itself is product-critical.
+
+Decorative Framer Motion loops in landing preview cards must respect both `useReducedMotion` and `useInView`. For compact hoverable landing cards, avoid broad CSS `transition-all`; use explicit short Framer transitions so hover exit does not visually trail behind rapid pointer movement.
 
 `PipelineDemos` uses shader-backed sections with app-frame previews. The phase 02/03 cortex graph preview uses bounded right bleed and an internally padded React Flow viewport so the graph can show its rightmost node without overflowing the page or relying on parent transforms that would desync edge positions.
+
+`ClyptAnimatedMark` uses a shortened intro sequence: the center flash, bracket reveal, and waveform bars complete in sync with the hero analysis scan. Keep future mark timing changes coordinated with `analysisScanDuration` in `ClyptHeroAnimation` so the first-viewport choreography resolves together.
 
 ### CSS Keyframes (defined in `index.css`)
 

@@ -155,7 +155,16 @@ const ClipShowcase = () => {
       style={{ padding: "100px 24px", position: "relative", isolation: "isolate" }}
       data-cursor-bg="amber"
     >
-      <ShaderBackground variant="showcase" intensity="normal" className="shader-layer" />
+      <ShaderBackground
+        variant="showcase"
+        intensity="normal"
+        className="shader-layer"
+        pauseWhenOffscreen
+        viewportMargin="-20% 0px -20% 0px"
+        animated={false}
+        minPixelRatio={2}
+        maxPixelCount={1920 * 1080 * 4}
+      />
       <div className="text-center content-layer" style={{ marginBottom: 56 }}>
         <motion.h2
           className="font-heading font-bold"

@@ -85,7 +85,7 @@ export function ClyptAnimatedMark({
     for (let x = 162; x <= 338; x += 8) {
       const dx = Math.abs(x - 250);
       const index = (x - 162) / 8;
-      const staggerDelay = 1.6 + index * 0.04;
+      const staggerDelay = 1.08 + index * 0.032;
       WAVEFORM_LAYERS.forEach((layer, i) => {
         const h = layer.getHeight(dx);
         if (h > 0.5) {
@@ -171,8 +171,8 @@ export function ClyptAnimatedMark({
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: [0, 1, 1, 0], opacity: [0, 1, 1, 0] }}
           transition={{
-            duration: 1.2,
-            times: [0, 0.3, 0.8, 1],
+            duration: 0.82,
+            times: [0, 0.26, 0.66, 1],
             ease: "easeInOut",
           }}
           style={{ transformOrigin: "250px 250px" }}
@@ -191,8 +191,8 @@ export function ClyptAnimatedMark({
             initial={{ x: 90, y: 90, opacity: 0 }}
             animate={{ x: 0, y: 0, opacity: 1 }}
             transition={{
-              delay: 0.96,
-              duration: 0.6,
+              delay: 0.52,
+              duration: 0.42,
               ease: BRACKET_EASE as never,
             }}
           />
@@ -201,8 +201,8 @@ export function ClyptAnimatedMark({
             initial={{ x: -90, y: 90, opacity: 0 }}
             animate={{ x: 0, y: 0, opacity: 1 }}
             transition={{
-              delay: 0.96,
-              duration: 0.6,
+              delay: 0.52,
+              duration: 0.42,
               ease: BRACKET_EASE as never,
             }}
           />
@@ -211,8 +211,8 @@ export function ClyptAnimatedMark({
             initial={{ x: -90, y: -90, opacity: 0 }}
             animate={{ x: 0, y: 0, opacity: 1 }}
             transition={{
-              delay: 0.96,
-              duration: 0.6,
+              delay: 0.52,
+              duration: 0.42,
               ease: BRACKET_EASE as never,
             }}
           />
@@ -221,8 +221,8 @@ export function ClyptAnimatedMark({
             initial={{ x: 90, y: -90, opacity: 0 }}
             animate={{ x: 0, y: 0, opacity: 1 }}
             transition={{
-              delay: 0.96,
-              duration: 0.6,
+              delay: 0.52,
+              duration: 0.42,
               ease: BRACKET_EASE as never,
             }}
           />

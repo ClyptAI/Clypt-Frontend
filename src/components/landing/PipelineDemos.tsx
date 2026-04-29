@@ -231,6 +231,11 @@ export default function PipelineDemos() {
       <ShaderBackground
         variant="pipeline-deep"
         intensity="normal"
+        pauseWhenOffscreen
+        viewportMargin="-20% 0px -20% 0px"
+        animated={false}
+        minPixelRatio={2}
+        maxPixelCount={1920 * 1080 * 4}
         style={{ position: "absolute", inset: 0, zIndex: 0 }}
       />
       <div

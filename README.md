@@ -28,7 +28,7 @@ It is designed to make Clypt’s reasoning visible instead of hiding everything 
 
 ### Landing experience
 
-The landing page introduces the product through a cinematic GemSmoke-backed hero, a paste-link CTA bar, a one-shot video-to-balanced-graph-to-clips hero animation, sticky shader-backed phase previews, and real clip cards that play Blob-hosted landing media on interaction.
+The landing page introduces the product through a cinematic GemSmoke-backed hero, a paste-link CTA bar, a one-shot video-to-balanced-graph-to-clips hero animation, sticky shader-backed phase previews, and real clip cards that play Blob-hosted landing media on interaction. Decorative shader work is deliberately constrained: only the first-viewport hero animates continuously, while lower landing shaders pause offscreen and render frozen high-resolution frames when visible.
 
 ![Clypt landing page](docs/readme-assets/frontend-landing-2026-04.png)
 
@@ -142,7 +142,7 @@ That means you can boot the app and immediately browse a working demo run such a
 ```text
 src/App.tsx                         App providers and route tree
 src/pages/                          Route-level pages
-src/components/landing/            Landing sections, shaders, cursor, and media showcase
+src/components/landing/            Landing sections, performance-capped shaders, cursor, and media showcase
 src/components/landing/HeroFragments/ Floating hero media cards and mini product fragments
 src/components/landing/previews/   App-frame landing phase preview mocks
 src/components/graph/              Cortex graph nodes, edges, controls, inspector

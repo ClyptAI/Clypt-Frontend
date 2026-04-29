@@ -22,7 +22,16 @@ const HowItWorks = () => {
       style={{ padding: "100px 24px", position: "relative", isolation: "isolate" }}
       data-cursor-bg="violet"
     >
-      <ShaderBackground variant="how-it-works" intensity="subtle" className="shader-layer" />
+      <ShaderBackground
+        variant="how-it-works"
+        intensity="subtle"
+        className="shader-layer"
+        pauseWhenOffscreen
+        viewportMargin="-20% 0px -20% 0px"
+        animated={false}
+        minPixelRatio={2}
+        maxPixelCount={1920 * 1080 * 4}
+      />
       <div className="max-w-[1100px] mx-auto content-layer">
         <p
           className="font-sans text-center"
@@ -61,7 +70,7 @@ const HowItWorks = () => {
             return (
               <motion.div
                 key={phase.num}
-                className="relative overflow-hidden transition-all"
+                className="relative overflow-hidden"
                 style={{
                   background: "rgba(14,12,18,0.72)",
                   backdropFilter: "blur(14px)",
@@ -80,11 +89,13 @@ const HowItWorks = () => {
                   hidden: { opacity: 0, y: 24 },
                   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
                 }}
+                transition={{ duration: 0.08, ease: "easeOut" }}
                 whileHover={{
                   borderColor: "rgba(167,139,250,0.4)",
                   backgroundColor: "rgba(20,16,28,0.82)",
                   boxShadow:
                     "0 24px 60px -20px rgba(0,0,0,0.7), 0 0 40px -12px rgba(167,139,250,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
+                  transition: { duration: 0.08, ease: "easeOut" },
                 }}
               >
                 {/* Ghost number */}

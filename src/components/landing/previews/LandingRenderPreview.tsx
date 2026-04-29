@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { ChevronDown, X } from "lucide-react";
 import AppFrameMock from "./AppFrameMock";
 
@@ -52,9 +53,14 @@ const CLIPS = [
 ] as const;
 
 export default function LandingRenderPreview() {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const isInView = useInView(previewRef, { margin: "-20% 0px -20% 0px" });
+  const animateDecor = !reduceMotion && isInView;
+
   return (
     <AppFrameMock windowLabel="Joe Rogan × Flagrant — Render" height={580}>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0A0909" }}>
+      <div ref={previewRef} style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0A0909" }}>
         {/* RunContextBar */}
         <div
           style={{
@@ -278,14 +284,18 @@ export default function LandingRenderPreview() {
               Save plan for later
             </div>
             <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 0 0 rgba(167,139,250,0)",
-                  "0 0 14px 2px rgba(167,139,250,0.4)",
-                  "0 0 0 0 rgba(167,139,250,0)",
-                ],
-              }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              animate={
+                !animateDecor
+                  ? undefined
+                  : {
+                      boxShadow: [
+                        "0 0 0 0 rgba(167,139,250,0)",
+                        "0 0 14px 2px rgba(167,139,250,0.4)",
+                        "0 0 0 0 rgba(167,139,250,0)",
+                      ],
+                    }
+              }
+              transition={animateDecor ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" } : undefined}
               style={{
                 padding: "7px 16px",
                 borderRadius: 5,

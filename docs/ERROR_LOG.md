@@ -4,6 +4,33 @@ Breaking behaviors encountered during development and their fixes. Documented to
 
 ---
 
+## 2026-04-28 — Landing shaders caused high GPU usage immediately on page load
+
+**Symptoms**
+- Opening the landing page on localhost or `clypt.studio` caused laptop fans to spin up on high-end Mac and Lenovo machines.
+- Activity Monitor showed elevated WindowServer/GPU work while the page was visible.
+- The issue appeared before user interaction and was much lower when reduced-motion mode replaced shaders with static gradients.
+
+**Root cause**
+Every landing shader layer mounted and animated immediately, including sections below the fold. The page started seven Paper WebGL canvases on first paint: two in the hero, one in How It Works, two across the tall pipeline scrollytelling section, and two in the showcase. The pipeline shader was especially expensive because it inherited the full multi-viewport section height. Paper shaders default to a high pixel budget and keep a recurring animation loop whenever `speed` is nonzero.
+
+**Fix**
+Teach `ShaderBackground` to pause offscreen layers with `IntersectionObserver`, rendering the existing static fallback until the layer is visible. Expose Paper shader performance knobs through `minPixelRatio` and `maxPixelCount`, default the pixel-ratio floor to `1`, and cap landing shader canvas budgets. Remove the extra grain-gradient shader pass from the landing shader stack. Keep the hero shader animated at its original high-resolution budget, but make How It Works, Pipeline, and Showcase wake only when they enter the viewport and render frozen high-resolution frames with `speed={0}`. Gate decorative pulse loops in the landing search/render previews with reduced-motion and in-view checks.
+
+**Affected files**
+- `src/components/landing/ShaderBackground.tsx`
+- `src/components/landing/Hero.tsx`
+- `src/components/landing/HowItWorks.tsx`
+- `src/components/landing/PipelineDemos.tsx`
+- `src/components/landing/ClipShowcase.tsx`
+- `src/components/landing/previews/LandingSearchPreview.tsx`
+- `src/components/landing/previews/LandingRenderPreview.tsx`
+
+**Preventive rule**
+**Decorative WebGL backgrounds must be visibility-aware, pixel-budgeted, and static unless motion matters.** Do not mount animated full-section shader canvases below the fold on first paint, and never let long scrollytelling sections inherit uncapped animated canvas sizes. Decorative Framer Motion loops also need reduced-motion and viewport gates.
+
+---
+
 ## 2026-04-25 — Auth logo shell blocked upper graph node hover
 
 **Symptoms**
@@ -229,10 +256,11 @@ Rebalance the hero graph into a symmetric seven-node layout with concise labels 
 The original phase sequencer was a loop: it advanced through `idle`, `analysis`, `generation`, `fanout`, `ranking`, then reset back into the sequence. The analysis scan itself was animated as a repeated down/up sweep (`top: ["0%", "100%", "0%"]`) and the generation phase held for too long. The phase model had no terminal state distinct from the active ranking lift.
 
 **Fix**
-Make the phase timeline one-shot per page load. Replace the looping timeout with a list of one-time timeouts and add a terminal `settled` phase. Reduced-motion users jump directly to `settled`. Change the analyzing scan to a single downward sweep whose duration is controlled by `analysisScanDuration`. Shorten graph preview timing (`graphPreviewDuration`) and ranking lift timing (`rankingLiftDuration`) so graph reveal, fanout, and center emphasis happen faster and then settle.
+Make the phase timeline one-shot per page load. Replace the looping timeout with a list of one-time timeouts and add a terminal `settled` phase. Reduced-motion users jump directly to `settled`. Change the analyzing scan to a single downward sweep whose duration is controlled by `analysisScanDuration`. Shorten graph preview timing (`graphPreviewDuration`) and ranking lift timing (`rankingLiftDuration`) so graph reveal, fanout, and center emphasis happen faster and then settle. Keep `analysisScanDuration` synchronized with the animated navbar logo intro so the scan and mark resolve together.
 
 **Affected files**
 - `src/components/landing/ClyptHeroAnimation.tsx`
+- `src/components/app/ClyptAnimatedMark.tsx`
 
 **Preventive rule**
 **Separate "active animation state" from "terminal settled state" in any first-visit hero animation.** If the animation should only play once, the phase sequencer must have no wraparound path. Avoid repeating keyframes on transition cues that are supposed to gate the next phase.
@@ -299,7 +327,7 @@ Remove the external `scale` from the `PipelineDemos` phase wrapper. Give `Landin
 The hero had two overlapping ambience systems: the old radial glow in `Hero` and the new Paper Design shader in `ShaderBackground`. The animation layer did not have a strong enough explicit stacking/isolation contract, and shared graph node opacity defaults were tuned for app surfaces rather than a moving shader backdrop.
 
 **Fix**
-Use `GemSmoke` as the hero shader in a purple/violet/lavender-only palette, reduce the grain overlay so it does not dominate the animation, and remove the separate ambient glow layer from `Hero`. Put the animation wrapper on an isolated foreground layer (`z-20 isolate`) and tune hero graph node opacity through `SemanticNode` data overrides.
+Use `GemSmoke` as the hero shader in a purple/violet/lavender-only palette, remove the grain overlay so it does not dominate the animation, and remove the separate ambient glow layer from `Hero`. Put the animation wrapper on an isolated foreground layer (`z-20 isolate`) and tune hero graph node opacity through `SemanticNode` data overrides.
 
 **Affected files**
 - `src/components/landing/ShaderBackground.tsx`

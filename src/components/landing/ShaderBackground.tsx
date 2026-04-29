@@ -1,7 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   MeshGradient,
-  GrainGradient,
   Warp,
   GodRays,
   GemSmoke,
@@ -35,6 +34,18 @@ interface ShaderBackgroundProps {
   variant?: ShaderVariant;
   intensity?: ShaderIntensity;
   className?: string;
+  /** Pause WebGL work and show a static fallback until the layer is near the viewport. */
+  pauseWhenOffscreen?: boolean;
+  /** IntersectionObserver root margin used when pauseWhenOffscreen is enabled. */
+  viewportMargin?: string;
+  /** When false, render one high-resolution shader frame and stop the animation loop. */
+  animated?: boolean;
+  /** Static shader frame to render when animated is false. */
+  frame?: number;
+  /** Paper shader pixel-ratio floor. Lower values reduce GPU fill-rate on large canvases. */
+  minPixelRatio?: number;
+  /** Paper shader physical-pixel cap. Lower values reduce recurring WebGL work. */
+  maxPixelCount?: number;
   /** Inline style overrides (positioning, opacity, zIndex). */
   style?: CSSProperties;
 }
@@ -62,9 +73,17 @@ const ShaderBackground = ({
   variant = "hero",
   intensity = "normal",
   className,
+  pauseWhenOffscreen = false,
+  viewportMargin = "0px",
+  animated = true,
+  frame = 0,
+  minPixelRatio = 1,
+  maxPixelCount = 1920 * 1080,
   style,
 }: ShaderBackgroundProps) => {
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [reduced, setReduced] = useState(false);
+  const [inView, setInView] = useState(!pauseWhenOffscreen);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -73,6 +92,27 @@ const ShaderBackground = ({
     mq.addEventListener?.("change", update);
     return () => mq.removeEventListener?.("change", update);
   }, []);
+
+  useEffect(() => {
+    if (!pauseWhenOffscreen) {
+      setInView(true);
+      return;
+    }
+
+    if (!rootEl) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      {
+        root: null,
+        rootMargin: viewportMargin,
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(rootEl);
+    return () => observer.disconnect();
+  }, [pauseWhenOffscreen, rootEl, viewportMargin]);
 
   const opacityScale = intensityMap[intensity];
 
@@ -87,12 +127,21 @@ const ShaderBackground = ({
   };
 
   const fillStyle: CSSProperties = { width: "100%", height: "100%" };
+  const shaderPerfProps = {
+    minPixelRatio,
+    maxPixelCount,
+  };
+  const shaderMotionProps = (speed: number) => ({
+    speed: animated ? speed : 0,
+    frame: animated ? undefined : frame,
+  });
 
-  // ── Reduced-motion static fallbacks (one per variant family) ──
-  if (reduced) {
+  // ── Static fallbacks: reduced motion or offscreen paused state ──
+  if (reduced || !inView) {
     const staticBg = staticFallback(variant);
     return (
       <div
+        ref={setRootEl}
         aria-hidden
         className={className}
         style={{ ...baseStyle, background: staticBg, opacity: opacityScale }}
@@ -104,12 +153,13 @@ const ShaderBackground = ({
   switch (variant) {
     case "auth": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET_DEEP, "#5B21B6", "#1a1035"]}
             distortion={0.9}
             swirl={0.6}
-            speed={0.32}
+            {...shaderMotionProps(0.32)}
             style={fillStyle}
           />
           <Overlay
@@ -121,8 +171,9 @@ const ShaderBackground = ({
 
     case "how-it-works": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <Warp
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, BG]}
             proportion={0.45}
             softness={0.95}
@@ -130,7 +181,7 @@ const ShaderBackground = ({
             swirl={0.35}
             swirlIterations={6}
             shapeScale={0.5}
-            speed={0.18}
+            {...shaderMotionProps(0.18)}
             style={{ ...fillStyle, opacity: 0.55 * opacityScale }}
           />
           <Overlay background="radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(10,9,9,0.65) 100%)" />
@@ -140,12 +191,13 @@ const ShaderBackground = ({
 
     case "pipeline-cool": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, CYAN, BG]}
             distortion={0.7}
             swirl={0.4}
-            speed={0.18}
+            {...shaderMotionProps(0.18)}
             style={{ ...fillStyle, opacity: 0.6 * opacityScale }}
           />
           <Overlay background="rgba(10,9,9,0.45)" />
@@ -155,12 +207,13 @@ const ShaderBackground = ({
 
     case "pipeline-warm": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DIM, VIOLET, AMBER, BG]}
             distortion={0.75}
             swirl={0.45}
-            speed={0.2}
+            {...shaderMotionProps(0.2)}
             style={{ ...fillStyle, opacity: 0.55 * opacityScale }}
           />
           <Overlay background="rgba(10,9,9,0.5)" />
@@ -170,29 +223,14 @@ const ShaderBackground = ({
 
     case "pipeline-deep": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, BG, "#1a1035", "#2A1758", "#A78BFA"]}
             distortion={0.85}
             swirl={0.5}
-            speed={0.18}
+            {...shaderMotionProps(0.18)}
             style={{ ...fillStyle, opacity: 0.65 * opacityScale }}
-          />
-          <GrainGradient
-            colors={["#A78BFA", "#7C5CD9"]}
-            colorBack="#00000000"
-            softness={0.9}
-            intensity={0.2}
-            noise={0.4}
-            speed={0.18}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              mixBlendMode: "screen",
-              opacity: 0.22 * opacityScale,
-            }}
           />
           <Overlay background="radial-gradient(ellipse 90% 70% at 50% 50%, transparent 20%, rgba(10,9,9,0.7) 100%)" />
         </div>
@@ -201,8 +239,9 @@ const ShaderBackground = ({
 
     case "showcase": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <GodRays
+            {...shaderPerfProps}
             colorBack={BG}
             colorBloom={VIOLET}
             colors={[VIOLET, AMBER, "#7C3AED"]}
@@ -213,24 +252,8 @@ const ShaderBackground = ({
             midSize={0.45}
             midIntensity={0.4}
             offsetY={-0.4}
-            speed={0.3}
+            {...shaderMotionProps(0.3)}
             style={{ ...fillStyle, opacity: 0.7 * opacityScale }}
-          />
-          <GrainGradient
-            colors={[VIOLET, AMBER]}
-            colorBack="#00000000"
-            softness={0.9}
-            intensity={0.3}
-            noise={0.5}
-            speed={0.15}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              mixBlendMode: "screen",
-              opacity: 0.4 * opacityScale,
-            }}
           />
           <Overlay background="radial-gradient(ellipse 80% 60% at 50% 40%, transparent 20%, rgba(10,9,9,0.7) 90%)" />
         </div>
@@ -239,8 +262,9 @@ const ShaderBackground = ({
 
     case "try-it": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <DotGrid
+            {...shaderPerfProps}
             colorBack="#00000000"
             colorFill={VIOLET}
             colorStroke="#00000000"
@@ -254,6 +278,7 @@ const ShaderBackground = ({
             style={{ ...fillStyle, opacity: 0.25 * opacityScale }}
           />
           <PulsingBorder
+            {...shaderPerfProps}
             colorBack="#00000000"
             colors={[VIOLET, "#7C3AED", CYAN]}
             roundness={0.45}
@@ -270,7 +295,7 @@ const ShaderBackground = ({
             marginRight={0.05}
             marginTop={0.05}
             marginBottom={0.05}
-            speed={0.4}
+            {...shaderMotionProps(0.4)}
             style={{ ...fillStyle, opacity: 0.85 * opacityScale }}
           />
           <Overlay background="radial-gradient(ellipse 70% 70% at 50% 50%, transparent 35%, rgba(10,9,9,0.55) 100%)" />
@@ -280,12 +305,13 @@ const ShaderBackground = ({
 
     case "onboard-aurora": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
             distortion={0.85}
             swirl={0.5}
-            speed={0.22}
+            {...shaderMotionProps(0.22)}
             style={fillStyle}
           />
           <Overlay background="linear-gradient(180deg, rgba(10,9,9,0.35) 0%, rgba(10,9,9,0.5) 100%)" />
@@ -295,12 +321,13 @@ const ShaderBackground = ({
 
     case "onboard-analyzing": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <MeshGradient
+            {...shaderPerfProps}
             colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
             distortion={0.85}
             swirl={0.55}
-            speed={0.4}
+            {...shaderMotionProps(0.4)}
             style={fillStyle}
           />
           <Overlay background="radial-gradient(ellipse 80% 65% at 50% 50%, transparent 25%, rgba(10,9,9,0.55) 90%)" />
@@ -310,8 +337,9 @@ const ShaderBackground = ({
 
     case "onboard-ready": {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <Spiral
+            {...shaderPerfProps}
             colorBack={BG}
             colorFront="#7C5CD9"
             density={0.5}
@@ -319,7 +347,7 @@ const ShaderBackground = ({
             noiseFrequency={0.3}
             noise={0.25}
             softness={0.8}
-            speed={0.35}
+            {...shaderMotionProps(0.35)}
             style={fillStyle}
           />
           <Overlay background="linear-gradient(180deg, rgba(10,9,9,0.35) 0%, rgba(10,9,9,0.5) 100%)" />
@@ -330,8 +358,9 @@ const ShaderBackground = ({
     case "hero":
     default: {
       return (
-        <div aria-hidden className={className} style={baseStyle}>
+        <div ref={setRootEl} aria-hidden className={className} style={baseStyle}>
           <GemSmoke
+            {...shaderPerfProps}
             colorBack={BG}
             colorInner="#09050F"
             colors={[VIOLET_DEEP, VIOLET_DIM, "#5B21B6", "#7C3AED", VIOLET, "#DDD6FE"]}
@@ -344,24 +373,8 @@ const ShaderBackground = ({
             size={0.92}
             shape="diamond"
             scale={1.45}
-            speed={0.18}
+            {...shaderMotionProps(0.18)}
             style={{ ...fillStyle, opacity: 0.82 * opacityScale }}
-          />
-          <GrainGradient
-            colors={[VIOLET_DEEP, "#5B21B6", VIOLET, "#DDD6FE"]}
-            colorBack="#00000000"
-            softness={0.88}
-            intensity={0.26}
-            noise={0.46}
-            speed={0.16}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              mixBlendMode: "screen",
-              opacity: 0.32 * opacityScale,
-            }}
           />
           <Overlay background="linear-gradient(90deg, hsl(var(--background) / 0.76) 0%, hsl(var(--background) / 0.48) 42%, hsl(var(--background) / 0.2) 100%), radial-gradient(ellipse 86% 72% at 72% 42%, transparent 0%, hsl(var(--background) / 0.22) 58%, hsl(var(--background) / 0.82) 100%)" />
         </div>
