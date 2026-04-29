@@ -61,25 +61,26 @@ npm run lint         # ESLint
 ### Component Patterns
 - **shadcn/ui** primitives live in `src/components/ui/` — do not modify these unless necessary
 - Graph nodes/edges use custom React Flow components in `src/components/graph/`
-- The `RunContextBar` component provides consistent run-level navigation across all `/runs/:id/*` pages
+- The `RunContextBar` component provides consistent run-level identity/status chrome across all `/runs/:id/*` pages; run-level navigation lives in `AppSidebar`
 - `ErrorBoundary` wraps all app-shell routes
 
 ### State Management
-- **Server state** (runs, nodes, clips, embeddings): TanStack Query hooks in `src/hooks/api/`
+- **Server state** (runs, nodes/edges, clips, timeline, embeddings, grounding, render): TanStack Query hooks in `src/hooks/api/`
 - **Client state** (playhead position, zoom, active clip, approvals): Zustand stores
 - **Never** mix: don't put server data in Zustand or UI state in React Query
 
 ### API Layer
 - All API calls go through `src/lib/api.ts` using the typed API objects (`runsApi`, `nodesApi`, etc.)
-- Endpoints follow `/v1/runs/{runId}/{resource}` pattern
+- Most endpoints follow the `/v1/runs/{runId}/{resource}` pattern; shared resources like render presets and mock-only cross-run clips are exceptions
 - The embeddings endpoint has a built-in fallback to `MOCK_EMBEDDINGS` when the backend is unavailable
 - Custom error class: `ClyptApiError` with `status` and `statusText`
 
 ### Mock Data
-- Most pages contain inline mock/hardcoded data for demo purposes (no `src/mocks/` directory at this commit)
+- The centralized in-memory mock backend lives in `src/mocks/` and is the default API path when `VITE_USE_MOCK_API` is not explicitly `false`
+- Some pages still contain page-local mock UI fixtures for editor-only details not yet modeled by the mock backend
 - The demo run ID is `"demo"` — pages fall back to it when no real data exists
 - Mock data uses deterministic seeded PRNGs (`mulberry32`) for reproducibility
-- Video file: `public/videos/joeroganflagrant.mp4` (125MB, served by Vite from `/videos/`)
+- Root demo video: `public/videos/joeroganflagrant.mp4` (about 125MB, ignored by Git, served locally by Vite from `/videos/` when present)
 
 ### React Flow (Cortex Graph)
 - Layout: dagre (`@dagrejs/dagre`) for automatic node positioning
@@ -125,7 +126,7 @@ See `docs/` for detailed documentation:
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Clypt-Frontend** (1234 symbols, 2369 relationships, 52 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Clypt-Frontend** (1234 symbols, 2365 relationships, 52 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

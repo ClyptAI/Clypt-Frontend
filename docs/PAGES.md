@@ -73,10 +73,9 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 
 ### Library — `Library.tsx`
 - **Route:** `/library`, `/library/clips`
-- **Features:** Run cards with phase progress, clip count. Clicking a card navigates to `/runs/demo` (hardcoded). Tabs for "Runs" and "Clips" views.
-- **Mock data:** `mockRuns` (3 runs with hardcoded titles/phases), `mockClips`
-- **Hooks:** `useRunList` (React Query, but falls back to mock)
-- **Notes:** Pagination shows "Page 1 of 3" but is non-functional
+- **Features:** Run cards with phase progress and clip count. Clicking a run card navigates to that run's overview (`/runs/{runId}`). The `/library/clips` route shows a cross-run clip grid, and clicking a clip navigates to its run's clip candidates page.
+- **Data:** Runs and clips come through the typed API layer; in default mock mode they resolve to the centralized mock DB.
+- **Hooks:** `useRunList`, `useAllClips`
 
 ### New Run — `NewRun.tsx`
 - **Route:** `/runs/new`
@@ -99,8 +98,8 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
   - Scrub bar: Waveform-style with hover time preview
   - Time ruler: `TimeRuler` with adaptive tick granularity
   - Lanes: `WaveformLane` per speaker (max 5 primary + 1 "Minor Speakers"), plus optional shot, tracklet, transcript, emotion, audio event lanes
-- **Mock data:** `MOCK_SPEAKERS` (7 speakers with turns), `MOCK_SHOTS` (5 shots), tracklets, emotions, audio events. `DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4"`
-- **Hooks:** `useTimelineStore` (playhead, zoom, scroll), `useRunDetail`, `useTimelineKeyboard`
+- **Data:** Timeline bundle data comes from `useTimelineData` / `timelineApi` and defaults to `mockTimelineApi` in mock mode. The root demo video is still local-only: `DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4"`.
+- **Hooks:** `useTimelineStore` (playhead, zoom, scroll), `useRunDetail`, `useTimelineData`, `useTimelineKeyboard`
 - **State:** `videoDuration`, `videoHeightPx`, `layers` toggles, `selection`, `hoverPct`, `isScrubbing`
 
 ### Cortex Graph — `RunGraph.tsx`
@@ -116,7 +115,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
   - Node hover: highlights connected nodes and edges
   - Edge hover: glow effect with edge type label
 - **Mock data:** `RAW_NODES` (10 nodes), `RAW_EDGES` (16 edges), `SIGNAL_TAGS`
-- **Hooks:** `useNodeList` (React Query)
+- **Hooks:** `useNodeList`, `useEdgeList` (React Query)
 - **State:** `selectedNode`, `selectedEdge`, `hoveredNodeId`, `hoveredEdgeId`, `activeTypes` set, `signalFilters`
 
 ### Search — `RunSearch.tsx`
@@ -138,7 +137,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 ### Clip Candidates — `RunClips.tsx`
 - **Route:** `/runs/:id/clips`
 - **Features:** Ranked list of clip candidates with score, rationale, time range. Approve/reject buttons with optimistic UI. Click to expand clip details.
-- **Mock data:** `CLIPS` array (8 clips)
+- **Data:** Clip candidates come through `useClipList`; default mock mode resolves to the centralized mock DB.
 - **Hooks:** `useClipList`, `useApproveClip`, `useRejectClip`, `useClipStore`
 
 ### Grounding — `RunGrounding.tsx`
@@ -150,8 +149,8 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
 ### Render — `RunRender.tsx`
 - **Route:** `/runs/:id/render`
 - **Features:** Render pipeline UI: clip selection → preset selection (TikTok/Reels/Shorts/Square) → render progress → download
-- **Mock data:** `CLIPS`, `ClipPlan`, `RenderStage` mock list, preset cards
-- **Hooks:** `useClipList`, `renderApi.presets()`, render submit/status mutations
+- **Data:** Clip plans are adapted from `useClipList`; presets and render jobs come through the render API. In mock mode, submit/status calls are backed by `mockRenderApi`.
+- **Hooks:** `useClipList`, `useRenderPresets`, `useSubmitRender`, `useRenderStatus`
 
 ---
 

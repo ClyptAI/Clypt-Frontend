@@ -1,5 +1,7 @@
 # Merge Notes — 2026-04-10
 
+> Historical note: this file records the repository around the April 10 merge. Some commit SHAs predate the later history rewrite used to remove large media objects, so use the surrounding descriptions rather than the old SHA values as the durable reference.
+
 Merge of `origin/main` into `feat/functional-dummy-data`. Resulting baseline commit: **`43475e5`**.
 
 This document records every change made on the feat side leading up to the merge, the merge itself, and every doc edit applied afterward to keep the docs in sync with the merged code.
@@ -55,7 +57,7 @@ Per request, every page that previews video against the dummy data now points at
 - `src/components/app/ClipBoundaryEditor.tsx` (default `videoSrc`)
 - `src/mocks/seed.ts` (run fixtures)
 
-`public/videos/joeroganflagrant.mp4` is already in the repo.
+At that point, `public/videos/joeroganflagrant.mp4` was present for local demo playback. The current convention is different: the root demo video is local-only and ignored by Git; app-facing landing media lives in Vercel Blob.
 
 ## 4. The merge
 

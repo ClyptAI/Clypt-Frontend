@@ -2,56 +2,49 @@
 
 State of the frontend at the end of the 2026-04-10 work session, after the Grounding persistence work landed in `main` (commits `fb5e0c9`, `d97532d`, `d91bcd6`).
 
-Every item below is verified against the current source — file paths and line numbers are clickable. Nothing in this doc is speculation.
+This is a dated punch list, not the canonical current-state reference. Items below have been refreshed where later work changed their status; for the active architecture, use [ARCHITECTURE.md](ARCHITECTURE.md) and [PAGES.md](PAGES.md).
 
 ---
 
-## Priority 1 — Real data path missing
+## Priority 1 — Remaining real data gaps
 
-### 1.1 RunTimeline is 100% mock data
+### 1.1 RunTimeline timeline API path exists; editor fixtures remain
 
 **Where:** [src/pages/RunTimeline.tsx:30-93](../src/pages/RunTimeline.tsx#L30-L93)
 
-`MOCK_SHOTS` (42 entries), `MOCK_SPEAKERS` (3 with generated turns), `MOCK_EMOTIONS`, and `MOCK_AUDIO_EVENTS` are all in-page constants. There is **no** `useTimelineData` hook, no `timelineApi`, no `mocks/api.ts` entry for the Phase 1 timeline foundation.
+Current status: the Phase 1 timeline data path now exists. `src/lib/api.ts` exposes `timelineApi.get(runId)`, `src/hooks/api/useTimeline.ts` exposes `useTimelineData(runId)`, and `src/mocks/api.ts` exposes `mockTimelineApi.get(runId)`.
 
-The wire types already exist in [src/types/clypt.ts](../src/types/clypt.ts) (`TranscriptWord`, `CanonicalTurn`, `CanonicalTimeline`, `SpeechEmotionEvent`, `SpeechEmotionTimeline`, `AudioEvent`, `AudioEventTimeline`, `ShotTrackletDescriptor`, `ShotTrackletIndex`) — nothing reads them.
+Remaining gap: the Timeline page still has some editor/UI fixture behavior around lane presentation and local demo video playback. The root demo video remains local-only at `public/videos/joeroganflagrant.mp4`.
 
-**Impact:** Timeline is the most-visited editor page on the site. It's the only major editor surface still running on in-component constants.
+**Impact:** Timeline is one of the highest-visibility editor pages. Its canonical data path is now wired, but the remaining local fixtures and local-only demo video still matter for production demo quality.
 
-**Shape of the fix (mirrors today's grounding work):**
-1. Add `mockTimelineApi.get(runId)` in [src/mocks/api.ts](../src/mocks/api.ts) returning a seeded `{ canonical, emotions, audioEvents, shotTracklets }` bundle.
-2. Add `MockDB.timelines: Record<string, ...>` in [src/mocks/store.ts](../src/mocks/store.ts) and seed it in [src/mocks/seed.ts](../src/mocks/seed.ts).
-3. Add `timelineApi.get(runId)` in [src/lib/api.ts](../src/lib/api.ts).
-4. Add `useTimelineData(runId)` query hook in `src/hooks/api/useTimeline.ts`.
-5. Replace the four `MOCK_*` constants in [RunTimeline.tsx](../src/pages/RunTimeline.tsx) with the hook output.
-
-This is the highest-leverage remaining piece.
+The highest-leverage remaining piece is deciding whether the production demo workspace should keep using the local-only root demo video or move that video to Blob later.
 
 ---
 
 ## Priority 2 — Stubs that visibly lie to the user
 
-### 2.1 Library Clips tab is pure mock
+### 2.1 Library Clips tab is wired through the mock/API layer
 
 **Where:** [src/pages/Library.tsx:20-31](../src/pages/Library.tsx#L20-L31), [240-282](../src/pages/Library.tsx#L240-L282)
 
-Hardcoded `mockClips` array of 6 fake titles and durations. Doesn't go through any API. The Runs tab is wired to `useRunList`; Clips tab needs the same treatment, probably a cross-run `useApprovedClipsList` or similar.
+Current status: the Clips tab uses `useAllClips()`, which calls `allClipsApi.list()`. In mock mode, that resolves through `mockAllClipsApi`; in real mode the cross-run endpoint is not defined yet and currently returns an empty list.
 
-### 2.2 Library pagination is fake
+### 2.2 Library pagination removed
 
 **Where:** [src/pages/Library.tsx:227-235](../src/pages/Library.tsx#L227-L235), [272-280](../src/pages/Library.tsx#L272-L280)
 
-"Page 1 of 3" hardcoded on both Runs and Clips tabs. "Next →" does nothing. "Previous" is permanently `disabled`. Either remove pagination entirely or wire real cursoring.
+Current status: the fake pagination controls are gone.
 
-### 2.3 Onboarding flow persists nothing
+### 2.3 Onboarding flow persists key setup state
 
-All 6 onboarding steps render and navigate forward but drop everything the user typed:
-- [OnboardChannel.tsx](../src/pages/onboard/OnboardChannel.tsx) — channel URL discarded
-- [OnboardBrandProfile.tsx](../src/pages/onboard/OnboardBrandProfile.tsx) — brand profile discarded
-- [OnboardPreferences.tsx](../src/pages/onboard/OnboardPreferences.tsx) — duration/platform/framing/quality discarded
-- [OnboardVoiceprints.tsx](../src/pages/onboard/OnboardVoiceprints.tsx) — speaker names discarded
+The onboarding store is now used by:
+- [OnboardChannel.tsx](../src/pages/onboard/OnboardChannel.tsx) — channel URL, single-video mode, and video URL
+- [OnboardPreferences.tsx](../src/pages/onboard/OnboardPreferences.tsx) — duration, platforms, framing, and quality
+- [OnboardVoiceprints.tsx](../src/pages/onboard/OnboardVoiceprints.tsx) — saved voiceprints
+- [OnboardReady.tsx](../src/pages/onboard/OnboardReady.tsx) — prefilled URL selection and completion timestamp
 
-There **is** an `onboarding-store.ts` ([src/stores/onboarding-store.ts](../src/stores/onboarding-store.ts)) but no page reads or writes through it.
+Remaining gap: the visual brand-profile step is still mostly presentational.
 
 ### 2.4 Settings pages
 
@@ -96,14 +89,17 @@ None block use of the page.
 
 ## What's already done (for reference)
 
-These were either pre-existing or shipped during today's session:
+These were either pre-existing or shipped in later sessions:
 
 - **Cortex Graph** — fully wired through `useNodeList` + `useEdgeList` (`3ffcf6b`)
+- **Timeline API path** — `timelineApi`, `mockTimelineApi`, `MockDB.timelines`, and `useTimelineData`
 - **Search / embedding scatter** — wired through `useEmbeddings`
 - **Clip candidates** — wired through `useClipList` + approve/reject mutations
 - **Render flow** — wired through `renderApi.presets()` + submit/status mutations
-- **Grounding state** — fully persisted via `useGroundingState` / `useUpdateGrounding`. Today's work extended this from box editor only to also cover speaker bindings, camera intents, and manual crops (see [MERGE_NOTES_2026-04-10.md §10](MERGE_NOTES_2026-04-10.md))
+- **Grounding state** — fully persisted via `useGroundingState` / `useUpdateGrounding`. The grounding persistence work extended this from box editor only to also cover speaker bindings, camera intents, and manual crops (see [MERGE_NOTES_2026-04-10.md §10](MERGE_NOTES_2026-04-10.md))
 - **Mock backend** — `localStorage`-persisted `MockDB` with forward-compat schema merge in `loadDB()`
+- **Library Clips tab** — wired through `useAllClips` / `mockAllClipsApi`
+- **Onboarding setup state** — channel, preferences, voiceprints, and ready-state completion use `onboarding-store`
 - **Landing → demo CTA** — `Link to="/runs/demo/timeline"` (`746e7fa`)
 - **Demo video gitignore + README** (`b0318f1`)
 
@@ -111,10 +107,9 @@ These were either pre-existing or shipped during today's session:
 
 ## Recommended order
 
-1. **RunTimeline data path (P1.1)** — biggest win, highest user-facing surface, well-defined shape that mirrors the grounding work.
-2. **Onboarding persistence (P2.3)** — small per-page changes, store already exists, completes a visible flow.
-3. **Library Clips tab + pagination (P2.1, P2.2)** — either wire it or remove it; current state is misleading.
-4. **Settings + Auth (P2.4, P2.5)** — only worth doing if the rest of the app is going to land in front of real users.
-5. **Grounding cosmetics (P4)** — polish, last.
+1. **Real cross-run clips endpoint** — `useAllClips` is wired, but real mode still returns an empty list until the backend contract exists.
+2. **Production demo video decision** — keep `public/videos/joeroganflagrant.mp4` local-only for dev/demo work or move the root demo workspace video to Blob later.
+3. **Settings + Auth (P2.4, P2.5)** — only worth doing if the rest of the app is going to land in front of real users.
+4. **Grounding cosmetics (P4)** — polish, last.
 
 Fallback constants in RunOverview / RunGraph (P3) can stay until there's a clear product decision about empty states.

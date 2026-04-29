@@ -7,10 +7,10 @@ Complete inventory of all components grouped by domain.
 | Component | File | Description |
 |-----------|------|-------------|
 | `AppShell` | `AppShell.tsx` | Flex layout: `<AppSidebar />` + `<Outlet />`. Wraps all authenticated routes. |
-| `AppSidebar` | `AppSidebar.tsx` | 220px fixed sidebar. Top: `ClyptAnimatedMark` (64px, static, centered, no wordmark) + Library/Clips nav + "New Run" button. Middle: run-scoped tabs — only shown when a `/runs/:id` route is active. Bottom: Settings + user avatar. |
-| `RunContextBar` | `RunContextBar.tsx` | Horizontal bar at top of every run page. Shows run name (left), source URL (center), and phase status text label (right). |
+| `AppSidebar` | `AppSidebar.tsx` | 220px fixed sidebar. Top: oversized static `ClyptAnimatedMark` brand mark + Library/Clips nav + "New Run" button. Middle: run-scoped tabs — only shown when a `/runs/:id` route is active. Bottom: Settings + user avatar. |
+| `RunContextBar` | `RunContextBar.tsx` | Horizontal bar at top of every run page. Shows run name on the left and phase status text on the right; run navigation lives in `AppSidebar`. |
 | `ClipBoundaryEditor` | `ClipBoundaryEditor.tsx` | Compact clip boundary editor. Renders a looping `<video>` preview clamped to `[startMs, endMs]` with draggable start/end handles + nudge buttons. |
-| `ClyptAnimatedMark` | `ClyptAnimatedMark.tsx` | **Primary brand mark.** Framer Motion animated scissor/graph SVG logo. `animate={true}` plays the full 5.8s intro sequence (center node → C arcs → petal arcs → scissor arcs + 45° rotation). `animate={false}` renders the settled final state instantly. Endpoint dots are DOM-gated via `setTimeout` to guarantee they never appear before their arcs reach them. Props: `size` (px), `animate` (bool, default true), `color`. |
+| `ClyptAnimatedMark` | `ClyptAnimatedMark.tsx` | **Primary brand mark.** Framer Motion viewfinder + layered waveform SVG logo. `animate={true}` plays the intro sequence (center flash, bracket reveal, waveform bars); `animate={false}` renders the settled final state instantly. Props: `size` (px), `animate` (bool, default true), `className`. |
 | `ErrorBoundary` | `ErrorBoundary.tsx` | React error boundary with fallback UI. |
 | `PageSkeleton` | `PageSkeleton.tsx` | Loading skeleton placeholder. |
 | `ClyptIcon` | `ClyptIcon.tsx` | Small Clypt icon (the "C" mark). |
@@ -75,7 +75,7 @@ Complete inventory of all components grouped by domain.
 | `DemoCardShell` | `DemoCardShell.tsx` | Shared card wrapper for demo components. |
 | `DemoSectionLayout` | `DemoSectionLayout.tsx` | Layout wrapper for demo sections. |
 | `ShaderBackground` | `ShaderBackground.tsx` | Section-level Paper Design shader wrapper. Variant-based effect library with reduced-motion static fallbacks for hero, auth, how-it-works, pipeline, showcase, CTA, and onboarding surfaces. The hero variant uses `GemSmoke` in a purple/violet palette so the animation sits over branded motion instead of the older ambient glow. |
-| `HeroFragments/*` | `HeroFragments/` | Floating mini product cards around the hero. The active layout mounts cortex, timeline, and two real clip chips backed by tracked landing media; the fragment editor can persist local layout overrides in `localStorage`. |
+| `HeroFragments/*` | `HeroFragments/` | Floating mini product cards around the hero. The active layout mounts cortex, timeline, and two real clip chips backed by Blob-hosted landing media; the fragment editor can persist local layout overrides in `localStorage`. |
 | `previews/*` | `previews/` | Full landing phase preview surfaces (`LandingTimelinePreview`, `LandingSearchPreview`, `LandingGroundingPreview`, `LandingRenderPreview`) wrapped in `AppFrameMock` so each section previews a real in-app workspace pane. |
 
 ## `src/components/onboarding/` — Onboarding
@@ -107,7 +107,7 @@ Standard shadcn/ui components built on Radix UI. These should generally not be m
 
 Full list: `accordion`, `alert-dialog`, `alert`, `aspect-ratio`, `avatar`, `badge`, `breadcrumb`, `button`, `calendar`, `card`, `carousel`, `chart`, `checkbox`, `ClyptLogo`, `collapsible`, `command`, `context-menu`, `dialog`, `drawer`, `dropdown-menu`, `form`, `hover-card`, `input-otp`, `input`, `label`, `menubar`, `navigation-menu`, `pagination`, `popover`, `progress`, `radio-group`, `resizable`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `sonner`, `switch`, `table`, `tabs`, `textarea`, `toast`, `toaster`, `toggle-group`, `toggle`, `tooltip`.
 
-Notable: `ClyptLogo.tsx` in `ui/` is the **primary logo lockup** used by `Navbar`, `AuthLayout`, `OnboardingLayout`, and `Footer`. It renders `ClyptAnimatedMark` (the scissor/graph mark) alongside a Bricolage Grotesque 700 lowercase "clypt" wordmark. Props: `size` (`sm` | `md` | `lg` | `xl`), `animate` (default `false` — only `Navbar` passes `true`), `defaultExpanded` (no-op, kept for API compat). Size map: sm=38px mark/15px text, md=52/20, lg=70/27, xl=110/46. `AppSidebar` uses `ClyptAnimatedMark` directly (mark only, no wordmark).
+Notable: `ClyptLogo.tsx` in `ui/` is the **primary logo lockup** used by `Navbar`, `AuthLayout`, `OnboardingLayout`, and `Footer`. It renders `ClyptAnimatedMark` (the viewfinder/waveform mark) alongside a Bricolage Grotesque 700 lowercase "clypt" wordmark. Props: `size` (`sm` | `md` | `lg` | `xl`), `animate` (default `false` — only `Navbar` passes `true`), `defaultExpanded` (no-op, kept for API compat). Size map: sm=38px mark/15px text, md=52/20, lg=70/27, xl=110/46. `AppSidebar` uses `ClyptAnimatedMark` directly (mark only, no wordmark).
 
 ## `src/components/NavLink.tsx` — Shared Component
 

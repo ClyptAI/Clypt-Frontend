@@ -6,7 +6,7 @@
 |-------|-----------|---------|
 | Framework | React | 18.3 |
 | Language | TypeScript | 5.8 |
-| Bundler | Vite (SWC plugin) | 5.4 |
+| Bundler | Vite (SWC plugin) | 8.0 |
 | Styling | Tailwind CSS + CSS custom properties | 3.4 |
 | Components | shadcn/ui (Radix primitives) | — |
 | State (client) | Zustand | 5.0 |
@@ -14,7 +14,7 @@
 | Routing | React Router DOM | 6.30 |
 | Graph viz | @xyflow/react (React Flow) + dagre | 12.10 |
 | Animation | Framer Motion | 12.38 |
-| Testing | Vitest + Testing Library + Playwright | — |
+| Testing | Vitest + Testing Library + Playwright | Vitest 4.1 / Playwright 1.57 |
 | Icons | Lucide React | 0.462 |
 
 ## Directory Structure
@@ -40,21 +40,21 @@ src/
 │   └── ui/                  # shadcn/ui primitives (button, input, slider, dialog, etc.)
 │
 ├── hooks/
-│   ├── api/                 # TanStack Query hooks (useRuns, useClips, useNodes, useEdgeList, useEmbeddings, useRender)
+│   ├── api/                 # TanStack Query hooks (runs, clips, nodes/edges, timeline/all-clips, embeddings, grounding, render)
 │   ├── useRunSSE.ts         # Real-time phase updates — EventSource against the real backend, mockRunBus when in mock mode
 │   ├── useTimelineKeyboard.ts  # Keyboard shortcuts for timeline
 │   ├── useVisibleSegments.ts   # Virtualization for timeline lanes
 │   └── use-mobile.tsx       # Responsive breakpoint hook
 │
 ├── lib/
-│   ├── api.ts               # Typed fetch wrappers (apiFetch, runsApi, nodesApi, edgesApi, clipsApi, embeddingsApi, renderApi, groundingApi)
+│   ├── api.ts               # Typed fetch wrappers (runsApi, nodesApi, edgesApi, clipsApi, embeddingsApi, timelineApi, allClipsApi, groundingApi, renderApi)
 │   ├── timeline-utils.ts    # formatTimecode, snap helpers, waveform path gen
 │   └── utils.ts             # cn() — clsx + tailwind-merge
 │
 ├── mocks/                   # Centralized in-memory mock backend (active when VITE_USE_MOCK_API ≠ 'false')
 │   ├── store.ts             # MockDB shape + localStorage-persisted singleton
-│   ├── seed.ts              # Demo run seed (27-node graph, 8 clips, 4 render presets)
-│   ├── api.ts               # mockRunsApi / mockNodesApi / mockEdgesApi / mockClipsApi / mockEmbeddingsApi / mockRenderApi
+│   ├── seed.ts              # Demo run seed (27-node graph, 8 clips, timeline bundles, 4 render presets)
+│   ├── api.ts               # mockRunsApi / mockNodesApi / mockEdgesApi / mockClipsApi / mockEmbeddingsApi / mockTimelineApi / mockAllClipsApi / mockGroundingApi / mockRenderApi
 │   └── lifecycle.ts         # mockRunBus — fake phase progression that useRunSSE subscribes to in mock mode
 │
 ├── stores/
@@ -149,7 +149,9 @@ Real backend (/v1/...)            Mock mode (default)
                   │                                  │
                   ↓ runsApi / nodesApi / edgesApi /  ↓ mockRunsApi / mockNodesApi /
                     clipsApi / embeddingsApi /        mockEdgesApi / mockClipsApi /
-                    renderApi                         mockEmbeddingsApi / mockRenderApi
+                    timelineApi / allClipsApi /       mockEmbeddingsApi / mockTimelineApi /
+                    groundingApi / renderApi          mockAllClipsApi / mockGroundingApi /
+                                                       mockRenderApi
                   ↓                                  ↓
                   └─────── React Query hooks ────────┘
                               src/hooks/api/
@@ -164,9 +166,11 @@ Query keys follow a hierarchical pattern:
 - `['runs', 'list']` → all runs
 - `['runs', 'detail', runId]` → single run
 - `['clips', 'list', runId]` → clips for a run
+- `['clips', 'all']` → cross-run clips list used by the Library clips tab
 - `['nodes', 'list', runId]` → nodes for a run
 - `['edges', 'list', runId]` → edges for a run
 - `['embeddings', runId]` → embeddings for a run
+- `['timeline', 'detail', runId]` → timeline bundle for a run
 - `['render', 'presets']` → render presets
 - `['render', 'status', runId, clipId]` → render job status
 - `['grounding', 'detail', runId, clipId]` → persisted Grounding-page edits (rect overrides, user-added tracklets, hidden originals)
@@ -208,12 +212,15 @@ All calls go through `src/lib/api.ts` via typed API objects. Internal `apiFetch(
 | POST | `/v1/runs/:id/clips/:clipId/approve` | `clipsApi.approve()` | Approve clip |
 | POST | `/v1/runs/:id/clips/:clipId/reject` | `clipsApi.reject()` | Reject clip |
 | GET | `/v1/runs/:id/embeddings` | `embeddingsApi.get()` | Node embeddings (falls back to mock) |
+| GET | `/v1/runs/:id/timeline` | `timelineApi.get()` | Canonical timeline bundle |
 | GET | `/v1/runs/:id/clips/:clipId/grounding` | `groundingApi.get()` | Persisted Grounding-page state (returns empty stub when nothing saved). |
 | PUT | `/v1/runs/:id/clips/:clipId/grounding` | `groundingApi.put()` | Upsert full Grounding state (no server-side merge). |
 | POST | `/v1/runs/:id/clips/:clipId/render` | `renderApi.submit()` | Submit render job |
 | GET | `/v1/runs/:id/clips/:clipId/render` | `renderApi.status()` | Render job status |
 | GET | `/v1/render/presets` | `renderApi.presets()` | Available render presets |
 | SSE | `/v1/runs/:id/events` | `useRunSSE` hook | Real-time phase updates (real mode only — mock mode uses `mockRunBus`) |
+
+`allClipsApi.list()` powers the `/library/clips` grid. In mock mode it reads from `mockAllClipsApi`; in real mode the cross-run clips endpoint is not defined yet and currently returns an empty list.
 
 ## Graph Architecture (Cortex Graph)
 
@@ -259,19 +266,19 @@ This is what the typed API objects in `src/lib/api.ts` delegate to when `VITE_US
 
 | File | Purpose |
 |------|---------|
-| `store.ts` | `MockDB` interface (`runs`, `clips`, `nodes`, `edges`, `renderJobs`, `presets`, `approvals`, `grounding`, `runOrder`) and a singleton instance persisted to `localStorage` under `clypt:mock-db:v1`. Exports `mockDB.get()`, `mockDB.update()`, `mockDB.seedOnce()`. Forward-compat merges new fields onto stale caches via `{...emptyDB(), ...persisted}`. |
-| `seed.ts` | One-time seed: a 27-node demo run (`run_id: "demo"`) with synthetic `next_turn` edges plus 7 rhetorical edges, 8 hand-written `ClipCandidate`s, two secondary runs, and 4 render presets. Also exports `buildPhaseStatus()` for synthesizing phase arrays. |
-| `api.ts` | `mockRunsApi`, `mockNodesApi`, `mockEdgesApi`, `mockClipsApi`, `mockEmbeddingsApi`, `mockRenderApi` — each mirrors the real API shape with a 180ms simulated latency so loading states render. `isMockApiEnabled()` lives here. |
+| `store.ts` | `MockDB` interface (`runs`, `clips`, `nodes`, `edges`, `renderJobs`, `presets`, `approvals`, `grounding`, `timelines`, `runOrder`) and a singleton instance persisted to `localStorage` under `clypt:mock-db:v1`. Exports `mockDB.get()`, `mockDB.update()`, `mockDB.seedOnce()`. Forward-compat merges new fields onto stale caches via `{...emptyDB(), ...persisted}`. |
+| `seed.ts` | One-time seed: a 27-node demo run (`run_id: "demo"`) with synthetic `next_turn` edges plus 7 rhetorical edges, 8 hand-written `ClipCandidate`s, deterministic timeline bundles, two secondary runs, and 4 render presets. Also exports `buildPhaseStatus()` for synthesizing phase arrays. |
+| `api.ts` | `mockRunsApi`, `mockNodesApi`, `mockEdgesApi`, `mockClipsApi`, `mockEmbeddingsApi`, `mockTimelineApi`, `mockAllClipsApi`, `mockGroundingApi`, `mockRenderApi` — each mirrors the real API shape with a short simulated latency so loading states render. `isMockApiEnabled()` lives here. |
 | `lifecycle.ts` | `mockRunBus` — a fake phase progression. When `mockRunsApi.create()` runs, `startMockRunLifecycle()` walks the new run through phases 1→6 over a few seconds, emitting `phase_update` / `run_complete` events that `useRunSSE` subscribes to in mock mode. |
 
 ### Layer 2: page-local mock UI fixtures
 
-Some pages still inline mock data for things the centralized DB doesn't model — speaker waveform peaks, shot/tracklet/emotion/audio-event lanes, signal tag overlays, voiceprints, hardcoded profile info. These are not duplicates of the mock DB; they're decorative UI fixtures the real API will eventually replace.
+Some pages still inline mock data for things the centralized DB doesn't model — signal tag overlays, grounding queues/default assignments, voiceprints, hardcoded profile info, and presentational editor fixtures. These are not duplicates of the mock DB; they're decorative UI fixtures the real API will eventually replace.
 
-- `RunTimeline.tsx`: `MOCK_SPEAKERS`, `MOCK_SHOTS`, tracklets, emotions, audio events
+- `RunTimeline.tsx`: timeline data is fetched through `useTimelineData`; the page still owns presentational lane/playback UI state and the local-only `DEMO_VIDEO_URL`
 - `RunGraph.tsx`: `RAW_NODES`, `RAW_EDGES`, `SIGNAL_TAGS` — used **only** as the fallback when `useNodeList` returns an empty array (e.g. an unrecognized `runId`); the demo run hits the mock DB instead
 - `RunGrounding.tsx`: `QUEUE`, `SHOTS`, speaker bindings, intents
-- `RunRender.tsx`: `RenderStage` mock list, preset card layout
+- `RunRender.tsx`: render-stage UI and preset card layout around API-backed preset/status data
 - `useEmbeddings.ts`: `MOCK_EMBEDDINGS` with seeded `mulberry32` PRNG clusters — currently bypasses the mock DB entirely
 - `SettingsVoiceprints.tsx`: `MOCK` voiceprints array
 - `SettingsProfile.tsx`: hardcoded name/email

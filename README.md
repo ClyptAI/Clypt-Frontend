@@ -28,7 +28,7 @@ It is designed to make Clypt’s reasoning visible instead of hiding everything 
 
 ### Landing experience
 
-The landing page introduces the product through a cinematic GemSmoke-backed hero, a paste-link CTA bar, a one-shot video-to-balanced-graph-to-clips hero animation, sticky shader-backed phase previews, and real clip cards that play repo-owned landing media on interaction.
+The landing page introduces the product through a cinematic GemSmoke-backed hero, a paste-link CTA bar, a one-shot video-to-balanced-graph-to-clips hero animation, sticky shader-backed phase previews, and real clip cards that play Blob-hosted landing media on interaction.
 
 ![Clypt landing page](docs/readme-assets/frontend-landing-2026-04.png)
 
@@ -162,7 +162,7 @@ docs/                              Architecture, pages, components, styling, eva
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ or 22.12+
 - npm
 
 ### Install and run
