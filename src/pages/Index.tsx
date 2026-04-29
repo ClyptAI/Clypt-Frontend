@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
-import HowItWorks from "@/components/landing/HowItWorks";
 import PipelineDemos from "@/components/landing/PipelineDemos";
 import ClipShowcase from "@/components/landing/ClipShowcase";
 import Footer from "@/components/landing/Footer";
@@ -20,7 +19,6 @@ const Index = () => {
       <CustomCursor />
       <Navbar />
       <Hero />
-      <HowItWorks />
       <PipelineDemos />
       <ClipShowcase />
       <Footer />

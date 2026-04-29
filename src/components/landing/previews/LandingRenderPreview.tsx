@@ -184,21 +184,12 @@ export default function LandingRenderPreview() {
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 11,
+                              gap: 12,
                               padding: "7px 10px",
                               background: "rgba(255,255,255,0.025)",
                               borderRadius: 5,
                             }}
                           >
-                            <div
-                              style={{
-                                width: 32,
-                                height: 18,
-                                borderRadius: 3,
-                                background: "rgba(255,255,255,0.06)",
-                                flexShrink: 0,
-                              }}
-                            />
                             <span
                               style={{
                                 fontFamily: "'Geist Mono', monospace",

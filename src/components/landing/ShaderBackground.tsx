@@ -360,7 +360,7 @@ const ShaderBackground = ({
         <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
-            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#5B21B6", "#2A1758", BG]}
             distortion={0.85}
             swirl={0.5}
             {...shaderMotionProps(0.22)}
@@ -376,7 +376,7 @@ const ShaderBackground = ({
         <div ref={setRootEl} aria-hidden className={className} style={shaderRootStyle}>
           <MeshGradient
             {...shaderPerfProps}
-            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#2a5b8c", BG]}
+            colors={[BG, VIOLET_DEEP, "#7C5CD9", "#5B21B6", "#2A1758", BG]}
             distortion={0.85}
             swirl={0.55}
             {...shaderMotionProps(0.4)}
@@ -462,11 +462,11 @@ function staticFallback(variant: ShaderVariant): string {
     case "try-it":
       return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.22) 0%, transparent 60%), #0A0909";
     case "onboard-aurora":
-      return "radial-gradient(ellipse at 30% 20%, rgba(167,139,250,0.22) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.16) 0%, transparent 60%), #0A0909";
+      return "radial-gradient(ellipse at 30% 20%, rgba(167,139,250,0.24) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(124,58,237,0.18) 0%, transparent 60%), #0A0909";
     case "onboard-analyzing":
       return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.32) 0%, transparent 60%), #0A0909";
     case "onboard-ready":
-      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.28) 0%, transparent 55%), radial-gradient(ellipse at 60% 70%, rgba(34,211,238,0.18) 0%, transparent 60%), #0A0909";
+      return "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.28) 0%, transparent 55%), radial-gradient(ellipse at 60% 70%, rgba(124,58,237,0.2) 0%, transparent 60%), #0A0909";
     case "hero":
     default:
       return "radial-gradient(ellipse 72% 62% at 72% 42%, rgba(167,139,250,0.3) 0%, rgba(124,58,237,0.2) 36%, rgba(91,33,182,0.12) 52%, transparent 72%), radial-gradient(ellipse at 42% 20%, rgba(36,20,82,0.44) 0%, transparent 64%), hsl(var(--background))";

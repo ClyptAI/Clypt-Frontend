@@ -196,8 +196,9 @@ const Hero = () => {
 
         <motion.div
           className="relative z-20 w-full justify-self-center lg:self-center"
+          style={{ transformOrigin: "center", scale: 0.96 }}
           initial={{ opacity: 0, x: 28 }}
-          animate={{ opacity: 1, x: 0 }}
+          animate={{ opacity: 1, x: 0, scale: 0.96 }}
           transition={{ duration: 0.8, ease, delay: 0.25 }}
         >
           <ClyptHeroAnimation />

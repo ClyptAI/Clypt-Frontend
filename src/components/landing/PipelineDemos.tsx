@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import LandingGraphDemo from "./LandingGraphDemo";
+import HowItWorks from "./HowItWorks";
 import LandingTimelinePreview from "./previews/LandingTimelinePreview";
 import LandingSearchPreview from "./previews/LandingSearchPreview";
 import LandingGroundingPreview from "./previews/LandingGroundingPreview";
@@ -38,10 +39,10 @@ function Subtext({ children }: { children: string }) {
 }
 
 const typePills = [
-  { label: "claim", border: "hsl(var(--primary) / 0.4)", bg: "hsl(var(--primary) / 0.1)", text: "hsl(var(--primary))" },
-  { label: "explanation", border: "hsl(217 91% 70% / 0.4)", bg: "hsl(217 91% 70% / 0.1)", text: "hsl(213 94% 78%)" },
-  { label: "anecdote", border: "hsl(38 96% 64% / 0.4)", bg: "hsl(38 96% 64% / 0.1)", text: "hsl(46 97% 65%)" },
-  { label: "reaction_beat", border: "hsl(142 76% 64% / 0.4)", bg: "hsl(142 76% 64% / 0.1)", text: "hsl(141 84% 74%)" },
+  { label: "claim", border: "hsl(var(--primary) / 0.9)", bg: "hsl(var(--primary) / 0.3)", text: "hsl(255 100% 90%)" },
+  { label: "explanation", border: "hsl(217 91% 70% / 0.9)", bg: "hsl(217 91% 70% / 0.3)", text: "hsl(213 100% 88%)" },
+  { label: "anecdote", border: "hsl(38 96% 64% / 0.92)", bg: "hsl(38 96% 64% / 0.3)", text: "hsl(46 100% 74%)" },
+  { label: "reaction_beat", border: "hsl(142 76% 64% / 0.9)", bg: "hsl(142 76% 64% / 0.3)", text: "hsl(141 90% 84%)" },
 ];
 
 const phases = [
@@ -85,7 +86,7 @@ const phases = [
     ),
     ui: <LandingGraphDemo />,
     compact: true,
-    rightBleed: 240,
+    rightBleed: 48,
   },
   {
     id: "phase-04",
@@ -131,9 +132,9 @@ const phases = [
         <Subtext>Clypt lets you map which speakers appear in each shot and assign camera direction, so every clip frames the right person at the right moment.</Subtext>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 32 }}>
           {[
-            { letter: "A", name: "Joe", shots: 2, color: "hsl(var(--primary))", bg: "hsl(var(--primary) / 0.2)" },
-            { letter: "B", name: "Andrew", shots: 2, color: "hsl(38 96% 64%)", bg: "hsl(38 96% 64% / 0.2)" },
-            { letter: "C", name: "Akaash", shots: 2, color: "hsl(217 91% 70%)", bg: "hsl(217 91% 70% / 0.2)" },
+            { letter: "A", name: "Akaash", shots: 2, color: "hsl(217 91% 70%)", bg: "hsl(217 91% 70% / 0.22)" },
+            { letter: "B", name: "Andrew", shots: 2, color: "hsl(12 100% 68%)", bg: "hsl(12 100% 68% / 0.2)" },
+            { letter: "C", name: "Joe", shots: 2, color: "hsl(var(--primary))", bg: "hsl(var(--primary) / 0.2)" },
           ].map((s) => (
             <div key={s.letter} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div
@@ -160,7 +161,6 @@ const phases = [
       </>
     ),
     ui: <LandingGroundingPreview />,
-    rightBleed: 64,
   },
   {
     id: "phase-06",
@@ -204,9 +204,10 @@ const phases = [
 
 export default function PipelineDemos() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [activePhase, setActivePhase] = useState(0);
   const { scrollYProgress } = useScroll({
-    target: sectionRef,
+    target: scrollAreaRef,
     offset: ["start start", "end end"],
   });
   const progressHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
@@ -222,8 +223,6 @@ export default function PipelineDemos() {
       style={{
         position: "relative",
         isolation: "isolate",
-        minHeight: `${phases.length * 100}vh`,
-        paddingTop: 112,
         paddingBottom: 112,
         overflow: "clip",
       }}
@@ -238,16 +237,12 @@ export default function PipelineDemos() {
         maxPixelCount={1920 * 1080 * 4}
         style={{ position: "absolute", inset: 0, zIndex: 0 }}
       />
+      <HowItWorks />
       <div
+        ref={scrollAreaRef}
+        className="relative z-10 mx-auto grid w-full max-w-[1240px] grid-cols-1 gap-12 px-6 pt-8 lg:grid-cols-[minmax(280px,0.36fr)_minmax(0,0.64fr)] lg:pl-[88px] lg:pr-8"
         style={{
-          zIndex: 10,
-          position: "relative",
-          width: "min(1240px, 100%)",
-          margin: "0 auto",
-          padding: "0 32px 0 88px",
-          display: "grid",
-          gridTemplateColumns: "minmax(300px, 0.42fr) minmax(0, 0.58fr)",
-          gap: 48,
+          minHeight: `${phases.length * 100}vh`,
           alignItems: "start",
         }}
       >
@@ -262,6 +257,7 @@ export default function PipelineDemos() {
         >
           <div
             aria-hidden="true"
+            className="hidden lg:block"
             style={{
               position: "absolute",
               left: -48,

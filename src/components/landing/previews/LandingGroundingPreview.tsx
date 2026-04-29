@@ -12,7 +12,11 @@ import { landingPhaseFrameSrc } from "../landingMedia";
  *  - Bottom workspace: tracklets row + speaker lanes + transcript word strip.
  */
 
-const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
+const SPEAKER_COLORS = {
+  joe: "#A78BFA",
+  andrew: "#FF7A5C",
+  akaash: "#4A9EFF",
+};
 
 const QUEUE = [
   { label: "Clip 001", time: "0:38 → 1:04", status: "complete" as const },
@@ -23,8 +27,8 @@ const QUEUE = [
 ];
 
 const TRACKLETS = [
-  { letter: "A", boundTo: "Joe", color: SPEAKER_COLORS[0] },
-  { letter: "B", boundTo: "Andrew", color: SPEAKER_COLORS[1] },
+  { letter: "A", boundTo: "Akaash", color: SPEAKER_COLORS.akaash },
+  { letter: "B", boundTo: "Andrew", color: SPEAKER_COLORS.andrew },
 ];
 
 const TRANSCRIPT = [
@@ -124,10 +128,9 @@ export default function LandingGroundingPreview() {
           />
 
           {/* Bounding boxes — positioned over the real frame.
-              The screenshot has Joe (left), Andrew (center), Akaash (right).
-              We mark Andrew (the speaker) and Joe (the reaction target). */}
-          <BBox color={SPEAKER_COLORS[1]} letter="B" name="Andrew" left="36%" top="22%" width="22%" height="62%" />
-          <BBox color={SPEAKER_COLORS[0]} letter="A" name="Joe" left="68%" top="24%" width="20%" height="60%" />
+              The visible boxes map Andrew at center and Akaash at right. */}
+          <BBox color={SPEAKER_COLORS.andrew} letter="B" name="Andrew" left="36%" top="22%" width="22%" height="62%" />
+          <BBox color={SPEAKER_COLORS.akaash} letter="A" name="Akaash" left="68%" top="24%" width="20%" height="60%" />
 
           {/* Queue panel — top-left float */}
           <div
@@ -358,11 +361,11 @@ export default function LandingGroundingPreview() {
 
           {/* Speaker lanes — bar fills the full lane width (the clip's whole
               span) and shows colored regions where the speaker is active. */}
-          <WorkspaceRow label="JOE" labelColor={SPEAKER_COLORS[0]}>
-            <SpeakerBar color={SPEAKER_COLORS[0]} segments={[[0, 0.58]]} />
+          <WorkspaceRow label="AKAASH" labelColor={SPEAKER_COLORS.akaash}>
+            <SpeakerBar color={SPEAKER_COLORS.akaash} segments={[[0, 0.58]]} />
           </WorkspaceRow>
-          <WorkspaceRow label="ANDREW" labelColor={SPEAKER_COLORS[1]}>
-            <SpeakerBar color={SPEAKER_COLORS[1]} segments={[[0.34, 1]]} />
+          <WorkspaceRow label="ANDREW" labelColor={SPEAKER_COLORS.andrew}>
+            <SpeakerBar color={SPEAKER_COLORS.andrew} segments={[[0.34, 1]]} />
           </WorkspaceRow>
 
           {/* Transcript word strip */}
@@ -378,8 +381,7 @@ export default function LandingGroundingPreview() {
             }}
           >
             {TRANSCRIPT.map((word, i) => {
-              const spk = i < 8 ? 0 : 1;
-              const c = SPEAKER_COLORS[spk];
+              const c = i < 8 ? SPEAKER_COLORS.akaash : SPEAKER_COLORS.andrew;
               return (
                 <span
                   key={i}

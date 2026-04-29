@@ -20,36 +20,33 @@ const TYPE_STYLES: Record<string, { pillBg: string; pillText: string }> = {
 const nodeTypes = { clyptNode: ClyptNode };
 const edgeTypes = { clyptEdge: ClyptEdge };
 const graphFrameMaxWidth = 1120;
-const graphViewportLeftBleed = 48;
-const graphViewportRightBleed = 80;
-const graphFitPadding = 0.28;
+const graphViewportLeftBleed = 0;
+const graphViewportRightBleed = 0;
+const graphFitPadding = 0.16;
+const landingNodeWidth = 184;
 
 const demoNodes: Node[] = [
-  { id: "1", type: "clyptNode", position: { x: 10, y: 158 }, data: { label: "Fear grizzlies by default", type: "claim", signals: ["trend"] } },
-  { id: "2", type: "clyptNode", position: { x: 190, y: 54 }, data: { label: "A grizzly is a 900-pound wild dog", type: "explanation", signals: [] } },
-  { id: "3", type: "clyptNode", position: { x: 190, y: 246 }, data: { label: "Maybe the polar bear is just curious?", type: "challenge_exchange", signals: ["comment"] } },
-  { id: "4", type: "clyptNode", position: { x: 395, y: 32 }, data: { label: "No — it smells meat", type: "example", signals: ["comment"] } },
-  { id: "5", type: "clyptNode", position: { x: 395, y: 178 }, data: { label: "What do you even do there?", type: "qa_exchange", signals: [] } },
-  { id: "6", type: "clyptNode", position: { x: 600, y: 100 }, data: { label: "The ice-raft story turns fatal", type: "anecdote", signals: ["retention"] } },
-  { id: "7", type: "clyptNode", position: { x: 600, y: 288 }, data: { label: "Fresh bear sign by the elk", type: "setup_payoff", signals: ["trend", "retention"] } },
-  { id: "8", type: "clyptNode", position: { x: 790, y: 198 }, data: { label: "The camp erupts when it charges", type: "reaction_beat", signals: ["comment", "retention"] } },
+  { id: "1", type: "clyptNode", position: { x: 42, y: 205 }, data: { label: "Fear grizzlies by default", type: "claim", signals: ["trend"], nodeWidth: landingNodeWidth } },
+  { id: "2", type: "clyptNode", position: { x: 246, y: 72 }, data: { label: "A grizzly is a 900-pound wild dog", type: "explanation", signals: [], nodeWidth: landingNodeWidth } },
+  { id: "3", type: "clyptNode", position: { x: 246, y: 326 }, data: { label: "Fresh bear sign by the elk", type: "setup_payoff", signals: ["trend"], nodeWidth: landingNodeWidth } },
+  { id: "4", type: "clyptNode", position: { x: 478, y: 28 }, data: { label: "No — it smells meat", type: "example", signals: ["comment"], nodeWidth: landingNodeWidth } },
+  { id: "5", type: "clyptNode", position: { x: 482, y: 246 }, data: { label: "What do you even do there?", type: "qa_exchange", signals: [], nodeWidth: landingNodeWidth } },
+  { id: "6", type: "clyptNode", position: { x: 704, y: 132 }, data: { label: "The ice-raft story turns fatal", type: "anecdote", signals: ["retention"], nodeWidth: landingNodeWidth } },
+  { id: "7", type: "clyptNode", position: { x: 698, y: 340 }, data: { label: "The camp erupts when it charges", type: "reaction_beat", signals: ["comment", "retention"], nodeWidth: landingNodeWidth } },
 ];
 
 const demoEdges: Edge[] = [
   { id: "e1-2", source: "1", target: "2", type: "clyptEdge", data: { label: "elaborates" } },
+  { id: "e1-3", source: "1", target: "3", type: "clyptEdge", data: { label: "setup_for" } },
   { id: "e2-4", source: "2", target: "4", type: "clyptEdge", data: { label: "supports" } },
-  { id: "e3-4", source: "3", target: "4", type: "clyptEdge", data: { label: "challenges" } },
-  { id: "e4-5", source: "4", target: "5", type: "clyptEdge", data: { label: "answers" } },
-  { id: "e5-6", source: "5", target: "6", type: "clyptEdge", data: { label: "setup_for" } },
-  { id: "e6-1", source: "6", target: "1", type: "clyptEdge", data: { label: "callback_to", dashed: true, animated: true } },
-  { id: "e6-7", source: "6", target: "7", type: "clyptEdge", data: { label: "topic_recurrence", dashed: true } },
-  { id: "e7-8", source: "7", target: "8", type: "clyptEdge", data: { label: "payoff_of" } },
-  { id: "e8-7", source: "8", target: "7", type: "clyptEdge", data: { label: "reaction_to" } },
-  { id: "e3-6", source: "3", target: "6", type: "clyptEdge", data: { label: "escalates" } },
-  { id: "e4-8", source: "4", target: "8", type: "clyptEdge", data: { label: "elaborates" } },
+  { id: "e2-5", source: "2", target: "5", type: "clyptEdge", data: { label: "raises" } },
+  { id: "e3-5", source: "3", target: "5", type: "clyptEdge", data: { label: "foreshadows", dashed: true } },
+  { id: "e4-6", source: "4", target: "6", type: "clyptEdge", data: { label: "escalates" } },
+  { id: "e5-7", source: "5", target: "7", type: "clyptEdge", data: { label: "answers" } },
+  { id: "e6-7", source: "6", target: "7", type: "clyptEdge", data: { label: "triggers" } },
 ];
 
-const legendTypes = ["claim", "explanation", "challenge_exchange", "example", "setup_payoff", "reaction_beat"];
+const legendTypes = ["claim", "explanation", "example", "setup_payoff", "qa_exchange", "reaction_beat"];
 
 export default function LandingGraphDemo() {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -121,11 +118,11 @@ export default function LandingGraphDemo() {
 
   return (
     <div className="mx-auto w-full" style={{ maxWidth: graphFrameMaxWidth }}>
-      <DemoCardShell label="cortex_graph · 8 nodes · 11 edges" className="w-full">
+      <DemoCardShell label="cortex_graph · 7 nodes · 8 edges" className="w-full">
         <div ref={sentinelRef}>
           <div
             style={{
-              height: 400,
+              height: 430,
               position: "relative",
               backgroundImage: "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
               backgroundSize: "24px 24px",

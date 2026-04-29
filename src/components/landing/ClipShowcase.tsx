@@ -182,7 +182,14 @@ const ClipShowcase = () => {
         </motion.h2>
         <motion.p
           className="font-sans mx-auto"
-          style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", maxWidth: 520, marginTop: 12 }}
+          style={{
+            fontSize: 16,
+            color: "rgba(255,255,255,0.78)",
+            maxWidth: 560,
+            marginTop: 12,
+            lineHeight: 1.65,
+            textShadow: "0 2px 18px rgba(0,0,0,0.72)",
+          }}
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -215,7 +222,7 @@ const ClipShowcase = () => {
           return (
             <motion.div
               key={i}
-              data-cursor={card.featured ? "play" : undefined}
+              data-cursor="play"
               className="relative flex-shrink-0"
               role="button"
               tabIndex={0}

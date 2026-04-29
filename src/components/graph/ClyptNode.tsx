@@ -78,6 +78,7 @@ export interface ClyptNodeData {
   label: string;
   type: string;
   signals?: string[];
+  nodeWidth?: number;
   _isHoverTarget?: boolean;
   _isHoverConnected?: boolean;
   _hasHover?: boolean;
@@ -96,6 +97,7 @@ function ClyptNodeComponent({ data, id }: NodeProps) {
   const color  = NODE_TYPE_COLORS[d.type] ?? "#71717A";
   const pill   = PILL_STYLES[d.type]      ?? { pillBg: "rgba(113,113,122,0.15)", pillText: "#A1A1AA" };
   const base   = GLOW_BASE[d.type]        ?? "rgba(167,139,250,";
+  const nodeWidth = typeof d.nodeWidth === "number" ? d.nodeWidth : 160;
 
   // When inside LandingGraphDemo, read hover state from context so the ReactFlow
   // `nodes` prop stays static and never triggers remount cascades. Fall back to
@@ -125,7 +127,7 @@ function ClyptNodeComponent({ data, id }: NodeProps) {
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       style={{
-        width: 160,
+        width: nodeWidth,
         borderRadius: 10,
         padding: "10px 12px",
         background: nodeBg,
