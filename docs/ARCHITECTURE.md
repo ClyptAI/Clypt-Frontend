@@ -275,7 +275,7 @@ This is what the typed API objects in `src/lib/api.ts` delegate to when `VITE_US
 
 Some pages still inline mock data for things the centralized DB doesn't model — signal tag overlays, grounding queues/default assignments, voiceprints, hardcoded profile info, and presentational editor fixtures. These are not duplicates of the mock DB; they're decorative UI fixtures the real API will eventually replace.
 
-- `RunTimeline.tsx`: timeline data is fetched through `useTimelineData`; the page still owns presentational lane/playback UI state and the local-only `DEMO_VIDEO_URL`
+- `RunTimeline.tsx`: timeline data is fetched through `useTimelineData`; the page still owns presentational lane/playback UI state and uses the Blob-hosted root demo video for the seeded `demo` run
 - `RunGraph.tsx`: `RAW_NODES`, `RAW_EDGES`, `SIGNAL_TAGS` — used **only** as the fallback when `useNodeList` returns an empty array (e.g. an unrecognized `runId`); the demo run hits the mock DB instead
 - `RunGrounding.tsx`: `QUEUE`, `SHOTS`, speaker bindings, intents
 - `RunRender.tsx`: render-stage UI and preset card layout around API-backed preset/status data
@@ -283,7 +283,7 @@ Some pages still inline mock data for things the centralized DB doesn't model �
 - `SettingsVoiceprints.tsx`: `MOCK` voiceprints array
 - `SettingsProfile.tsx`: hardcoded name/email
 
-Local video: `public/videos/joeroganflagrant.mp4` (125MB) — used by the demo run, by `ClipBoundaryEditor` as the placeholder cut source, and as the `output_url` returned by the mock render lifecycle.
+Root demo video: `ROOT_DEMO_VIDEO_URL` in `src/lib/demo-media.ts` points at the Vercel Blob-hosted `joeroganflagrant.mp4`. It is used by the seeded demo run, by `ClipBoundaryEditor` as the placeholder cut source, and as the `output_url` returned by the mock render lifecycle. Do not add the 125MB MP4 to Git or rely on a local `/videos/` path for production demos.
 
 ### Test-suite caveat
 

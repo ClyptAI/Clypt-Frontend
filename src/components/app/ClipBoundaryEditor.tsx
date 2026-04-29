@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { ROOT_DEMO_VIDEO_URL } from "@/lib/demo-media";
 
 /**
  * Compact clip boundary editor — the "basic editor" surface used inside the
@@ -8,9 +9,9 @@ import { Play, Pause, ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
  * start/end handles.
  *
  * Because the mock pipeline doesn't actually host cut source videos, we reuse
- * the placeholder video at /videos/joeroganflagrant.mp4 and treat its full
- * duration as the "window" the clip boundaries can move within. When a real
- * backend wires this up, swap `videoSrc` for the per-clip preview stream.
+ * the Blob-hosted root demo video and treat its full duration as the "window"
+ * the clip boundaries can move within. When a real backend wires this up, swap
+ * `videoSrc` for the per-clip preview stream.
  */
 export interface ClipBoundaryEditorProps {
   initialStartMs: number;
@@ -19,7 +20,7 @@ export interface ClipBoundaryEditorProps {
   videoSrc?: string;
 }
 
-const DEFAULT_VIDEO = "/videos/joeroganflagrant.mp4";
+const DEFAULT_VIDEO = ROOT_DEMO_VIDEO_URL;
 const MIN_CLIP_MS = 500;
 
 function fmt(ms: number): string {

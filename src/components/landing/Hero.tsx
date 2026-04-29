@@ -157,8 +157,8 @@ const Hero = () => {
               <LinkIcon size={18} color="hsl(var(--primary))" />
               Paste a YouTube or podcast link
             </div>
-            <a
-              href="/signup"
+            <Link
+              to="/signup"
               className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 font-heading font-semibold transition-transform active:scale-[0.98]"
               style={{
                 fontSize: 15,
@@ -169,7 +169,7 @@ const Hero = () => {
             >
               Try free now
               <ArrowRight size={16} />
-            </a>
+            </Link>
             <Link
               to="/runs/demo/timeline"
               className="inline-flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-5 font-heading font-semibold transition-colors"

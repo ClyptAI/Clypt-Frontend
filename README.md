@@ -133,9 +133,9 @@ That means you can boot the app and immediately browse a working demo run such a
 
 ## Media Assets
 
-- app-facing landing media lives in Vercel Blob; README/docs media stays in Git
-- the large seeded demo run video at `public/videos/joeroganflagrant.mp4` is still local-only on purpose
-- setup notes for that root demo video live in [public/videos/README.md](public/videos/README.md)
+- app-facing media, including the seeded demo run video, lives in Vercel Blob
+- README/docs media stays in Git so GitHub can render it directly
+- local video files under `public/videos/` are ignored and should only be temporary scratch copies
 
 ## Repository Map
 

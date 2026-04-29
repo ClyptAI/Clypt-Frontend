@@ -98,7 +98,7 @@ All render inside `AppShell` (sidebar visible). Run-scoped pages show `RunContex
   - Scrub bar: Waveform-style with hover time preview
   - Time ruler: `TimeRuler` with adaptive tick granularity
   - Lanes: `WaveformLane` per speaker (max 5 primary + 1 "Minor Speakers"), plus optional shot, tracklet, transcript, emotion, audio event lanes
-- **Data:** Timeline bundle data comes from `useTimelineData` / `timelineApi` and defaults to `mockTimelineApi` in mock mode. The root demo video is still local-only: `DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4"`.
+- **Data:** Timeline bundle data comes from `useTimelineData` / `timelineApi` and defaults to `mockTimelineApi` in mock mode. The seeded demo run uses the Blob-hosted `ROOT_DEMO_VIDEO_URL` from `src/lib/demo-media.ts`.
 - **Hooks:** `useTimelineStore` (playhead, zoom, scroll), `useRunDetail`, `useTimelineData`, `useTimelineKeyboard`
 - **State:** `videoDuration`, `videoHeightPx`, `layers` toggles, `selection`, `hoverPct`, `isScrubbing`
 

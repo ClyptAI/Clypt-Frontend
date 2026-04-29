@@ -427,3 +427,52 @@ Increase the hero subheading width and tighten line height so the sentence resol
 **Hero control groups should be tuned as a system: copy width, input width, and sibling CTA buttons must be checked together.** For mock app chrome, distinguish the run/display title from the source filename; never duplicate the same label in adjacent hierarchy slots unless the actual app does.
 
 ---
+
+## 2026-04-29 — Vercel production deep links returned 404 for auth and app routes
+
+**Symptoms**
+- On localhost, clicking or directly opening `/login`, `/signup`, and app-shell routes worked through React Router.
+- On Vercel, direct document requests to those same routes returned Vercel's `404: NOT_FOUND` page.
+- The landing hero's `See demo` path could appear to work when reached through an already-loaded client route, which made the failure look specific to login/signup rather than to deep links generally.
+
+**Root cause**
+The Vite app is a single-page React Router app, but `vercel.json` only defined security headers. It did not include a SPA rewrite from arbitrary route paths back to `/index.html`, so Vercel looked for static files at `/login` and `/signup` and returned 404. The landing auth CTAs also used plain anchor tags, which forced full document requests instead of client-side navigation.
+
+**Fix**
+Add a Vercel rewrite from `/(.*)` to `/index.html` and switch landing login/signup CTAs to React Router `Link` components. This keeps dummy UI routes usable in production while the backend integration is still mocked.
+
+**Affected files**
+- `vercel.json`
+- `src/components/landing/Navbar.tsx`
+- `src/components/landing/Hero.tsx`
+
+**Preventive rule**
+**Every Vite SPA deployed to Vercel needs an explicit deep-link rewrite.** When adding public routes, test both client-side navigation and direct page loads against the deployed domain.
+
+---
+
+## 2026-04-29 — Root demo workspace video was local-only
+
+**Symptoms**
+- Local demo pages could play `public/videos/joeroganflagrant.mp4` when the ignored 125MB file existed on the developer machine.
+- Production and fresh clones could not rely on that local file, so seeded demo playback and mock render output were not fully portable.
+- Docs still instructed teammates to manually copy the demo MP4 into `public/videos/`.
+
+**Root cause**
+The root demo workspace video had been intentionally kept out of Git after an earlier symlink issue, but the app still referenced the local `/videos/joeroganflagrant.mp4` path. That made local dev convenient but left production demos dependent on an asset that was not deployed.
+
+**Fix**
+Upload `joeroganflagrant.mp4` to public Vercel Blob and centralize the URL in `src/lib/demo-media.ts`. Update `RunTimeline`, `RunGrounding`, `ClipBoundaryEditor`, and the mock render lifecycle to use that shared URL. Refresh docs so production-visible video assets are treated as Blob-hosted.
+
+**Affected files**
+- `src/lib/demo-media.ts`
+- `src/pages/RunTimeline.tsx`
+- `src/pages/RunGrounding.tsx`
+- `src/components/app/ClipBoundaryEditor.tsx`
+- `src/mocks/api.ts`
+- `public/videos/README.md`
+
+**Preventive rule**
+**Production-visible demo media must not depend on ignored local files.** Keep large MP4s out of Git, host them in Blob, and reference them through a shared manifest/constant rather than repeated `/videos/` literals.
+
+---

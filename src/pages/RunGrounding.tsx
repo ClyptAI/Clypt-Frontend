@@ -8,6 +8,7 @@ import { TimeRuler } from "@/components/timeline/TimeRuler";
 import { toast } from "sonner";
 import { useClipList } from "@/hooks/api/useClips";
 import { useGroundingState, useUpdateGrounding } from "@/hooks/api/useGrounding";
+import { ROOT_DEMO_VIDEO_URL } from "@/lib/demo-media";
 import { useClipStore } from "@/stores/clip-store";
 import type {
   GroundingClipState, GroundingShotState, GroundingTracklet,
@@ -74,7 +75,7 @@ interface CropPosition { x_percent: number; y_percent: number; height_percent: n
 
 const SPEAKER_COLORS = ["#4A9EFF", "#FF7A5C", "#5CCD8F"];
 const SPEAKER_NAMES: Record<number, string> = { 0: "Joe", 1: "Andrew", 2: "Akaash" };
-const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
+const DEMO_VIDEO_URL = ROOT_DEMO_VIDEO_URL;
 
 const SHOTS: ShotData[] = [
   {

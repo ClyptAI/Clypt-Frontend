@@ -7,6 +7,7 @@ import { useTimelineStore } from "@/stores/timeline-store";
 import { useRunDetail } from "@/hooks/api/useRuns";
 import { useTimelineData } from "@/hooks/api/useTimeline";
 import { useTimelineKeyboard } from "@/hooks/useTimelineKeyboard";
+import { ROOT_DEMO_VIDEO_URL } from "@/lib/demo-media";
 import { formatTimecode } from "@/lib/timeline-utils";
 import type { TimelineSpeakerTurn, EmotionLabel } from "@/types/clypt";
 
@@ -179,8 +180,6 @@ function InfoPanel({ selection, onClose }: { selection: Selection; onClose: () =
 export default function RunTimeline() {
   const { id } = useParams();
   const runId = id || "demo";
-
-  const DEMO_VIDEO_URL = "/videos/joeroganflagrant.mp4";
 
   // ── Timeline store ──────────────────────────────────────────────────────────
   const playheadPosition = useTimelineStore(s => s.playheadPosition);
@@ -390,7 +389,7 @@ export default function RunTimeline() {
 
   // The seeded "demo" run carries a fake YouTube source_url for display, but
   // the actual playable file is the local mp4 — always prefer that for the demo.
-  const videoUrl = runId === "demo" ? DEMO_VIDEO_URL : (runDetail?.source_url ?? "");
+  const videoUrl = runId === "demo" ? ROOT_DEMO_VIDEO_URL : (runDetail?.source_url ?? "");
   const isLocalVideo = videoUrl.startsWith('/') || videoUrl.startsWith('./') || videoUrl.startsWith('blob:');
 
   const getPctFromClientX = useCallback((clientX: number) => {
@@ -805,7 +804,7 @@ export default function RunTimeline() {
                   <span className="font-heading font-medium text-[12px] uppercase tracking-wide whitespace-nowrap" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{speaker.name}</span>
                 </div>
                 <WaveformLane
-                  turns={speaker.turns as any}
+                  turns={speaker.turns}
                   color={spColor}
                   speakerId={speaker.id}
                   totalDuration={videoDuration}
@@ -825,7 +824,7 @@ export default function RunTimeline() {
                 <span className="font-heading font-medium text-[12px] uppercase tracking-wide" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>Minor Speakers</span>
               </div>
               <WaveformLane
-                turns={minorSpeakerObj.turns as any}
+                turns={minorSpeakerObj.turns}
                 color="#71717A"
                 speakerId={99}
                 totalDuration={videoDuration}

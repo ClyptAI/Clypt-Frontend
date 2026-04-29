@@ -14,11 +14,11 @@ This is a dated punch list, not the canonical current-state reference. Items bel
 
 Current status: the Phase 1 timeline data path now exists. `src/lib/api.ts` exposes `timelineApi.get(runId)`, `src/hooks/api/useTimeline.ts` exposes `useTimelineData(runId)`, and `src/mocks/api.ts` exposes `mockTimelineApi.get(runId)`.
 
-Remaining gap: the Timeline page still has some editor/UI fixture behavior around lane presentation and local demo video playback. The root demo video remains local-only at `public/videos/joeroganflagrant.mp4`.
+Current status: the Timeline page still has some editor/UI fixture behavior around lane presentation, but local-only demo video playback is no longer a production gap. The root demo video now uses the Blob-hosted `ROOT_DEMO_VIDEO_URL` from `src/lib/demo-media.ts`.
 
-**Impact:** Timeline is one of the highest-visibility editor pages. Its canonical data path is now wired, but the remaining local fixtures and local-only demo video still matter for production demo quality.
+**Impact:** Timeline is one of the highest-visibility editor pages. Its canonical data path is now wired; the remaining local fixtures still matter for production demo quality.
 
-The highest-leverage remaining piece is deciding whether the production demo workspace should keep using the local-only root demo video or move that video to Blob later.
+The highest-leverage remaining piece is replacing the remaining presentational fixtures with backend-modeled data when the real API is ready.
 
 ---
 
@@ -108,7 +108,7 @@ These were either pre-existing or shipped in later sessions:
 ## Recommended order
 
 1. **Real cross-run clips endpoint** — `useAllClips` is wired, but real mode still returns an empty list until the backend contract exists.
-2. **Production demo video decision** — keep `public/videos/joeroganflagrant.mp4` local-only for dev/demo work or move the root demo workspace video to Blob later.
+2. **Timeline/editor fixture cleanup** — replace page-local editor fixtures as backend contracts firm up.
 3. **Settings + Auth (P2.4, P2.5)** — only worth doing if the rest of the app is going to land in front of real users.
 4. **Grounding cosmetics (P4)** — polish, last.
 

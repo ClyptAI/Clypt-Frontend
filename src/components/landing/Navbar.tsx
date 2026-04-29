@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ClyptLogo } from "@/components/ui/ClyptLogo";
 
 const navLinks = [
@@ -49,17 +50,17 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4" style={{ justifySelf: "end" }}>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="font-sans transition-colors"
             style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
           >
             Sign in
-          </a>
-          <a
-            href="/signup"
+          </Link>
+          <Link
+            to="/signup"
             className="font-sans font-semibold transition-all active:scale-[0.97]"
             style={{
               fontSize: 14,
@@ -79,7 +80,7 @@ const Navbar = () => {
             }}
           >
             Get started today
-          </a>
+          </Link>
         </div>
       </div>
     </nav>

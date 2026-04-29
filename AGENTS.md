@@ -80,7 +80,7 @@ npm run lint         # ESLint
 - Some pages still contain page-local mock UI fixtures for editor-only details not yet modeled by the mock backend
 - The demo run ID is `"demo"` — pages fall back to it when no real data exists
 - Mock data uses deterministic seeded PRNGs (`mulberry32`) for reproducibility
-- Root demo video: `public/videos/joeroganflagrant.mp4` (about 125MB, ignored by Git, served locally by Vite from `/videos/` when present)
+- Root demo video: `ROOT_DEMO_VIDEO_URL` in `src/lib/demo-media.ts` points at the Blob-hosted `joeroganflagrant.mp4`; do not add the 125MB MP4 to Git or rely on local `/videos/` paths for production demos
 
 ### React Flow (Cortex Graph)
 - Layout: dagre (`@dagrejs/dagre`) for automatic node positioning

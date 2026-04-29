@@ -25,6 +25,7 @@ import { MOCK_EMBEDDINGS } from '@/hooks/api/useEmbeddings'
 import { mockDB } from './store'
 import { seedMockDB, buildPhaseStatus, generateTimeline } from './seed'
 import { startMockRunLifecycle } from './lifecycle'
+import { ROOT_DEMO_VIDEO_URL } from '@/lib/demo-media'
 
 // Seed on first import — safe because seedOnce is idempotent.
 mockDB.seedOnce(seedMockDB)
@@ -304,8 +305,8 @@ export const mockRenderApi = {
             clip_id: clipId,
             status: 'completed',
             progress_pct: 100,
-            // Placeholder public asset shipped with the frontend
-            output_url: '/videos/joeroganflagrant.mp4',
+            // Placeholder public asset hosted in Vercel Blob.
+            output_url: ROOT_DEMO_VIDEO_URL,
             error: null,
           }
         })

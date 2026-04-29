@@ -57,7 +57,7 @@ Per request, every page that previews video against the dummy data now points at
 - `src/components/app/ClipBoundaryEditor.tsx` (default `videoSrc`)
 - `src/mocks/seed.ts` (run fixtures)
 
-At that point, `public/videos/joeroganflagrant.mp4` was present for local demo playback. The current convention is different: the root demo video is local-only and ignored by Git; app-facing landing media lives in Vercel Blob.
+At that point, `public/videos/joeroganflagrant.mp4` was present for local demo playback. The current convention is different: the root demo video and app-facing landing media both live in Vercel Blob.
 
 ## 4. The merge
 
@@ -152,7 +152,7 @@ Resolution:
 - Added `public/videos/*.mp4` + `!public/videos/.gitkeep` to `.gitignore`.
 - Added `public/videos/.gitkeep` so the empty folder still ships.
 - Added `public/videos/README.md` documenting the convention, the fresh-checkout setup, and the symlink history (so nobody re-commits one).
-- At that point: copied the real ~125 MB mp4 from a local download into `public/videos/`. Today the large root demo file is still local-only, and app-facing landing media lives in Vercel Blob via `src/components/landing/landingMedia.ts`.
+- At that point: copied the real ~125 MB mp4 from a local download into `public/videos/`. Today the large root demo file is Blob-hosted via `src/lib/demo-media.ts`, and app-facing landing media lives in Vercel Blob via `src/components/landing/landingMedia.ts`.
 
 ### 9.3 `1db1584` — `feat(grounding): manual bounding box editor with per-shot drag/resize/add/delete`
 
