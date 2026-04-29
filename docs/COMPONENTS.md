@@ -66,7 +66,7 @@ Complete inventory of all components grouped by domain.
 | `LandingEmbeddingDemo` | `LandingEmbeddingDemo.tsx` | Scatter plot mockup. |
 | `LandingClipDemo` | `LandingClipDemo.tsx` | Clip candidate card. |
 | `LandingParticipationDemo` | `LandingParticipationDemo.tsx` | Speaker participation visualization. |
-| `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses tracked MP4s plus poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
+| `ClipShowcase` | `ClipShowcase.tsx` | Lower landing clip fan. Uses Vercel Blob MP4s plus repo-tracked poster thumbnails, stays paused by default, plays only on hover+click, resets on hover-off, and shows a single timestamp pill as overlay. |
 | `Features` | `Features.tsx` | Feature grid. |
 | `TryItBar` | `TryItBar.tsx` | Legacy standalone CTA bar with URL input. The current landing route does not render it; the active paste-link CTA lives inside `Hero`. |
 | `Footer` | `Footer.tsx` | Page footer. |

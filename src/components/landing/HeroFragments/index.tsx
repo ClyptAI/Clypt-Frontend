@@ -3,6 +3,7 @@ import { motion, useSpring } from "framer-motion";
 import CortexFragment from "./CortexFragment";
 import TimelineFragment from "./TimelineFragment";
 import ClipChip from "./ClipChip";
+import { getLandingClipPosterSrc, getLandingClipVideoSrc } from "../landingMedia";
 
 const ENTRY = [0.23, 1, 0.32, 1] as [number, number, number, number];
 
@@ -22,12 +23,14 @@ const fragments: FragmentDef[] = [
   { id: "clip-a",   Render: () => (
       <ClipChip title="The pivot moment that changes everything." range="0:00 - 0:20"
         bgFrom="rgba(70,40,30,0.9)" bgTo="rgba(20,10,18,0.95)"
-        videoSrc="/videos/landing/sg_0002_cand_01_vertical_rfdetr_karaoke.mp4" />
+        videoSrc={getLandingClipVideoSrc("sg_0002_cand_01_vertical_rfdetr_karaoke")}
+        posterSrc={getLandingClipPosterSrc("sg_0002_cand_01_vertical_rfdetr_karaoke")} />
     ),                                         position: { left:  560, top: 124 }, rotate:  1.8, pxFactor: -0.014, delay: 0.70, z: 6 },
   { id: "clip-b",   Render: () => (
       <ClipChip title="That's the unlock right there." range="2:27 - 3:43"
         bgFrom="rgba(28,32,52,0.9)" bgTo="rgba(12,12,22,0.95)"
-        videoSrc="/videos/landing/sg_0003_cand_01_vertical_rfdetr_karaoke.mp4" />
+        videoSrc={getLandingClipVideoSrc("sg_0003_cand_01_vertical_rfdetr_karaoke")}
+        posterSrc={getLandingClipPosterSrc("sg_0003_cand_01_vertical_rfdetr_karaoke")} />
     ),                                         position: { left:  376, top:  108 }, rotate: -1.6, pxFactor:  0.016, delay: 0.78, z: 8 },
   { id: "timeline", Render: TimelineFragment, position: { left:  332, top: 430 }, rotate:  0.9, pxFactor: -0.016, delay: 0.86, z: 5 },
 ];

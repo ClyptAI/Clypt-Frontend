@@ -12,18 +12,16 @@ type Props = {
   bgFrom: string;
   bgTo: string;
   videoSrc?: string;
+  posterSrc?: string;
 };
 
-export default function ClipChip({ title, range, bgFrom, bgTo, videoSrc }: Props) {
+export default function ClipChip({ title, range, bgFrom, bgTo, videoSrc, posterSrc }: Props) {
   // 9:16 portrait — bumped up per user request.
   const W = 162;
   const H = Math.round((W * 16) / 9); // ~288
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const posterSrc = videoSrc
-    ? videoSrc.replace("/videos/landing/", "/images/landing-posters/").replace(/\.mp4$/, ".jpg")
-    : undefined;
 
   const resetVideo = () => {
     const video = videoRef.current;

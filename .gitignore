@@ -28,7 +28,10 @@ dist-ssr
 auth-logo-hit-area-patch.png
 
 # Root demo run video stays local-only — see public/videos/README.md.
-# Tracked landing clips live under public/videos/landing/.
+# Landing clips live in Vercel Blob — see public/videos/README.md.
 public/videos/*.mp4
+public/videos/**/*.mp4
 !public/videos/.gitkeep
 .gitnexus
+.vercel
+.env*.local
