@@ -4,6 +4,47 @@ Breaking behaviors encountered during development and their fixes. Documented to
 
 ---
 
+## 2026-04-28 — Landing render CTA pulse snapped at loop boundary
+
+**Symptoms**
+- The "Render 3 clips →" CTA in the landing render preview pulsed, then visibly dropped back to its initial state.
+- The loop read as a jarring reset instead of a continuous breathing highlight.
+
+**Root cause**
+The preview CTA animated `boxShadow` through a three-keyframe loop that faded from no glow to full glow and back to no glow. Repeating that loop made the boundary perceptually obvious because the button spent part of every cycle at a completely unlit state.
+
+**Fix**
+Keep a soft glow as the baseline and animate to a stronger glow with `repeatType: "mirror"`. The animation now reverses smoothly between two visible states instead of restarting from a zero-glow keyframe.
+
+**Affected files**
+- `src/components/landing/previews/LandingRenderPreview.tsx`
+
+**Preventive rule**
+**Decorative pulse loops should mirror between nearby visual states.** Avoid looping from full intensity to a totally unstyled baseline unless the reset itself is intentional.
+
+---
+
+## 2026-04-28 — Landing page flashed white on first load
+
+**Symptoms**
+- Opening the site sometimes showed a brief white flash before the dark Clypt landing page appeared.
+- The flash was most visible on cold loads, hard refreshes, or slower CSS/app startup paths.
+
+**Root cause**
+The raw HTML document had no critical background style. The dark theme lived in `src/index.css`, so the browser could paint its default white canvas before the Vite module graph loaded and applied the app stylesheet.
+
+**Fix**
+Add a tiny critical first-paint style block in `index.html` for `html`, `body`, and `#root` that sets the dark page background, primary text color, zero margin, and minimum shell height before React and the full stylesheet load.
+
+**Affected files**
+- `index.html`
+- `docs/STYLING.md`
+
+**Preventive rule**
+**Dark-only apps need a document-level first-paint background.** Keep the raw HTML shell aligned with the app theme so initial browser paint cannot fall back to white while CSS and JavaScript are still loading.
+
+---
+
 ## 2026-04-28 — Paused landing shaders flickered at section boundaries
 
 **Symptoms**

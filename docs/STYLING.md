@@ -4,6 +4,8 @@
 
 The app uses a **dark-only theme** defined via CSS custom properties in `src/index.css`, mapped to Tailwind utilities in `tailwind.config.ts`. There is no light mode.
 
+`index.html` also includes a tiny critical first-paint style for `html`, `body`, and `#root`. This intentionally repeats the dark background and primary text color as literal hex values because the browser can paint the raw document before `src/index.css` has loaded and before CSS custom properties are available. Keep that inline block limited to non-negotiable shell defaults that prevent first-load flashes.
+
 ## Color System
 
 ### Surface Colors

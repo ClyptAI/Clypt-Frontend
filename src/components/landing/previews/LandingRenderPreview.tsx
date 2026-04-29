@@ -289,13 +289,21 @@ export default function LandingRenderPreview() {
                   ? undefined
                   : {
                       boxShadow: [
-                        "0 0 0 0 rgba(167,139,250,0)",
-                        "0 0 14px 2px rgba(167,139,250,0.4)",
-                        "0 0 0 0 rgba(167,139,250,0)",
+                        "0 0 12px 1px rgba(167,139,250,0.34)",
+                        "0 0 22px 4px rgba(167,139,250,0.54)",
                       ],
                     }
               }
-              transition={animateDecor ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" } : undefined}
+              transition={
+                animateDecor
+                  ? {
+                      duration: 1.6,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: "easeInOut",
+                    }
+                  : undefined
+              }
               style={{
                 padding: "7px 16px",
                 borderRadius: 5,
