@@ -1,7 +1,7 @@
 {
   "name": "Clypt",
   "short_name": "Clypt",
-  "description": "Clypt analyzes long-form video and extracts grounded, render-ready short clips.",
+  "description": "Analyze long-form content, map it against comments & live trends, and generate clips from the moments that matter.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
